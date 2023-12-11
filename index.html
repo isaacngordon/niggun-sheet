@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Sheet</title>
+    <!-- Add your CSS link here -->
+    <style>
+        /* set colors */
+        :root {
+            --primary-color: #ffc107;
+            /* Gold color for links to stand out */
+            --secondary-color: #d9534f;
+            /* Red color for buttons */
+            --background-color: #000;
+            /* Assuming a black background */
+            --text-color: #fff;
+            /* White text for visibility */
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--background-color);
+            /* Assuming a black background */
+            color: var(--text-color);
+            /* White text for visibility */
+            margin: 0;
+            padding: 0;
+        }
+
+        #home h1,
+        #songs-list h2,
+        #song h2,
+        #song-info h3 {
+            text-align: center;
+            color: var(--text-color);
+        }
+
+        #navbar a,
+        #song a {
+            color: #ffc107;
+            /* Gold color for links to stand out */
+            text-decoration: none;
+        }
+
+        #songs-table,
+        #song-info {
+            background-color: rgba(0, 0, 0, 0.7);
+            /* Semi-transparent black for containers */
+            padding: 20px;
+            margin: 20px;
+            border-radius: 8px;
+        }
+
+        input[type="search"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #d9534f;
+            /* Red color for buttons */
+            color: var(--text-color);
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #c9302c;
+            /* Darker red on hover */
+        }
+
+        #song-image img {
+            width: 100%;
+            /* Responsive image */
+            border-radius: 8px;
+        }
+
+        #navbar {
+            background-color: var(--background-color);
+            /* Assuming a black background */
+            overflow: hidden;
+            position: fixed;
+            /* Set the navbar to fixed position */
+            top: 0;
+            /* Position the navbar at the top of the page */
+            width: 100%;
+            /* Full width */
+            z-index: 1;
+            /* Stay on top */
+            border-bottom: 1px solid var(--text-color);
+
+            flex: row nowrap;
+            justify-content: space-around;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="navbar">
+            <a href="niggunsheet.com">Home Page</a>
+            <a href="niggunsheet.com/niggunim">List of Songs</a>
+    </div>
+
+    <!-- Song Table -->
+    <div id="songs-table">
+        <h2>All Niggunim</h2>
+        <!-- Search field -->
+        <input type="search" id="song-search" placeholder="search...">
+        <!-- Table or list to be implemented here -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Song Title</th>
+                    <th>Artist</th>
+                    <th>Contributor</th>
+                    <th>Youtube</th>
+                    <th>Spotify</th>
+                </tr>
+            </thead>
+            <tbody>
+                No Content.
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Song Information -->
+    <div id="song-info">
+        <div id="song-image">
+            <!-- Image goes here -->
+            <img src="path-to-image.jpg" alt="Song Image">
+        </div>
+        <div id="song-details">
+            <h3>Song Title</h3>
+            <p>Artist</p>
+            <p>Contributed By: Yehuda Jacobs</p>
+            <!-- Links to external sites -->
+            <a href="google-drive-link" target="_blank">Download Niggun Sheet</a>
+            <a href="google-drive-link" target="_blank">Download Simcha Sheet</a>
+            <a href="youtube-link" target="_blank">Youtube Playlist</a>
+            <a href="spotify-link" target="_blank">Spotify Playlist</a>
+            <!-- Additional song information -->
+            <p>[Other information]</p>
+            <!-- Lyrics -->
+            <p>Lyrics: This is your birthday song, it isn't very long.</p>
+        </div>
+    </div>
+
+    <!-- Add your JavaScript link here -->
+    <script>
+        // get the contents of thr Google Sheet located at https://docs.google.com/spreadsheets/d/e/2PACX-1vRb1n_nQAvehFWImQ_-b9krIfhC-Gbi8RJrcna4iwI9cXBwLEi7NkDXnaWcx7R59BJilVsMYkq75JkK/pubhtml?urp=gmail_link and parse it into a JSON object, and log it to the console
+
+        const sheetLink = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRb1n_nQAvehFWImQ_-b9krIfhC-Gbi8RJrcna4iwI9cXBwLEi7NkDXnaWcx7R59BJilVsMYkq75JkK/pubhtml?urp=gmail_link";
+        fetch(sheetLink)
+            .then(response => response.text())
+            .then(data => {
+                console.log(data);
+            });
+    </script>
+
+</body>
+
+</html>
