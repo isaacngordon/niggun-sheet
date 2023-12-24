@@ -8,7 +8,7 @@ const app = express();
 
 app.get("/", (req, res) => {
     res.setHeader("Content-Type", "text/html");
-    res.sendFile(__dirname + "/pages/index.html");
+    res.sendFile(__dirname + "/index.html");
 });
 
 app.use("/songs", songsRouter);
