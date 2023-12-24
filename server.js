@@ -1,5 +1,6 @@
 const cors = require('cors');
 const express = require('express');
+const songsRouter = require('./routes/songs.js');
 
 const app = express();
 
@@ -10,11 +11,9 @@ app.get("/", (req, res) => {
     res.sendFile(__dirname + "/index.html");
 });
 
-app.get("/duh", (req, res) => {
-    res.setHeader("Content-Type", "text/html");
-    res.sendFile(__dirname + "/duh.html");
-});
+app.use("/songs", songsRouter);
 
 app.listen(3000, () => {
     console.log("Server started (http://localhost:3000/)");
 });
+

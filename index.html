@@ -112,6 +112,11 @@
 
 <body>
 
+    <div id="data">
+        <!-- Data from CSV will be displayed here -->
+        <p id="data-p">No data.</p>
+    </div>
+
     <div id="navbar">
             <a href="niggunsheet.com">Home Page</a>
             <a href="niggunsheet.com/niggunim">List of Songs</a>
@@ -163,14 +168,18 @@
 
     <!-- Add your JavaScript link here -->
     <script>
-        // get the contents of thr Google Sheet located at https://docs.google.com/spreadsheets/d/e/2PACX-1vRb1n_nQAvehFWImQ_-b9krIfhC-Gbi8RJrcna4iwI9cXBwLEi7NkDXnaWcx7R59BJilVsMYkq75JkK/pubhtml?urp=gmail_link and parse it into a JSON object, and log it to the console
-
-        const sheetLink = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRb1n_nQAvehFWImQ_-b9krIfhC-Gbi8RJrcna4iwI9cXBwLEi7NkDXnaWcx7R59BJilVsMYkq75JkK/pubhtml?urp=gmail_link";
-        fetch(sheetLink)
-            .then(response => response.text())
+        // Fetch songs to populate data area
+        const songs = "/songs";
+        //fetch songs form songs endpoint and populate p element with id= "data-p"
+        fetch(songs)
+            .then(response => response.json())
             .then(data => {
                 console.log(data);
-            });
+                //populate p element with id= "data-p"
+                document.getElementById("data-p").innerHTML = JSON.stringify(data);
+            })
+            .catch(error => console.log(error));
+
     </script>
 
 </body>
