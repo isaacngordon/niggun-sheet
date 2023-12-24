@@ -4,7 +4,7 @@ const songsRouter = require('./routes/songs.js');
 
 const app = express();
 
-app.use(cors("*"));
+// app.use(cors("*"));
 
 app.get("/", (req, res) => {
     res.setHeader("Content-Type", "text/html");
