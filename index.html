@@ -107,15 +107,15 @@
             justify-content: space-around;
             align-items: center;
         }
+        
+        table, td, th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
     </style>
 </head>
 
 <body>
-
-    <div id="data">
-        <!-- Data from CSV will be displayed here -->
-        <p id="data-p">No data.</p>
-    </div>
 
     <div id="navbar">
             <a href="niggunsheet.com">Home Page</a>
@@ -138,7 +138,7 @@
                     <th>Spotify</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="songs-table-body">
                 No Content.
             </tbody>
         </table>
@@ -176,7 +176,18 @@
             .then(data => {
                 console.log(data);
                 //populate p element with id= "data-p"
-                document.getElementById("data-p").innerHTML = JSON.stringify(data);
+                data.forEach(song => {
+                    const songRow = document.createElement("tr");
+                    songRow.innerHTML = `
+                        <td>${song.title}</td>
+                        <td>${song.lyrics}</td>
+                        <td>${song.artist}</td>
+                        <td><a href="${song.drive}" target="_blank">Google Drive</a></td>
+                        <td><a href="${song.youtube}" target="_blank">Youtube</a></td>
+                        <td><a href="${song.spotify}" target="_blank">Spotify</a></td>
+                    `;
+                    document.getElementById("songs-table-body").appendChild(songRow);
+                });
             })
             .catch(error => console.log(error));
 
