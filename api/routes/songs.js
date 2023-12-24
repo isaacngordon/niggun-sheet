@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const pathToSongs = '../../data/songs.csv';
 
-const songsFilePath = path.join(__dirname, '../data/songs.csv');
+const songsFilePath = path.join(__dirname, pathToSongs);
 
 router.get('/', (req, res) => {
     //log request 
