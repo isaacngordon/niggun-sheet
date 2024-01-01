@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Niggun Sheet | Songs List</title>
-    
+
     <link rel="stylesheet" href="css/main.css">
 </head>
 
@@ -34,7 +34,7 @@
                 </tr>
             </thead>
             <tbody id="songs-table-body">
-                
+
             </tbody>
         </table>
     </div>
@@ -44,28 +44,31 @@
         // Fetch songs to populate data area
         const songs = "/api/songs";
         //fetch songs form songs endpoint and populate p element with id= "data-p"
-        document.getElementById("songs-table-body").innerText = "Loading...";
+        document.getElementById("songs-table-body").innerHTML = "<span>Loading...</span>";
         fetch(songs)
             .then(response => response.json())
             .then(data => {
                 console.log(data);
-                //populate p element with id= "data-p"
-                if(data.length === 0) {
-                    document.getElementById("songs-table-body").innerText = "No Content.";
-                } else{
-                data.forEach(song => {
-                    const songRow = document.createElement("tr");
-                    songRow.innerHTML = `
-                        <td>${song.title}</td>
-                        <td>${song.lyrics}</td>
-                        <td>${song.artist}</td>
-                        <td><a href="${song.drive}" target="_blank">Google Drive</a></td>
-                        <td><a href="${song.youtube}" target="_blank">Youtube</a></td>
-                        <td><a href="${song.spotify}" target="_blank">Spotify</a></td>
-                    `;
-                    document.getElementById("songs-table-body").appendChild(songRow);
-                });
-            }
+                // if no results, display "No Content"
+                if (data.length === 0) {
+                    document.getElementById("songs-table-body").innerHTML = "<span>No Content</span>";
+                }
+                // else, populate table with data
+                else {
+                    document.getElementById("songs-table-body").innerHTML = "";
+                    data.forEach(song => {
+                        const songRow = document.createElement("tr");
+                        songRow.innerHTML = `
+                            <td>${song.title}</td>
+                            <td>${song.lyrics}</td>
+                            <td>${song.artist}</td>
+                            <td><a href="${song.drive}" target="_blank">Google Drive</a></td>
+                            <td><a href="${song.youtube}" target="_blank">Youtube</a></td>
+                            <td><a href="${song.spotify}" target="_blank">Spotify</a></td>
+                        `;
+                        document.getElementById("songs-table-body").appendChild(songRow);
+                    });
+                }
             })
             .catch(error => {
                 console.log(error)
