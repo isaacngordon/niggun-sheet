@@ -13,7 +13,7 @@
 
     <div id="navbar">
         <a href="/">Home Page</a>
-        <a href="/songs.html">List of Songs</a>
+        <a href="/songs.html">Song Directory</a>
     </div>
 
     <!-- Hero Section w Title and Search -->
@@ -23,55 +23,36 @@
         <input type="search" id="song-search" placeholder="search...">
     </div>
 
-   
-    <!-- Song Information -->
-    <div id="song-info">
+
+    <!-- Song Information Section to be implemented on a new html doc -->
+    <!-- <div id="song-info">
         <div id="song-image">
-            <!-- Image goes here -->
+            <!/-- Image goes here -/->
             <img src="" alt="Song Image">
         </div>
         <div id="song-details">
             <h3>Song Title</h3>
             <p>Artist</p>
             <p>Contributed By: Yehuda Jacobs</p>
-            <!-- Links to external sites -->
+            <!/-- Links to external sites -/->
             <a href="google-drive-link" target="_blank">Download Niggun Sheet</a>
             <a href="google-drive-link" target="_blank">Download Simcha Sheet</a>
             <a href="youtube-link" target="_blank">Youtube Playlist</a>
             <a href="spotify-link" target="_blank">Spotify Playlist</a>
-            <!-- Additional song information -->
+            <!/-- Additional song information -/->
             <p>[Other information]</p>
-            <!-- Lyrics -->
+            <!/-- Lyrics -/->
             <p>Lyrics: This is your birthday song, it isn't very long.</p>
         </div>
+    </div> -->
+
+    <!-- Foot containing links to external sites -->
+    <div id="footer">
+        <a href="google-drive-link" target="_blank">Download Niggun Sheet</a>
+        <a href="google-drive-link" target="_blank">Download Simcha Sheet</a>
+        <a href="youtube-link" target="_blank">Youtube Playlist</a>
+        <a href="spotify-link" target="_blank">Spotify Playlist</a>
     </div>
-
-    <!-- Add your JavaScript link here -->
-    <script>
-        // Fetch songs to populate data area
-        const songs = "/api/songs";
-        //fetch songs form songs endpoint and populate p element with id= "data-p"
-        fetch(songs)
-            .then(response => response.json())
-            .then(data => {
-                console.log(data);
-                //populate p element with id= "data-p"
-                data.forEach(song => {
-                    const songRow = document.createElement("tr");
-                    songRow.innerHTML = `
-                        <td>${song.title}</td>
-                        <td>${song.lyrics}</td>
-                        <td>${song.artist}</td>
-                        <td><a href="${song.drive}" target="_blank">Google Drive</a></td>
-                        <td><a href="${song.youtube}" target="_blank">Youtube</a></td>
-                        <td><a href="${song.spotify}" target="_blank">Spotify</a></td>
-                    `;
-                    document.getElementById("songs-table-body").appendChild(songRow);
-                });
-            })
-            .catch(error => console.log(error));
-
-    </script>
 
 </body>
 

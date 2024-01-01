@@ -10,6 +10,21 @@
     /* White text for visibility */
 }
 
+#footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    text-align: center;
+    display: flex;
+    justify-content: space-between; /* Add space between children */
+    align-items: center;
+    padding: 10px;
+    border-top: 1px solid var(--text-color);
+}
+
 body {
     font-family: 'Arial', sans-serif;
     background-color: var(--background-color);
