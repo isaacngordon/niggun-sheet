@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 Not Found</title>
+    <style>
+        :root {
+            --primary-color: #ffc107;
+            --secondary-color: #d9534f;
+            --background-color: #000;
+            --text-color: #fff;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #navbar {
+            background-color: var(--background-color);
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1;
+            border-bottom: 1px solid var(--text-color);
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        #navbar a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        h1 {
+            font-size: 3rem;
+        }
+
+        p {
+            font-size: 1.5rem;
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 1.25rem;
+        }
+
+        a:hover {
+            color: var(--secondary-color);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="navbar">
+        <a href="/">Home Page</a>
+        <a href="/">List of Songs</a>
+    </div>
+
+    <div id="error-content">
+        <h1>404 Not Found</h1>
+        <p>Oops! The page you're looking for doesn't exist.</p>
+        <p>You may want to head back to the <a href="/">homepage</a>.</p>
+    </div>
+
+</body>
+
+</html>

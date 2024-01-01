@@ -91,21 +91,21 @@
 
         #navbar {
             background-color: var(--background-color);
-            /* Assuming a black background */
             overflow: hidden;
             position: fixed;
-            /* Set the navbar to fixed position */
             top: 0;
-            /* Position the navbar at the top of the page */
             width: 100%;
-            /* Full width */
             z-index: 1;
-            /* Stay on top */
             border-bottom: 1px solid var(--text-color);
-
-            flex: row nowrap;
+            display: flex;
+            flex-direction: row;
             justify-content: space-around;
             align-items: center;
+        }
+
+        #navbar a {
+            color: var(--primary-color);
+            text-decoration: none;
         }
         
         table, td, th {
@@ -118,8 +118,8 @@
 <body>
 
     <div id="navbar">
-            <a href="niggunsheet.com">Home Page</a>
-            <a href="niggunsheet.com/niggunim">List of Songs</a>
+        <a href="/">Home Page</a>
+        <a href="/">List of Songs</a>
     </div>
 
     <!-- Song Table -->
@@ -170,7 +170,7 @@
     <!-- Add your JavaScript link here -->
     <script>
         // Fetch songs to populate data area
-        const songs = "/songs";
+        const songs = "/api/songs";
         //fetch songs form songs endpoint and populate p element with id= "data-p"
         fetch(songs)
             .then(response => response.json())

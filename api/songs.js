@@ -1,11 +1,12 @@
 const express = require('express');
+const app = express();
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 
 const songsFilePath = path.join(__dirname, '../data/songs.csv');
 
-router.get('/', (req, res) => {
+function handler(req, res) {
     //log request 
     console.log(`Handling GET /songs ${req.query} from ${req.ip}`);
 
@@ -30,7 +31,11 @@ router.get('/', (req, res) => {
         console.log(songs[0] == null ? songs.slice(1) : songs);
         res.json(songs[0] == null ? songs.slice(1) : songs);
     });
+}
+
+app.get('/api/songs', (req, res) => {
+    return handler(req, res);
 });
 
 
-module.exports = router;
+module.exports = app;
