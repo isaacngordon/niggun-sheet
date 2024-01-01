@@ -1,0 +1,115 @@
+/* set colors */
+:root {
+    --primary-color: #ffc107;
+    /* Gold color for links to stand out */
+    --secondary-color: #d9534f;
+    /* Red color for buttons */
+    --background-color: #000;
+    /* Assuming a black background */
+    --text-color: #fff;
+    /* White text for visibility */
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--background-color);
+    /* Assuming a black background */
+    color: var(--text-color);
+    /* White text for visibility */
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--secondary-color);
+}
+
+#home h1,
+#songs-list h2,
+#song h2,
+#song-info h3 {
+    text-align: center;
+    color: var(--text-color);
+}
+
+#songs-table,
+#song-info {
+    background-color: rgba(0, 0, 0, 0.7);
+    /* Semi-transparent black for containers */
+    padding: 20px;
+    margin: 20px;
+    border-radius: 8px;
+}
+
+input[type="search"] {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 4px;
+}
+
+button {
+    background-color: #d9534f;
+    /* Red color for buttons */
+    color: var(--text-color);
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    transition: 0.3s;
+}
+
+button:hover {
+    background-color: #c9302c;
+    /* Darker red on hover */
+}
+
+#song-image img {
+    width: 100%;
+    /* Responsive image */
+    border-radius: 8px;
+}
+
+#navbar {
+    background-color: var(--background-color);
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1;
+    border-bottom: 1px solid var(--text-color);
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+}
+
+#navbar a {
+    font-size: 1.25rem;
+}
+
+table,
+td,
+th {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+

@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Niggun Sheet | Home</title>
-    <!-- Add your CSS link here -->
+    <title>Niggun Sheet | Songs List</title>
+    
     <link rel="stylesheet" href="css/main.css">
 </head>
 
@@ -16,34 +16,27 @@
         <a href="/songs.html">List of Songs</a>
     </div>
 
-    <!-- Hero Section w Title and Search -->
-    <div id="hero">
-        <h1>Niggun Sheet</h1>
-        <p>Search for niggunim and simcha songs</p>
+    <!-- Song Table -->
+    <div id="songs-table">
+        <h2>All Niggunim</h2>
+        <!-- Search field -->
         <input type="search" id="song-search" placeholder="search...">
-    </div>
-
-   
-    <!-- Song Information -->
-    <div id="song-info">
-        <div id="song-image">
-            <!-- Image goes here -->
-            <img src="" alt="Song Image">
-        </div>
-        <div id="song-details">
-            <h3>Song Title</h3>
-            <p>Artist</p>
-            <p>Contributed By: Yehuda Jacobs</p>
-            <!-- Links to external sites -->
-            <a href="google-drive-link" target="_blank">Download Niggun Sheet</a>
-            <a href="google-drive-link" target="_blank">Download Simcha Sheet</a>
-            <a href="youtube-link" target="_blank">Youtube Playlist</a>
-            <a href="spotify-link" target="_blank">Spotify Playlist</a>
-            <!-- Additional song information -->
-            <p>[Other information]</p>
-            <!-- Lyrics -->
-            <p>Lyrics: This is your birthday song, it isn't very long.</p>
-        </div>
+        <!-- Table or list to be implemented here -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Song Title</th>
+                    <th>Artist</th>
+                    <th>Contributor</th>
+                    <th>Google Drive</th>
+                    <th>Youtube</th>
+                    <th>Spotify</th>
+                </tr>
+            </thead>
+            <tbody id="songs-table-body">
+                
+            </tbody>
+        </table>
     </div>
 
     <!-- Add your JavaScript link here -->
@@ -51,11 +44,15 @@
         // Fetch songs to populate data area
         const songs = "/api/songs";
         //fetch songs form songs endpoint and populate p element with id= "data-p"
+        document.getElementById("songs-table-body").innerText = "Loading...";
         fetch(songs)
             .then(response => response.json())
             .then(data => {
                 console.log(data);
                 //populate p element with id= "data-p"
+                if(data.length === 0) {
+                    document.getElementById("songs-table-body").innerText = "No Content.";
+                } else{
                 data.forEach(song => {
                     const songRow = document.createElement("tr");
                     songRow.innerHTML = `
@@ -68,9 +65,12 @@
                     `;
                     document.getElementById("songs-table-body").appendChild(songRow);
                 });
+            }
             })
-            .catch(error => console.log(error));
-
+            .catch(error => {
+                console.log(error)
+                document.getElementById("songs-table-body").innerText = "Error loading songs.";
+            });
     </script>
 
 </body>
