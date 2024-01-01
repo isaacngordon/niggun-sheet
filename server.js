@@ -1,6 +1,7 @@
 const cors = require('cors');
 const express = require('express');
 const songsRouter = require('./routes/songs.js');
+const path = require('path');
 
 const app = express();
 
@@ -8,11 +9,8 @@ const app = express();
 
 app.use("/songs", songsRouter);
 
-app.get("/", (req, res) => {
-    res.setHeader("Content-Type", "text/html");
-    res.sendFile(__dirname + "/index.html");
-});
-
+// set static files to public folder
+app.use(express.static(path.join(__dirname, 'public')));
 
 
 app.listen(3000, () => {
