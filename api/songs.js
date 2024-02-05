@@ -23,8 +23,8 @@ function handler(req, res) {
             // Skip the last line (if empty)
             if (!line) return;
             const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
-            const [title, lyrics, artist] = line.split(regex).map(cell => cell.replace(/"/g, ''));
-            return { title, lyrics, artist };
+            const [search_title, title, lyrics, artist, drive, youtube] = line.split(regex).map(cell => cell.replace(/"/g, ''));
+            return {search_title,  title, lyrics, artist, drive, youtube };
         });
 
         // remove the first element in the array if it is null otherwise return the array
