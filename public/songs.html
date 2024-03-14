@@ -25,9 +25,10 @@
         <table>
             <thead>
                 <tr>
+                    <th>Search Title</th>
                     <th>Song Title</th>
                     <th>Artist</th>
-                    <th>Contributor</th>
+                    <th>Lyrics</th>
                     <th>Google Drive</th>
                     <th>Youtube</th>
                     <th>Spotify</th>
@@ -65,9 +66,10 @@
                     data.forEach(song => {
                         const songRow = document.createElement("tr");
                         songRow.innerHTML = `
+                            <td>${song.search_title}</td>
                             <td>${song.title}</td>
-                            <td>${song.lyrics}</td>
                             <td>${song.artist}</td>
+                            <td>${song.lyrics}</td>
                             <td><a href="${song.drive}" target="_blank">Google Drive</a></td>
                             <td><a href="${song.youtube}" target="_blank">Youtube</a></td>
                             <td><a href="${song.spotify}" target="_blank">Spotify</a></td>
