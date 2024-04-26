@@ -7,11 +7,41 @@
     <title>Niggun Sheet | Home</title>
     <!-- Add your CSS link here -->
     <link rel="stylesheet" href="css/main.css">
+    <style>
+        /* Your CSS styles here */
+        /* Styles for the search results */
+        #search-results {
+            position: absolute;
+            width: calc(100% - 20px);
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+            padding: 10px;
+            display: none; /* Hide by default */
+            z-index: 1; /* Ensure it's above other elements */
+        }
+
+        #search-results a {
+            display: block;
+            padding: 5px 0;
+            color: #333;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #search-results a:hover {
+            background-color: #f5f5f5;
+        }
+    </style>
 </head>
 
-<body style="display: flex;">
+<body>
 
-    <div id="navbar" >
+    <div id="navbar">
         <a href="/">Home Page</a>
         <a href="/songs.html">Song Directory</a>
     </div>
@@ -20,37 +50,70 @@
     <div id="hero">
         <h1>Niggun Sheet</h1>
         <p>Search for niggunim and simcha songs</p>
+        <!-- Add an ID to the search input field -->
         <input type="search" id="song-search" placeholder="search...">
+        <!-- Container for search results -->
+        <div id="search-results"></div>
     </div>
-
-
-    <!-- Song Information Section to be implemented on a new html doc -->
-    <!-- <div id="song-info">
-        <div id="song-image">
-            <!/-- Image goes here -/->
-            <img src="" alt="Song Image">
-        </div>
-        <div id="song-details">
-            <h3>Song Title</h3>
-            <p>Artist</p>
-            <p>Contributed By: Yehuda Jacobs</p>
-            <!/-- Links to external sites -/->
-            <a href="google-drive-link" target="_blank">Download Niggun Sheet</a>
-            <a href="google-drive-link" target="_blank">Download Simcha Sheet</a>
-            <a href="youtube-link" target="_blank">Youtube Playlist</a>
-            <a href="spotify-link" target="_blank">Spotify Playlist</a>
-            <!/-- Additional song information -/->
-            <p>[Other information]</p>
-            <!/-- Lyrics -/->
-            <p>Lyrics: This is your birthday song, it isn't very long.</p>
-        </div>
-    </div> -->
 
     <!-- Foot containing links to external sites -->
     <div id="footer">
         <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
         <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
     </div>
+
+    <script>
+        // Function to display search results
+        function displaySearchResults(results) {
+            const searchResults = document.getElementById('search-results');
+            // Clear previous results
+            searchResults.innerHTML = '';
+
+            // Display new results
+            results.forEach(result => {
+                const resultLink = document.createElement('a');
+                resultLink.textContent = `${result.title}`;
+                // Redirect to dynamic page with song details when clicked
+                resultLink.addEventListener('click', function() {
+                    // Navigate to dynamic page with song details
+                    window.location.href = `/song-details.html?title=${encodeURIComponent(result.title)}&artist=${encodeURIComponent(result.artist)}`;
+                });
+                searchResults.appendChild(resultLink);
+            });
+
+            // Show the search results container
+            searchResults.style.display = 'block';
+        }
+
+        // Add event listener for input change
+        document.getElementById('song-search').addEventListener('input', function() {
+            // Get the search query value
+            const searchQuery = this.value.toLowerCase();
+            // Fetch songs data from the server
+            fetch('/api/songs')
+                .then(response => response.json())
+                .then(data => {
+                    // Filter songs based on the search query
+                    const filteredResults = data.filter(song =>
+                        song.title.toLowerCase().includes(searchQuery) || song.search_title.toLowerCase().includes(searchQuery)
+                    );
+                    // Display search results
+                    displaySearchResults(filteredResults);
+                })
+                .catch(error => {
+                    console.error('Error fetching songs:', error);
+                });
+        });
+
+        // Hide search results when clicking outside the search input field
+        document.addEventListener('click', function(event) {
+            const searchInput = document.getElementById('song-search');
+            const searchResults = document.getElementById('search-results');
+            if (event.target !== searchInput && event.target !== searchResults) {
+                searchResults.style.display = 'none';
+            }
+        });
+    </script>
 
 </body>
 
