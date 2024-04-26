@@ -7,36 +7,6 @@
     <title>Niggun Sheet | Home</title>
     <!-- Add your CSS link here -->
     <link rel="stylesheet" href="css/main.css">
-    <style>
-        /* Your CSS styles here */
-        /* Styles for the search results */
-        #search-results {
-            position: absolute;
-            width: calc(100% - 20px);
-            max-height: 200px;
-            overflow-y: auto;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            margin-top: 10px;
-            padding: 10px;
-            display: none; /* Hide by default */
-            z-index: 1; /* Ensure it's above other elements */
-        }
-
-        #search-results a {
-            display: block;
-            padding: 5px 0;
-            color: #333;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        #search-results a:hover {
-            background-color: #f5f5f5;
-        }
-    </style>
 </head>
 
 <body>
@@ -62,6 +32,7 @@
         <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
     </div>
 
+    <!-- Add your JavaScript link here -->
     <script>
         // Function to display search results
         function displaySearchResults(results) {
@@ -95,7 +66,7 @@
                 .then(data => {
                     // Filter songs based on the search query
                     const filteredResults = data.filter(song =>
-                        song.title.toLowerCase().includes(searchQuery) || song.search_title.toLowerCase().includes(searchQuery)
+                        song.title.toLowerCase().includes(searchQuery) || song.artist.toLowerCase().includes(searchQuery)
                     );
                     // Display search results
                     displaySearchResults(filteredResults);
@@ -118,3 +89,4 @@
 </body>
 
 </html>
+

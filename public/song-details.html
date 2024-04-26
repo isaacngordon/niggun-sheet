@@ -5,11 +5,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Song Details</title>
-
-    <!-- Link to the CSS file -->
     <link rel="stylesheet" href="css/main.css">
-</head>
+    <style>
+        /* Style for the audio player */
+        .audio-player-container {
+            width: 300px;
+            margin: 20px auto;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
 
+        .audio-player {
+            width: 100%;
+            height: 50px;
+            border: none;
+            outline: none;
+        }
+        /* Preserve line breaks in the lyrics */
+        #song-lyrics {
+            white-space: pre-line;
+        }
+
+        /* CSS to style the icons on the player */
+.audio-controls button {
+    color: yellow; /* Set the color of the icons to yellow */
+}
+
+    </style>
+</head>
 
 <body>
 
@@ -21,17 +45,21 @@
     <!-- Song Details Container -->
     <div id="song-details">
         <div class="song-info">
-            <h2>Song Title</h2>
-            <p><strong>Artist:</strong> Artist Name</p>
-            <p><strong>Lyrics:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+            <h2 id="song-title">Song Title</h2>
+            <p><strong>Artist:</strong> <span id="song-artist">Artist Name</span></p>
+            <p><strong>Lyrics:</strong> <span id="song-lyrics">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</span></p>
         </div>
         <div class="external-links">
             <h3>External Links</h3>
             <ul>
                 <li><a href="#" target="_blank">Google Drive</a></li>
-                <li><a href="#" target="_blank">Youtube</a></li>
                 <li><a href="#" target="_blank">Spotify</a></li>
             </ul>
+        </div>
+        <!-- Audio Player Container -->
+        <div class="audio-player-container" id="audio-player-container">
+            <!-- Embed YouTube audio player -->
+            <iframe class="audio-player" id="audio-player" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         </div>
     </div>
 
@@ -40,6 +68,38 @@
         <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
         <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
     </div>
+
+    <!-- JavaScript to populate song details and YouTube player -->
+    <!-- JavaScript to populate song details and YouTube player -->
+<script>
+    // Function to parse URL parameters
+    function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, '\\$&');
+        var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, ' '));
+    }
+
+    // Retrieve song details from URL parameters
+    const title = getParameterByName('title');
+    const artist = getParameterByName('artist');
+    const lyrics = getParameterByName('lyrics');
+    const drive = getParameterByName('drive');
+    const youtube = getParameterByName('youtube');
+
+    // Update song details in the HTML
+    document.getElementById('song-title').innerText = title;
+    document.getElementById('song-artist').innerText = artist;
+    document.getElementById('song-lyrics').innerText = lyrics;
+
+    // Embed YouTube audio player with the video ID
+    const youtubeEmbedUrl = `https://www.youtube.com/embed/${youtube}?autoplay=0&controls=0&mute=1&showinfo=0`;
+    document.getElementById('audio-player').src = youtubeEmbedUrl;
+</script>
+
 
 </body>
 
