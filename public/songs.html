@@ -26,12 +26,12 @@
             <thead>
                 <tr>
                     <th>Search Title</th>
-                    <th>Song Title</th>
-                    <th>Artist</th>
-                    <th>Lyrics</th>
-                    <th>Google Drive</th>
-                    <th>Youtube</th>
-                    <th>Spotify</th>
+                    <th style="display:none;">Title</th> <!-- Hidden column for song title -->
+                    <th style="display:none;">Artist</th> <!-- Hidden column for artist -->
+                    <th style="display:none;">Lyrics</th> <!-- Hidden column for lyrics -->
+                    <th style="display:none;">Google Drive</th> <!-- Hidden column for Google Drive link -->
+                    <th style="display:none;">Youtube</th> <!-- Hidden column for Youtube link -->
+                    <th style="display:none;">Spotify</th> <!-- Hidden column for Spotify link -->
                 </tr>
             </thead>
             <tbody id="songs-table-body">
@@ -50,38 +50,56 @@
     <script>
         // Fetch songs to populate data area
         const songs = "/api/songs";
-        //fetch songs form songs endpoint and populate p element with id= "data-p"
-        document.getElementById("songs-table-body").innerHTML = "<span>Loading...</span>";
+        const songsTableBody = document.getElementById("songs-table-body");
+
+        // Function to render songs into the table
+        function renderSongs(songs) {
+            songsTableBody.innerHTML = "";
+            songs.forEach(song => {
+                const songRow = document.createElement("tr");
+                songRow.innerHTML = `
+                    <td class="search-title">${song.search_title}</td>
+                    <td style="display:none;">${song.title}</td> <!-- Hidden column for song title -->
+                    <td style="display:none;">${song.artist}</td> <!-- Hidden column for artist -->
+                    <td style="display:none;">${song.lyrics}</td> <!-- Hidden column for lyrics -->
+                    <td style="display:none;"><a href="${song.drive}" target="_blank">Google Drive</a></td> <!-- Hidden column for Google Drive link -->
+                    <td style="display:none;"><a href="${song.youtube}" target="_blank">Youtube</a></td> <!-- Hidden column for Youtube link -->
+                    <td style="display:none;"><a href="${song.spotify}" target="_blank">Spotify</a></td> <!-- Hidden column for Spotify link -->
+                `;
+                songsTableBody.appendChild(songRow);
+
+                // Add click event listener to each row
+                songRow.addEventListener("click", function() {
+                    // Navigate to dynamic page with song details
+                    window.location.href = `/song-details.html?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}`;
+                });
+            });
+        }
+
+        // Initial fetch of songs
         fetch(songs)
             .then(response => response.json())
             .then(data => {
-                console.log(data);
-                // if no results, display "No Content"
-                if (data.length === 0) {
-                    document.getElementById("songs-table-body").innerHTML = "<span>No Content</span>";
-                }
-                // else, populate table with data
-                else {
-                    document.getElementById("songs-table-body").innerHTML = "";
-                    data.forEach(song => {
-                        const songRow = document.createElement("tr");
-                        songRow.innerHTML = `
-                            <td>${song.search_title}</td>
-                            <td>${song.title}</td>
-                            <td>${song.artist}</td>
-                            <td>${song.lyrics}</td>
-                            <td><a href="${song.drive}" target="_blank">Google Drive</a></td>
-                            <td><a href="${song.youtube}" target="_blank">Youtube</a></td>
-                            <td><a href="${song.spotify}" target="_blank">Spotify</a></td>
-                        `;
-                        document.getElementById("songs-table-body").appendChild(songRow);
-                    });
-                }
+                renderSongs(data);
             })
             .catch(error => {
-                console.log(error)
-                document.getElementById("songs-table-body").innerText = "Error loading songs.";
+                console.log(error);
+                songsTableBody.innerText = "Error loading songs.";
             });
+
+        // Event listener for search input
+        document.getElementById("song-search").addEventListener("input", function(event) {
+            const query = event.target.value.toLowerCase();
+            const searchTitleCells = document.querySelectorAll(".search-title");
+            searchTitleCells.forEach(cell => {
+                const row = cell.parentNode;
+                if (cell.textContent.toLowerCase().includes(query)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        });
     </script>
 
 </body>
