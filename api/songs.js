@@ -52,7 +52,7 @@ function get_all_songs_handler(req, res) {
 }
 
 app.get('/api/songs', (req, res) => {
-    return get_all_songs_handler(req, res);
+    return csv_handler(req, res);
 });
 
 
