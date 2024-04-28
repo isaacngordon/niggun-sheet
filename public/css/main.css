@@ -7,7 +7,7 @@ body {
     background-repeat: no-repeat;
     background-position: center;
     background-color: #000000; /* Light gray background */
-    color: #f2cb05; /* Dark text */
+    color: #ffffff; /* Dark text */
     margin: 0; /* Remove default margin */
     display: flex;
     flex-direction: column;
