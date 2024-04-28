@@ -1,23 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Song Details</title>
     <link rel="stylesheet" href="css/main.css">
+    
     <style>
-        /* Set background color to black */
+        /* Add your custom styles here */
         body {
-            background-color: black;
-            color: black; /* Set text color to white for better visibility */
+            background-color: white; /* White background */
+            color: black; /* Black text color */
+            text-align: center; /* Center align content */
+            padding: 20px; /* Add some padding */
         }
 
-        /* Style the navbar and footer links */
-        #navbar a, #footer a {
-            color: white;
+        #song-details {
+            max-width: 600px; /* Limit width to 600px */
+            margin: 0 auto; /* Center horizontally */
         }
     </style>
 </head>
+
 <body>
     <div id="navbar">
         <a href="/">Home Page</a>
@@ -27,9 +32,10 @@
     <div id="song-details">
         <h2>Song Details</h2>
         <div id="details-container">
-            <p><strong>Title:</strong> <a id="song-title" href="#" target="_blank">Song Title</a></p>
-            <p><strong>Artist:</strong> <span id="song-artist">Artist Name</span></p>
-            <p><strong>Lyrics:</strong> <span id="song-lyrics">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</span></p>
+            <p><strong>Title:</strong> <span id="song-title">Loading...</span></p>
+            <p><strong>Artist:</strong> <span id="song-artist">Loading...</span></p>
+            <p><strong>Lyrics:</strong></p>
+            <p id="song-lyrics">Loading...</p>
             <p><strong>Google Drive:</strong> <a id="google-drive-link" href="#" target="_blank">Link</a></p>
             <p><strong>YouTube:</strong> <a id="youtube-link" href="#" target="_blank">Link</a></p>
             <p><strong>Spotify:</strong> <a id="spotify-link" href="#" target="_blank">Link</a></p>
@@ -42,32 +48,39 @@
     </div>
 
     <script>
-        // Function to fetch song data from the API based on title
-        function fetchSongData(title) {
-            fetch(`/api/songs?title=${encodeURIComponent(title)}`)
-                .then(response => response.json())
-                .then(songData => {
-                    if (songData && songData.length > 0) {
-                        const song = songData[0];
-                        document.getElementById("song-title").innerText = song.title;
-                        document.getElementById("song-title").href = song.googleDriveLink;
-                        document.getElementById("song-artist").innerText = song.artist;
-                        document.getElementById("song-lyrics").innerText = song.lyrics;
-                        document.getElementById("google-drive-link").href = song.googleDriveLink;
-                        document.getElementById("youtube-link").href = song.youtubeLink;
-                        document.getElementById("spotify-link").href = song.spotifyLink;
-                    } else {
-                        console.error('Song not found.');
-                    }
-                })
-                .catch(error => console.error('Error fetching song data:', error));
+        // Function to get URL parameters
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
         }
 
-        // Mock song title (replace with actual title)
-        const songTitle = "Song Title";
+        // Function to strip HTML tags from text
+        function stripHtmlTags(html) {
+            let doc = new DOMParser().parseFromString(html, 'text/html');
+            return doc.body.textContent || "";
+        }
 
-        // Fetch song data based on the provided title
-        fetchSongData(songTitle);
+        // Get song details from URL parameters
+        const title = getParameterByName('title');
+        const artist = getParameterByName('artist');
+        const lyrics = getParameterByName('lyrics');
+        const drive = getParameterByName('drive');
+        const youtube = getParameterByName('youtube');
+        const spotify = getParameterByName('spotify');
+
+        // Populate song details
+        document.getElementById("song-title").innerText = title;
+        document.getElementById("song-artist").innerText = artist;
+        document.getElementById("song-lyrics").innerText = stripHtmlTags(lyrics);
+        document.getElementById("google-drive-link").href = drive;
+        document.getElementById("youtube-link").href = youtube;
+        document.getElementById("spotify-link").href = spotify;
     </script>
 </body>
+
 </html>
