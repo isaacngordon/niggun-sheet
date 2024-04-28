@@ -88,6 +88,10 @@ th {
     background-color: #373737; /* Light gray background for table header */
 }
 
+tr:hover {
+    background-color: #1b1b1b; /* Halfway between #000000 and #373737 */
+}
+
 /* Footer styles */
 #footer {
     background-color: #000000; /* Red for footer */

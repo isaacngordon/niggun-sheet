@@ -46,7 +46,7 @@
         <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
     </div>
 
-    <!-- Add your JavaScript link here -->
+    <!-- Fetch songs from the backend api and load into the table -->
     <script>
         // Fetch songs to populate data area
         const songs = "/api/songs";
@@ -57,8 +57,12 @@
             songsTableBody.innerHTML = "";
             songs.forEach(song => {
                 const songRow = document.createElement("tr");
+                songRow.classList.add("data-row");
+                // NOTE: all columns are hidden except for the title per Yehuda's design at the moment 
+                let dynamicPageLink = `/song-details.html?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}`;
+
                 songRow.innerHTML = `
-                    <td class="search-title">${song.search_title}</td>
+                    <td class="search-title"><a href="${dynamicPageLink}">${song.search_title}</a></td>
                     <td style="display:none;">${song.title}</td> <!-- Hidden column for song title -->
                     <td style="display:none;">${song.artist}</td> <!-- Hidden column for artist -->
                     <td style="display:none;">${song.lyrics}</td> <!-- Hidden column for lyrics -->
@@ -67,12 +71,6 @@
                     <td style="display:none;"><a href="${song.spotify}" target="_blank">Spotify</a></td> <!-- Hidden column for Spotify link -->
                 `;
                 songsTableBody.appendChild(songRow);
-
-                // Add click event listener to each row
-                songRow.addEventListener("click", function() {
-                    // Navigate to dynamic page with song details
-                    window.location.href = `/song-details.html?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}`;
-                });
             });
         }
 
