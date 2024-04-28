@@ -7,7 +7,7 @@ body {
     background-repeat: no-repeat;
     background-position: center;
     background-color: #000000; /* Light gray background */
-    color: #f2cb05; /* Dark text */
+    color: #ffffff; /* Dark text */
     margin: 0; /* Remove default margin */
     display: flex;
     flex-direction: column;
@@ -15,6 +15,9 @@ body {
 }
 #footer {
     margin-top: auto; /* Push the footer to the bottom of the page */
+}
+.black-bg {
+    background-color: black;
 }
 
 
@@ -87,7 +90,7 @@ th {
 
 /* Footer styles */
 #footer {
-    background-color: #e60023; /* Red for footer */
+    background-color: #000000; /* Red for footer */
     padding: 20px;
     text-align: center;
     color: #ffffff; /* White text */
