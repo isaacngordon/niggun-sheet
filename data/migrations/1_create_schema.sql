@@ -1,11 +1,11 @@
 -- Create the 'artists' table
-CREATE TABLE artists (
+CREATE TABLE IF NOT EXISTS artists (
     artist_id INTEGER PRIMARY KEY AUTOINCREMENT,
     artist_name TEXT NOT NULL
 );
 
 -- Create the 'songs' table
-CREATE TABLE songs (
+CREATE TABLE IF NOT EXISTS songs (
     song_id INTEGER PRIMARY KEY AUTOINCREMENT,
     song_title_en TEXT NOT NULL,
     song_title_he TEXT,
@@ -14,7 +14,7 @@ CREATE TABLE songs (
 );
 
 -- Create the 'lyrics' table
-CREATE TABLE lyrics (
+CREATE TABLE IF NOT EXISTS lyrics (
     lyric_id INTEGER PRIMARY KEY AUTOINCREMENT,
     song_id INTEGER,
     lyric_text_he TEXT NOT NULL,
@@ -23,14 +23,14 @@ CREATE TABLE lyrics (
 );
 
 -- Create the 'contributors' table
-CREATE TABLE contributors (
+CREATE TABLE IF NOT EXISTS contributors (
     contributor_id INTEGER PRIMARY KEY AUTOINCREMENT,
     contributor_name TEXT NOT NULL,
     contributor_email TEXT NOT NULL UNIQUE
 );
 
 -- Create the 'lyrics_contributions' table
-CREATE TABLE lyrics_contributions (
+CREATE TABLE IF NOT EXISTS lyrics_contributions (
     contribution_id INTEGER,
     lyric_id INTEGER,
     FOREIGN KEY (contribution_id) REFERENCES contributions (contribution_id),
@@ -39,18 +39,18 @@ CREATE TABLE lyrics_contributions (
 );
 
 -- Create the 'playlists' table
-CREATE TABLE playlists (
+CREATE TABLE IF NOT EXISTS playlists (
     playlist_id INTEGER PRIMARY KEY AUTOINCREMENT,
     playlist_name TEXT NOT NULL,
-    contributor_id INTEGER not null
+    contributor_id INTEGER not null,
+    FOREIGN KEY (contributor_id) REFERENCES contributors (contributor_id)
 );
 
 -- Create the 'playlist_songs' table
-CREATE TABLE playlist_songs (
+CREATE TABLE IF NOT EXISTS playlist_songs (
     playlist_id INTEGER not null,
     song_id INTEGER not null,
     FOREIGN KEY (playlist_id) REFERENCES playlists (playlist_id),
     FOREIGN KEY (song_id) REFERENCES songs (song_id),
-    FOREIGN KEY (contributor_id) REFERENCES contributors (contributor_id)
     UNIQUE (playlist_id, song_id)
 );
