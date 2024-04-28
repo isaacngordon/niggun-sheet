@@ -1,6 +1,12 @@
+
+
 body {
     font-family: Arial, sans-serif;
-    background-color: #000000; /* Light gray background */
+    background-image: url("../assets/background.png");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    /*background-color: #000000; /* Light gray background */
     color: #f2cb05; /* Dark text */
     margin: 0; /* Remove default margin */
     display: flex;
@@ -38,7 +44,8 @@ a:hover {
 }
 
 #songs-table {
-    width: 100%; /* Make songs table full page width */
+    max-width: 800px; /* Set maximum width for songs table */
+    width: 80%; /* Make songs table full page width */
     padding: 20px;
     background-color: #000000; /* Black background for song table */
     border: 1px solid #000000; /* Light border */
@@ -128,5 +135,27 @@ h1 {
 }
 
 #hero {
+    margin: 0 auto; /* Center the element horizontally */
+    width: 800px;
+    max-width: 90%;
     margin-top: calc(100vh / 5); /* Apply the golden ratio to the margin-top */
+    text-align: center;
+}
+
+.primary-button {
+    background-color: #f2cb05; /* Yellow background for primary button */
+    color: #000000; /* Black text for primary button */
+    padding: 10px 20px; /* Add padding to primary button */
+    border: none; /* Remove border from primary button */
+    border-radius: 5px; /* Add border radius to primary button */
+    cursor: pointer; /* Add cursor pointer to primary button */
+}
+
+.secondary-button {
+    background-color: transparent; /* Transparent background for secondary button */
+    color: #f2cb05; /* Yellow text for secondary button */
+    padding: 10px 20px; /* Add padding to secondary button */
+    border: 1px solid #f2cb05; /* Add border to secondary button */
+    border-radius: 5px; /* Add border radius to secondary button */
+    cursor: pointer; /* Add cursor pointer to secondary button */
 }
