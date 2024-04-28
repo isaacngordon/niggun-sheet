@@ -13,14 +13,6 @@ CREATE TABLE IF NOT EXISTS songs (
     FOREIGN KEY (artist_id) REFERENCES artists (artist_id)
 );
 
-CREATE TABLE IF NOT EXISTS links (
-    link_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    link_url TEXT NOT NULL,
-    song_id TEXT NOT NULL INTEGER,
-    link_type enum('youtube', 'spotify', 'apple_music', 'gdrive', 'soundcloud', 'bandcamp') NOT NULL,
-    FOREIGN KEY (song_id) REFERENCES songs (song_id)
-);
-
 -- Create the 'lyrics' table
 CREATE TABLE IF NOT EXISTS lyrics (
     lyric_id INTEGER PRIMARY KEY AUTOINCREMENT,
