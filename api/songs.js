@@ -3,10 +3,11 @@ const app = express();
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const db = require('../data/songs_db');
 
 const songsFilePath = path.join(__dirname, '../data/songs.csv');
 
-function handler(req, res) {
+function csv_handler(req, res) {
     //log request 
     console.log(`Handling GET /songs ${req.query} from ${req.ip}`);
 
@@ -33,8 +34,25 @@ function handler(req, res) {
     });
 }
 
+function get_all_songs_handler(req, res) {
+    //log request 
+    console.log(`Handling GET /songs ${req.query} from ${req.ip}`);
+
+    const stmt = fs.readFileSync(path.join(__dirname, '../data/sql/get_all_songs.sql'), 'utf-8');
+
+    db.all(stmt, (err, rows) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+
+        res.json(rows);
+    });
+
+}
+
 app.get('/api/songs', (req, res) => {
-    return handler(req, res);
+    return get_all_songs_handler(req, res);
 });
 
 
