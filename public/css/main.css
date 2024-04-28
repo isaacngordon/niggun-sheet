@@ -1,129 +1,167 @@
-/* set colors */
-:root {
-    --primary-color: #ffc107;
-    /* Gold color for links to stand out */
-    --secondary-color: #d9534f;
-    /* Red color for buttons */
-    --background-color: #000;
-    /* Assuming a black background */
-    --text-color: #fff;
-    /* White text for visibility */
-}
 
-#footer {
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    background-color: var(--background-color);
-    color: var(--text-color);
-    text-align: center;
-    display: flex;
-    justify-content: space-between; /* Add space between children */
-    align-items: center;
-    padding: 10px;
-    border-top: 1px solid var(--text-color);
-}
 
 body {
-    font-family: 'Arial', sans-serif;
-    background-color: var(--background-color);
-    /* Assuming a black background */
-    color: var(--text-color);
-    /* White text for visibility */
-    margin: 0;
-    padding: 0;
-    text-align: center;
+    font-family: Arial, sans-serif;
+    background-image: url("../assets/background.png");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: #000000; /* Light gray background */
+    color: #ffffff; /* Dark text */
+    margin: 0; /* Remove default margin */
+    display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+    min-height: 100vh; /* Set minimum height to 100% of viewport height */
+}
+#footer {
+    margin-top: auto; /* Push the footer to the bottom of the page */
+}
+.black-bg {
+    background-color: black;
 }
 
+
 a {
-    color: var(--primary-color);
+    color: #f2cb05; /* Yellow for links */
     text-decoration: none;
 }
 
 a:hover {
-    color: var(--secondary-color);
-}
-
-#home h1,
-#songs-list h2,
-#song h2,
-#song-info h3 {
-    text-align: center;
-    color: var(--text-color);
-}
-
-#songs-table,
-#song-info {
-    background-color: rgba(0, 0, 0, 0.7);
-    /* Semi-transparent black for containers */
-    padding: 20px;
-    margin: 20px;
-    border-radius: 8px;
-}
-
-input[type="search"] {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: none;
-    border-radius: 4px;
-}
-
-button {
-    background-color: #d9534f;
-    /* Red color for buttons */
-    color: var(--text-color);
-    border: none;
-    padding: 10px 20px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    margin: 4px 2px;
-    cursor: pointer;
-    border-radius: 4px;
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-    transition: 0.3s;
-}
-
-button:hover {
-    background-color: #c9302c;
-    /* Darker red on hover */
-}
-
-#song-image img {
-    width: 100%;
-    /* Responsive image */
-    border-radius: 8px;
+    text-decoration: underline; /* Underline links on hover */
 }
 
 #navbar {
-    background-color: var(--background-color);
-    overflow: hidden;
-    position: fixed;
-    top: 0;
-    width: 100%;
-    z-index: 1;
-    border-bottom: 1px solid var(--text-color);
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-    align-items: center;
+    background-color: #000000; /* Black background for navbar */
+    padding: 10px;
+    text-align: center;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* Shadow effect */
 }
 
 #navbar a {
-    font-size: 1.25rem;
+    color: #333333; /* Dark text for navbar links */
+    margin: 0 10px;
 }
 
-table,
-td,
+#navbar a:hover {
+    color: #f2cb05; /* Change link color on hover */
+}
+
+#songs-table {
+    max-width: 800px; /* Set maximum width for songs table */
+    width: 80%; /* Make songs table full page width */
+    padding: 20px;
+    background-color: #000000; /* Black background for song table */
+    border: 1px solid #000000; /* Light border */
+    border-radius: 10px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* Shadow effect */
+    margin: 6rem auto; /* Center the table horizontally */
+    flex: 1; /* Allow the songs table to grow to fill the available space */
+}
+
+#songs-table h2 {
+    margin-top: 0;
+    color: #f2cb05; /* Yellow for heading */
+}
+
+#song-search {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #2b2525;
+    border-radius: 5px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center; /* Center-align table contents */
+}
+
+th, td {
+    padding: 10px;
+    border-bottom: 1px solid #dddddd;
+    text-align: left;
+}
+
 th {
-    border: 1px solid #ddd;
-    padding: 8px;
+    background-color: #373737; /* Light gray background for table header */
 }
 
+tr:hover {
+    background-color: #1b1b1b; /* Halfway between #000000 and #373737 */
+}
+
+/* Footer styles */
+#footer {
+    background-color: #000000; /* Red for footer */
+    padding: 20px;
+    text-align: center;
+    color: #ffffff; /* White text */
+    flex-shrink: 0; /* Prevent footer from shrinking */
+}
+
+#footer a {
+    color: #ffffff; /* White text for footer links */
+    margin: 0 10px;
+}
+
+#footer a:hover {
+    text-decoration: underline; /* Underline footer links on hover */
+}
+
+h1 {
+    text-align: center;
+    margin-top: 20px;
+}
+
+#song-details {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #ffffff; /* White background */
+    border-radius: 10px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* Shadow effect */
+}
+
+#song-details p {
+    margin: 10px 0;
+}
+
+#song-details p strong {
+    font-weight: bold;
+}
+
+#song-details a {
+    color: #007bff; /* Blue color for links */
+    text-decoration: none;
+}
+
+#song-details a:hover {
+    text-decoration: underline;
+}
+
+#hero {
+    margin: 0 auto; /* Center the element horizontally */
+    width: 800px;
+    max-width: 90%;
+    margin-top: calc(100vh / 5); /* Apply the golden ratio to the margin-top */
+    text-align: center;
+}
+
+.primary-button {
+    background-color: #f2cb05; /* Yellow background for primary button */
+    color: #000000; /* Black text for primary button */
+    padding: 10px 20px; /* Add padding to primary button */
+    border: none; /* Remove border from primary button */
+    border-radius: 5px; /* Add border radius to primary button */
+    cursor: pointer; /* Add cursor pointer to primary button */
+}
+
+.secondary-button {
+    background-color: transparent; /* Transparent background for secondary button */
+    color: #f2cb05; /* Yellow text for secondary button */
+    padding: 10px 20px; /* Add padding to secondary button */
+    border: 1px solid #f2cb05; /* Add border to secondary button */
+    border-radius: 5px; /* Add border radius to secondary button */
+    cursor: pointer; /* Add cursor pointer to secondary button */
+}
