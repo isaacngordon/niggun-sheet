@@ -54,8 +54,7 @@ a:hover {
     border: 1px solid #000000; /* Light border */
     border-radius: 10px;
     box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* Shadow effect */
-    margin: 0 auto; /* Center the table horizontally */
-    margin-top: auto; /* Push the table to the bottom of the frame */
+    margin: 6rem auto; /* Center the table horizontally */
     flex: 1; /* Allow the songs table to grow to fill the available space */
 }
 
