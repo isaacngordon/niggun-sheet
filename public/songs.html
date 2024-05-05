@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Niggun Sheet | Songs List</title>
     <!-- Link to the tracking disclosure -->
-    <link rel="import" href="tracking-disclosure.html">
+<link rel="import" href="tracking-disclosure.html">
 
     <link rel="stylesheet" href="css/main.css">
 </head>
@@ -27,9 +27,13 @@
         <a href="/">Home Page</a>
         <a href="/songs.html">Song Directory</a>
     </div>
-
-
-
+    
+    <!-- Toggle switch for smartboard mode -->
+    <div id="smartboard-toggle">
+        <label for="smartboard-mode">Smartboard Mode</label>
+        <input type="checkbox" id="smartboard-mode">
+    </div>
+    
     <!-- Song Table -->
     <div id="songs-table">
         <div style="display:flex; flex-direction: row; justify-content: space-between;">
@@ -80,6 +84,7 @@
         const songs = "/api/songs";
         const songsTableBody = document.getElementById("songs-table-body");
         const smartboardModeSwitch = document.getElementById("smartboard-mode");
+        const smartboardModeSwitch = document.getElementById("smartboard-mode");
 
         // Function to render songs into the table
         function renderSongs(songs) {
@@ -88,10 +93,9 @@
                 const songRow = document.createElement("tr");
                 songRow.classList.add("data-row");
                 // NOTE: all columns are hidden except for the title per Yehuda's design at the moment 
-                let queryString = `?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}`;
                 let dynamicPageLink = smartboardModeSwitch.checked ?
-                    `/smartboard-mode.html${queryString}` :
-                    `/song-details.html${queryString}`;
+                    `/smartboard-mode.html?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}` :
+                    `/song-details.html?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}`;
 
                 songRow.innerHTML = `
                     <td class="search-title"><a href="${dynamicPageLink}">${song.search_title}</a></td>
@@ -132,10 +136,7 @@
         });
 
         // Event listener for smartboard mode switch
-        smartboardModeSwitch.addEventListener("change", function () {
-            //update local storage with smartboard mode value
-            localStorage.setItem("smartboardMode", this.checked);
-
+        smartboardModeSwitch.addEventListener("change", function() {
             renderSongs([]);
             fetch(songs)
                 .then(response => response.json())
