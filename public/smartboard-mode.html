@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Song Details</title>
+    <link rel="stylesheet" href="css/smartboard.css">
+</head>
+
+<body>
+    <div id="mode-toggle">
+        <label class="switch">
+            <input type="checkbox" id="mode-switch">
+            <span class="slider round"></span>
+        </label>
+    </div>
+
+    <div id="navbar">
+        <a href="/">Home Page</a>
+        <a href="/songs.html">Song Directory</a>
+    </div>
+
+    <div id="song-lyrics-container">
+        <h2>Song Lyrics</h2>
+        <div id="song-details">
+            <p id="song-lyrics">Loading...</p>
+        </div>
+    </div>
+
+    <audio id="audio-player" controls>
+        <source src="audio/song.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script>
+        // Function to get URL parameters
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        // Function to strip HTML tags from text
+        function stripHtmlTags(html) {
+            let doc = new DOMParser().parseFromString(html, 'text/html');
+            return doc.body.textContent || "";
+        }
+
+        // Get song details from URL parameters
+        const title = getParameterByName('title');
+        const artist = getParameterByName('artist');
+        const lyrics = getParameterByName('lyrics');
+        const drive = getParameterByName('drive');
+        const youtube = getParameterByName('youtube');
+        const spotify = getParameterByName('spotify');
+
+        // Populate song details
+        document.getElementById("song-lyrics").innerText = stripHtmlTags(lyrics);
+
+        // Dark/light mode toggle
+        const modeSwitch = document.getElementById('mode-switch');
+        modeSwitch.addEventListener('change', () => {
+            if (modeSwitch.checked) {
+                // Dark mode
+                document.body.style.backgroundColor = 'black';
+                document.body.style.color = 'white';
+            } else {
+                // Light mode
+                document.body.style.backgroundColor = 'white';
+                document.body.style.color = 'black';
+            }
+        });
+    </script>
+</body>
+
+</html>
