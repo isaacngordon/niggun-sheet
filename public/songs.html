@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Niggun Sheet | Songs List</title>
     <!-- Link to the tracking disclosure -->
-<link rel="import" href="tracking-disclosure.html">
+    <link rel="import" href="tracking-disclosure.html">
 
     <link rel="stylesheet" href="css/main.css">
 </head>
@@ -93,9 +93,10 @@
                 const songRow = document.createElement("tr");
                 songRow.classList.add("data-row");
                 // NOTE: all columns are hidden except for the title per Yehuda's design at the moment 
+                let queryString = "?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)};"
                 let dynamicPageLink = smartboardModeSwitch.checked ?
-                    `/smartboard-mode.html?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}` :
-                    `/song-details.html?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}`;
+                    `/smartboard-mode.html${queryString}` :
+                    `/song-details.html${queryString}`;
 
                 songRow.innerHTML = `
                     <td class="search-title"><a href="${dynamicPageLink}">${song.search_title}</a></td>
@@ -136,7 +137,7 @@
         });
 
         // Event listener for smartboard mode switch
-        smartboardModeSwitch.addEventListener("change", function() {
+        smartboardModeSwitch.addEventListener("change", function () {
             renderSongs([]);
             fetch(songs)
                 .then(response => response.json())
