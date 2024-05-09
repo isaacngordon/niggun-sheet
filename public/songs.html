@@ -93,7 +93,7 @@
                 const songRow = document.createElement("tr");
                 songRow.classList.add("data-row");
                 // NOTE: all columns are hidden except for the title per Yehuda's design at the moment 
-                let queryString = "?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)};"
+                let queryString = `?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}`;
                 let dynamicPageLink = smartboardModeSwitch.checked ?
                     `/smartboard-mode.html${queryString}` :
                     `/song-details.html${queryString}`;
@@ -138,6 +138,9 @@
 
         // Event listener for smartboard mode switch
         smartboardModeSwitch.addEventListener("change", function () {
+            //update local storage with smartboard mode value
+            localStorage.setItem("smartboardMode", this.checked);
+
             renderSongs([]);
             fetch(songs)
                 .then(response => response.json())
