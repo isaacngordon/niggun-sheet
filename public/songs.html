@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Niggun Sheet | Songs List</title>
     <!-- Link to the tracking disclosure -->
-<link rel="import" href="tracking-disclosure.html">
+    <link rel="import" href="tracking-disclosure.html">
 
     <link rel="stylesheet" href="css/main.css">
 </head>
@@ -14,11 +14,11 @@
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BM1G2V2EMD"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
 
-  gtag('config', 'G-BM1G2V2EMD');
+    gtag('config', 'G-BM1G2V2EMD');
 </script>
 
 <body>
@@ -27,16 +27,19 @@
         <a href="/">Home Page</a>
         <a href="/songs.html">Song Directory</a>
     </div>
-    
-    <!-- Toggle switch for smartboard mode -->
-    <div id="smartboard-toggle">
-        <label for="smartboard-mode">Smartboard Mode</label>
-        <input type="checkbox" id="smartboard-mode">
-    </div>
-    
+
+
+
     <!-- Song Table -->
     <div id="songs-table">
-        <h2>All Niggunim</h2>
+        <div style="display:flex; flex-direction: row;">
+            <h2>All Niggunim</h2>
+            <!-- Toggle switch for smartboard mode -->
+            <div id="smartboard-toggle">
+                <label for="smartboard-mode">Smartboard Mode</label>
+                <input type="checkbox" id="smartboard-mode">
+            </div>
+        </div>
         <!-- Search field -->
         <input type="search" id="song-search" placeholder="search...">
         <!-- Table or list to be implemented here -->
@@ -60,8 +63,10 @@
 
     <!-- Foot containing links to external sites -->
     <div id="footer">
-        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
-        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
+        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
+            target="_blank">Download Niggun Sheet</a>
+        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
+            target="_blank">Download Simcha Sheet</a>
     </div>
 
     <!-- Fetch songs from the backend api and load into the table -->
@@ -78,9 +83,10 @@
                 const songRow = document.createElement("tr");
                 songRow.classList.add("data-row");
                 // NOTE: all columns are hidden except for the title per Yehuda's design at the moment 
+                let queryString = "?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)};"
                 let dynamicPageLink = smartboardModeSwitch.checked ?
-                    `/smartboard-mode.html?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}` :
-                    `/song-details.html?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}`;
+                    `/smartboard-mode.html${queryString}` :
+                    `/song-details.html${queryString}`;
 
                 songRow.innerHTML = `
                     <td class="search-title"><a href="${dynamicPageLink}">${song.search_title}</a></td>
@@ -107,7 +113,7 @@
             });
 
         // Event listener for search input
-        document.getElementById("song-search").addEventListener("input", function(event) {
+        document.getElementById("song-search").addEventListener("input", function (event) {
             const query = event.target.value.toLowerCase();
             const searchTitleCells = document.querySelectorAll(".search-title");
             searchTitleCells.forEach(cell => {
@@ -121,7 +127,7 @@
         });
 
         // Event listener for smartboard mode switch
-        smartboardModeSwitch.addEventListener("change", function() {
+        smartboardModeSwitch.addEventListener("change", function () {
             renderSongs([]);
             fetch(songs)
                 .then(response => response.json())
