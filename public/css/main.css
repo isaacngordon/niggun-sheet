@@ -163,3 +163,7 @@ h1 {
     border-radius: 5px; /* Add border radius to secondary button */
     cursor: pointer; /* Add cursor pointer to secondary button */
 }
+
+input[type="checkbox"]:checked {
+    background-color: #f2cb05; /* Yellow background for checked checkbox */
+}
