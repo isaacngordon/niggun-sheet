@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sheet Builder</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        #navbar {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        #navbar a {
+            color: #f2cb05;
+            margin: 0 10px;
+            text-decoration: none;
+        }
+        #navbar a:hover {
+            text-decoration: underline;
+        }
+        #content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        #song-list {
+            width: 300px;
+            margin: 2rem;
+            padding: 20px;
+            background-color: #000000;
+            color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            flex-shrink: 0; /* Prevents shrinking */
+        }
+        .song-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ffffff;
+            border-radius: 5px;
+            cursor: grab;
+        }
+        #editor-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        #editor {
+            background: url('/assets/sheetskin.jpg') no-repeat center center;
+            background-size: contain;
+            box-sizing: border-box;
+            height: 1100px; /* Maintain 11 aspect ratio */
+            width: 850px; /* Maintain 8.5 aspect ratio */
+            overflow-y: auto;
+            padding: 60px; /* Adjust padding to ensure content is visible */
+            position: relative;
+            top: 0; /* Ensure it starts from the top */
+            color: black; /* Set default text color to black */
+            direction: rtl; /* Set text direction to RTL */
+            text-align: right; /* Align text to the right */
+        }
+        #footer {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+        }
+        #footer a {
+            color: #f2cb05;
+            margin: 0 10px;
+            text-decoration: none;
+        }
+        #footer a:hover {
+            text-decoration: underline;
+        }
+        .drag-over {
+            border: 2px dashed #f2cb05;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar">
+        <a href="/">Home Page</a>
+        <a href="/songs.html">Song Directory</a>
+        <a href="/sheet-builder.html">Sheet Builder</a>
+    </div>
+
+    <div id="content">
+        <div id="song-list">
+            <h2>All Niggunim</h2>
+            <div id="songs"></div>
+            <input type="file" id="upload" accept=".txt" />
+        </div>
+        <div id="editor-container">
+            <div id="editor"></div>
+        </div>
+    </div>
+
+    <div id="footer">
+        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
+        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
+    </div>
+
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script>
+        const songsEndpoint = "/api/songs";
+        const songsContainer = document.getElementById("songs");
+        const uploadInput = document.getElementById("upload");
+
+        const editor = new Quill('#editor', {
+            theme: 'snow',
+            readOnly: true, // Set the editor to read-only
+            modules: {
+                toolbar: false // Remove the toolbar
+            }
+        });
+
+        function renderSongs(songs) {
+            songsContainer.innerHTML = "";
+            songs.forEach(song => {
+                const songDiv = document.createElement("div");
+                songDiv.classList.add("song-item");
+                songDiv.setAttribute("draggable", "true");
+                songDiv.setAttribute("data-title", song.title);
+                songDiv.setAttribute("data-artist", song.artist);
+                songDiv.setAttribute("data-lyrics", song.lyrics);
+                songDiv.innerHTML = `
+                    <strong>${song.title}</strong><br>
+                    <small>${song.artist}</small>
+                `;
+                songsContainer.appendChild(songDiv);
+            });
+
+            addDragAndDropListeners();
+        }
+
+        function addDragAndDropListeners() {
+            const songItems = document.querySelectorAll('.song-item');
+            songItems.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+
+            const editorContainer = document.querySelector('#editor-container');
+            editorContainer.addEventListener('dragover', handleDragOver);
+            editorContainer.addEventListener('drop', handleDrop);
+        }
+
+        function handleDragStart(event) {
+            event.dataTransfer.setData('text/plain', JSON.stringify({
+                title: event.target.getAttribute('data-title'),
+                artist: event.target.getAttribute('data-artist'),
+                lyrics: event.target.getAttribute('data-lyrics').replace(/\n/g, '<br>')
+            }));
+            setTimeout(() => {
+                event.target.classList.add('hide');
+            }, 0);
+        }
+
+        function handleDragEnd(event) {
+            event.target.classList.remove('hide');
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            const data = event.dataTransfer.getData('text/plain');
+            const song = JSON.parse(data);
+
+            // Append only the lyrics content with an empty line to the existing content
+            const newContent = `<p>${song.lyrics}</p><p><br></p>`;
+            editor.clipboard.dangerouslyPasteHTML(editor.getLength() - 1, newContent);
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                const title = lines[0].trim();
+                const artist = lines[1].trim();
+                const lyrics = lines.slice(2).join('<br>').trim();
+
+                const newSong = { title, artist, lyrics };
+                // Add the new song to the songs array
+                songs.push(newSong);
+                renderSongs(songs);
+            };
+            reader.readAsText(file);
+        }
+
+        uploadInput.addEventListener("change", handleFileUpload);
+
+        let songs = [];
+        fetch(songsEndpoint)
+            .then(response => response.json())
+            .then(data => {
+                songs = data;
+                renderSongs(songs);
+            })
+            .catch(error => {
+                console.error('Error loading songs:', error);
+                songsContainer.innerText = "Error loading songs.";
+            });
+    </script>
+</body>
+</html>
