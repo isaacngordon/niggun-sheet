@@ -1,93 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Niggun Sheet | Songs List</title>
-    <!-- Link to the tracking disclosure -->
-    <link rel="import" href="tracking-disclosure.html">
-
     <link rel="stylesheet" href="css/main.css">
 </head>
-
-<!-- Google tag (gtag.js) -->
-<!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-BM1G2V2EMD"></script>
-<script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-
-    gtag('config', 'G-BM1G2V2EMD');
-</script> -->
-
 <body>
-
     <div id="navbar">
         <a href="/">Home Page</a>
         <a href="/songs.html">Song Directory</a>
+        <a href="/sheet-builder.html">Sheet Builder</a> <!-- Add a link to the sheet builder -->
     </div>
 
-
-
-    <!-- Song Table -->
     <div id="songs-table">
-        <div style="display:flex; flex-direction: row; justify-content: space-between;">
+        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
             <h2>All Niggunim</h2>
-            <!-- Toggle switch for smartboard mode -->
             <div id="smartboard-toggle">
                 <label for="smartboard-mode">Smartboard Mode</label>
                 <input type="checkbox" id="smartboard-mode">
                 <script>
-                    // Set smartboard mode switch to last saved value
-                    document.getElementById("smartboard-mode").checked = localStorage.getItem("smartboardMode") === "true"; 
+                    document.getElementById("smartboard-mode").checked = localStorage.getItem("smartboardMode") === "true";
                 </script>
             </div>
         </div>
         
-        <!-- Search field -->
-        <input type="search" id="song-search" placeholder="search...">
-        <!-- Table or list to be implemented here -->
+        <input type="search" id="song-search" placeholder="Search...">
         <table>
             <thead>
                 <tr>
                     <th>Search Title</th>
-                    <th style="display:none;">Title</th> <!-- Hidden column for song title -->
-                    <th style="display:none;">Artist</th> <!-- Hidden column for artist -->
-                    <th style="display:none;">Lyrics</th> <!-- Hidden column for lyrics -->
-                    <th style="display:none;">Google Drive</th> <!-- Hidden column for Google Drive link -->
-                    <th style="display:none;">Youtube</th> <!-- Hidden column for Youtube link -->
-                    <th style="display:none;">Spotify</th> <!-- Hidden column for Spotify link -->
+                    <th style="display:none;">Title</th>
+                    <th style="display:none;">Artist</th>
+                    <th style="display:none;">Lyrics</th>
+                    <th style="display:none;">Google Drive</th>
+                    <th style="display:none;">YouTube</th>
+                    <th style="display:none;">Spotify</th>
+                    <th>Action</th> <!-- Add an Action column -->
                 </tr>
             </thead>
             <tbody id="songs-table-body">
-
+                <!-- Songs will be dynamically populated here -->
             </tbody>
         </table>
     </div>
 
-    <!-- Foot containing links to external sites -->
     <div id="footer">
-        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
-            target="_blank">Download Niggun Sheet</a>
-        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
-            target="_blank">Download Simcha Sheet</a>
+        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
+        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
     </div>
 
-    <!-- Fetch songs from the backend api and load into the table -->
     <script>
-        // Fetch songs to populate data area
-        const songs = "/api/songs";
+        const songsEndpoint = "/api/songs";
         const songsTableBody = document.getElementById("songs-table-body");
         const smartboardModeSwitch = document.getElementById("smartboard-mode");
 
-        // Function to render songs into the table
+        function addToSheet(song) {
+            let sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
+            sheetSongs.push(song);
+            localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
+            alert(`${song.search_title} added to the sheet.`);
+        }
+
         function renderSongs(songs) {
             songsTableBody.innerHTML = "";
             songs.forEach(song => {
                 const songRow = document.createElement("tr");
                 songRow.classList.add("data-row");
-                // NOTE: all columns are hidden except for the title per Yehuda's design at the moment 
+
                 let queryString = `?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}`;
                 let dynamicPageLink = smartboardModeSwitch.checked ?
                     `/smartboard-mode.html${queryString}` :
@@ -95,29 +75,28 @@
 
                 songRow.innerHTML = `
                     <td class="search-title"><a href="${dynamicPageLink}">${song.search_title}</a></td>
-                    <td style="display:none;">${song.title}</td> <!-- Hidden column for song title -->
-                    <td style="display:none;">${song.artist}</td> <!-- Hidden column for artist -->
-                    <td style="display:none;">${song.lyrics}</td> <!-- Hidden column for lyrics -->
-                    <td style="display:none;"><a href="${song.drive}" target="_blank">Google Drive</a></td> <!-- Hidden column for Google Drive link -->
-                    <td style="display:none;"><a href="${song.youtube}" target="_blank">Youtube</a></td> <!-- Hidden column for Youtube link -->
-                    <td style="display:none;"><a href="${song.spotify}" target="_blank">Spotify</a></td> <!-- Hidden column for Spotify link -->
+                    <td style="display:none;">${song.title}</td>
+                    <td style="display:none;">${song.artist}</td>
+                    <td style="display:none;">${song.lyrics}</td>
+                    <td style="display:none;"><a href="${song.drive}" target="_blank">Google Drive</a></td>
+                    <td style="display:none;"><a href="${song.youtube}" target="_blank">YouTube</a></td>
+                    <td style="display:none;"><a href="${song.spotify}" target="_blank">Spotify</a></td>
+                    <td><button onclick='addToSheet(${JSON.stringify(song)})'>Add to Sheet</button></td>
                 `;
                 songsTableBody.appendChild(songRow);
             });
         }
 
-        // Initial fetch of songs
-        fetch(songs)
+        fetch(songsEndpoint)
             .then(response => response.json())
             .then(data => {
                 renderSongs(data);
             })
             .catch(error => {
-                console.log(error);
+                console.error('Error loading songs:', error);
                 songsTableBody.innerText = "Error loading songs.";
             });
 
-        // Event listener for search input
         document.getElementById("song-search").addEventListener("input", function (event) {
             const query = event.target.value.toLowerCase();
             const searchTitleCells = document.querySelectorAll(".search-title");
@@ -131,24 +110,19 @@
             });
         });
 
-        // Event listener for smartboard mode switch
         smartboardModeSwitch.addEventListener("change", function () {
-            //update local storage with smartboard mode value
             localStorage.setItem("smartboardMode", this.checked);
 
-            renderSongs([]);
-            fetch(songs)
+            fetch(songsEndpoint)
                 .then(response => response.json())
                 .then(data => {
                     renderSongs(data);
                 })
                 .catch(error => {
-                    console.log(error);
+                    console.error('Error loading songs:', error);
                     songsTableBody.innerText = "Error loading songs.";
                 });
         });
     </script>
-
 </body>
-
 </html>
