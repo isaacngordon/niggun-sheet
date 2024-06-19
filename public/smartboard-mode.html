@@ -5,137 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Song Details</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background-color: black;
-            color: white;
-            transition: background-color 0.5s, color 0.5s;
-        }
-
-        .primary-button {
-            background-color: #f2cb05;
-            /* Yellow background for primary button */
-            color: #000000;
-            /* Black text for primary button */
-            padding: 10px 20px;
-            /* Add padding to primary button */
-            border: none;
-            /* Remove border from primary button */
-            border-radius: 5px;
-            /* Add border radius to primary button */
-            cursor: pointer;
-            /* Add cursor pointer to primary button */
-        }
-
-        .secondary-button {
-            background-color: transparent;
-            /* Transparent background for secondary button */
-            color: #f2cb05;
-            /* Yellow text for secondary button */
-            padding: 10px 20px;
-            /* Add padding to secondary button */
-            border: 1px solid #f2cb05;
-            /* Add border to secondary button */
-            border-radius: 5px;
-            /* Add border radius to secondary button */
-            cursor: pointer;
-            /* Add cursor pointer to secondary button */
-        }
-
-        #song-lyrics-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 75vh;
-        }
-
-        #song-details {
-            max-width: 80%;
-            text-align: center;
-        }
-
-        #song-lyrics {
-            font-size: 3em;
-        }
-
-        #audio-player {
-            margin-top: 20px;
-        }
-
-        #mode-toggle {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 1;
-        }
-
-        /* Styling for the toggle switch */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            -webkit-transition: .4s;
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            -webkit-transition: .4s;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked+.slider {
-            background-color: #f2cb05;
-        }
-
-        input:focus+.slider {
-            box-shadow: 0 0 1px #f2cb05;
-        }
-
-        input:checked+.slider:before {
-            -webkit-transform: translateX(26px);
-            -ms-transform: translateX(26px);
-            transform: translateX(26px);
-        }
-
-        /* Rounded sliders */
-        .slider.round {
-            border-radius: 34px;
-        }
-
-        .slider.round:before {
-            border-radius: 50%;
-        }
-    </style>
+    <link rel="stylesheet" href="css/smartboard.css">
 </head>
 
 <body>
@@ -146,12 +16,9 @@
         </label>
     </div>
 
-    <div>
-        <label>
-            <input type="button" class="primary-button"
-            style="margin-left: 10px;margin-top: 10px;"
-            value="Back" onclick="window.history.back();">
-        </label>
+    <div id="navbar">
+        <a href="/">Home Page</a>
+        <a href="/songs.html">Song Directory</a>
     </div>
 
     <div id="song-lyrics-container">
@@ -197,12 +64,6 @@
 
         // Dark/light mode toggle
         const modeSwitch = document.getElementById('mode-switch');
-        // get system setting a default the checked status
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            modeSwitch.checked = true;
-            document.body.style.backgroundColor = 'black';
-            document.body.style.color = 'white';
-        }
         modeSwitch.addEventListener('change', () => {
             if (modeSwitch.checked) {
                 // Dark mode
