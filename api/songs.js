@@ -6,6 +6,7 @@ const path = require('path');
 
 const songsFilePath = path.join(__dirname, '../data/songs.csv');
 
+// obtains the song data from the csv file
 function handler(req, res) {
     //log request 
     console.log(`Handling GET /songs ${req.query} from ${req.ip}`);
@@ -33,9 +34,7 @@ function handler(req, res) {
     });
 }
 
-app.get('/api/songs', (req, res) => {
-    return handler(req, res);
-});
+app.get('/api/songs', handler);
 
 
 module.exports = app;
