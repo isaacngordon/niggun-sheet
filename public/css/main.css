@@ -1,6 +1,6 @@
 body {
     font-family: Arial, sans-serif;
-    background-image: url("../assets/background.jpg");
+    background-image: url("../assets/background.png");
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
@@ -36,7 +36,7 @@ a:hover {
 }
 
 #navbar a {
-    color: #f2cb05; /* Dark text for navbar links */
+    color: #333333; /* Dark text for navbar links */
     margin: 0 10px;
 }
 
@@ -162,8 +162,4 @@ h1 {
     border: 1px solid #f2cb05; /* Add border to secondary button */
     border-radius: 5px; /* Add border radius to secondary button */
     cursor: pointer; /* Add cursor pointer to secondary button */
-}
-
-input[type="checkbox"]:checked {
-    background-color: #f2cb05; /* Yellow background for checked checkbox */
 }
