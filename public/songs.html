@@ -36,7 +36,7 @@
                     <th style="display:none;">Google Drive</th>
                     <th style="display:none;">YouTube</th>
                     <th style="display:none;">Spotify</th>
-                    <th>Action</th> <!-- Add an Action column -->
+                    <th>Action</th> Add an Action column
                 </tr>
             </thead>
             <tbody id="songs-table-body">
@@ -55,11 +55,16 @@
         const songsTableBody = document.getElementById("songs-table-body");
         const smartboardModeSwitch = document.getElementById("smartboard-mode");
 
-        function addToSheet(song) {
+        function addToSheet(song_title, song_artist) {
             let sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
-            sheetSongs.push(song);
-            localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
-            alert(`${song.search_title} added to the sheet.`);
+            // push the song to the sheetSongs array if and only if it is not already there
+            if (!sheetSongs.some(s => s.title === song_title && s.artist === song_artist)) {
+                sheetSongs.push({title: song_title, artist: song_artist});
+                localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
+                alert(`${song_title} added to the sheet.`);
+                return;
+            }
+            alert(`${song_title} is already in the sheet.`);
         }
 
         function renderSongs(songs) {
@@ -81,7 +86,7 @@
                     <td style="display:none;"><a href="${song.drive}" target="_blank">Google Drive</a></td>
                     <td style="display:none;"><a href="${song.youtube}" target="_blank">YouTube</a></td>
                     <td style="display:none;"><a href="${song.spotify}" target="_blank">Spotify</a></td>
-                    <td><button onclick='addToSheet(${JSON.stringify(song)})'>Add to Sheet</button></td>
+                    <td><button onclick='addToSheet("${song.title}", "${song.artist}")'>Add to Sheet</button></td>
                 `;
                 songsTableBody.appendChild(songRow);
             });
