@@ -62,42 +62,44 @@
         }
 
         #editor-container {
-            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 2rem;
             background-color: #ffffff;
             border-radius: 10px;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
             position: relative;
+            width: calc(100vh * 8.5 / 11);
+            height: 100vh;
+            margin: 0 auto;
+            overflow: hidden;
+            background: url('/assets/sheetskin.jpg') no-repeat center center;
+            background-size: cover;
         }
 
         #editor {
-            background: url('/assets/sheetskin.jpg') no-repeat center center;
-            background-size: contain;
             box-sizing: border-box;
-            height: 1100px;
-            /* Maintain 11 aspect ratio */
-            width: 850px;
-            /* Maintain 8.5 aspect ratio */
-            overflow-y: auto;
+            height: 100%;
+            width: 100%;
             padding: 60px;
             /* Adjust padding to ensure content is visible */
             position: relative;
-            top: 0;
-            /* Ensure it starts from the top */
             color: black;
             /* Set default text color to black */
             direction: rtl;
             /* Set text direction to RTL */
             text-align: right;
             /* Align text to the right */
+            column-count: 2;
+            column-gap: 40px;
+            /* Adjust the gap between columns */
+            overflow-y: auto;
         }
 
-        .ql-column {
-            column-gap: 20px; /* Adjust the gap between columns */
-        }   
+        .ql-editor {
+            height: 100%;
+            overflow: auto;
+        }
 
         #footer {
             background-color: #000000;
@@ -126,7 +128,7 @@
     <div id="navbar">
         <a href="/">Home Page</a>
         <a href="/songs.html">Song Directory</a>
-        <a href="/sheet-builder.html">Sheet Builder</a> 
+        <a href="/sheet-builder.html">Sheet Builder</a>
     </div>
 
     <div id="content">
@@ -141,43 +143,12 @@
     </div>
 
     <div id="footer">
-        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
-            target="_blank">Download Niggun Sheet</a>
-        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
-            target="_blank">Download Simcha Sheet</a>
+        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
+        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
     </div>
 
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script>
-        var Block = Quill.import('blots/block');
-
-        class ColumnBlot extends Block {
-            static create(value) {
-                let node = super.create();
-                node.setAttribute('style', 'column-count: ' + value + ';');
-                return node;
-            }
-
-            static formats(node) {
-                let match = node.getAttribute('style').match(/column-count:\s*(\d+);/);
-                return match ? match[1] : undefined;
-            }
-
-            format(name, value) {
-                if (name === 'column' && value) {
-                    this.domNode.setAttribute('style', 'column-count: ' + value + ';');
-                } else {
-                    super.format(name, value);
-                }
-            }
-        }
-
-        ColumnBlot.blotName = 'column';
-        ColumnBlot.tagName = 'DIV';
-        ColumnBlot.className = 'ql-column';
-
-        Quill.register(ColumnBlot);
-
         const songsEndpoint = "/api/songs";
         const songsContainer = document.getElementById("songs");
         const uploadInput = document.getElementById("upload");
@@ -193,7 +164,6 @@
         function renderSongs(songs) {
             songsContainer.innerHTML = "";
             songs.forEach(song => {
-                console.log(song);
                 const songDiv = document.createElement("div");
                 songDiv.classList.add("song-item");
                 songDiv.setAttribute("draggable", "true");
@@ -221,6 +191,7 @@
             editorContainer.addEventListener('dragover', handleDragOver);
             editorContainer.addEventListener('drop', handleDrop);
         }
+
         function handleDragStart(event) {
             event.dataTransfer.setData('text/plain', JSON.stringify({
                 title: event.target.getAttribute('data-title'),
@@ -283,18 +254,8 @@
                 console.error('Error loading songs:', error);
                 songsContainer.innerText = "Error loading songs.";
             });
-
-        // Apply two-column format on initialization (for demonstration)
-        function applyColumnFormat(columnCount) {
-            let range = editor.getSelection();
-            if (range) {
-                editor.formatLine(range.index, range.length, 'column', columnCount);
-            }
-        }
-
-        applyColumnFormat(2);
     </script>
-    
+
 </body>
 
 </html>
