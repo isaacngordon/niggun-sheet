@@ -5,8 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sheet Builder</title>
+    <!-- Include Quill from CDNJS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.6/quill.snow.css">
     <link rel="stylesheet" href="css/main.css">
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
         body {
             display: flex;
@@ -50,7 +51,6 @@
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
             flex-shrink: 0;
-            /* Prevents shrinking */
         }
 
         .song-item {
@@ -73,7 +73,7 @@
             height: 100vh;
             margin: 0 auto;
             overflow: hidden;
-            background: url('/assets/sheetskin.jpg') no-repeat center center;
+            background: url('/assets/sheetskin.png') no-repeat center center;
             background-size: cover;
         }
 
@@ -82,17 +82,12 @@
             height: 100%;
             width: 100%;
             padding: 60px;
-            /* Adjust padding to ensure content is visible */
             position: relative;
             color: black;
-            /* Set default text color to black */
             direction: rtl;
-            /* Set text direction to RTL */
             text-align: right;
-            /* Align text to the right */
             column-count: 2;
             column-gap: 40px;
-            /* Adjust the gap between columns */
             overflow-y: auto;
         }
 
@@ -121,6 +116,22 @@
         .drag-over {
             border: 2px dashed #f2cb05;
         }
+
+        #print-button {
+            position: absolute;
+            top: 110px;
+            right: 20px;
+            padding: 0.5rem 1rem;
+            background-color: #000000;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #print-button:hover {
+            background-color: #333333;
+        }
     </style>
 </head>
 
@@ -139,6 +150,7 @@
         </div>
         <div id="editor-container">
             <div id="editor"></div>
+            <button id="print-button">Print</button>
         </div>
     </div>
 
@@ -147,7 +159,7 @@
         <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
     </div>
 
-    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.6/quill.min.js"></script>
     <script>
         const songsEndpoint = "/api/songs";
         const songsContainer = document.getElementById("songs");
@@ -254,6 +266,45 @@
                 console.error('Error loading songs:', error);
                 songsContainer.innerText = "Error loading songs.";
             });
+
+        // Print functionality
+        document.getElementById('print-button').addEventListener('click', function () {
+            const printContents = document.getElementById('editor-container').innerHTML;
+            const originalContents = document.body.innerHTML;
+
+            const printStyles = `
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        width: 8.5in;
+                        height: 11in;
+                        box-sizing: border-box;
+                        overflow: hidden;
+                    }
+                    #editor-container {
+                        background: url('/assets/sheetskin.jpg') no-repeat center center !important;
+                        background-size: cover !important;
+                    }
+                    #editor {
+                        height: 100%;
+                        width: 100%;
+                        padding: 60px;
+                        column-count: 2;
+                        column-gap: 40px;
+                    }
+                </style>
+            `;
+
+            const printWindow = window.open('', '', 'height=800,width=600');
+            printWindow.document.write('<html><head><title>Print</title>');
+            printWindow.document.write(printStyles);
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(printContents);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        });
     </script>
 
 </body>
