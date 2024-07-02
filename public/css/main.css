@@ -166,4 +166,10 @@ h1 {
 
 input[type="checkbox"]:checked {
     background-color: #f2cb05; /* Yellow background for checked checkbox */
+}#clear-sheet {
+    margin-right: auto;
+}
+
+#smartboard-toggle {
+    margin-left: auto;
 }
