@@ -15,6 +15,7 @@
             height: 100vh;
             margin: 0;
             font-family: Arial, sans-serif;
+            renderSongs(songs);
         }
 
         #navbar {
@@ -362,6 +363,7 @@
             if (confirm("Are you sure you want to clear the sheet?")) {
                 localStorage.removeItem("sheetSongs");
                 updateClearSheetButton();
+                renderSongs(songs);
                 alert("Sheet cleared.");
                 editor.setContents([]); // Clear the editor content
             }
