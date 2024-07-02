@@ -59,9 +59,10 @@
         let sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
         const smartboardModeSwitch = document.getElementById("smartboard-mode");
 
-        function addToSheet(song_title, song_artist, song_lyrics, button) {
+        function addToSheet(song_title, song_artist, button) {
             let sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
             if (!sheetSongs.some(s => s.title === song_title && s.artist === song_artist)) {
+                let song_lyrics = button.getAttribute("data-lyrics");
                 sheetSongs.push({title: song_title, artist: song_artist, lyrics: decodeURIComponent(song_lyrics)});
                 localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
                 alert(`${song_title} added to the sheet.`);
@@ -79,8 +80,7 @@
             localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
             alert(`${song_title} removed from the sheet.`);
             button.textContent = "Add to Sheet";
-            const song_lyrics = button.getAttribute("data-lyrics");
-            button.onclick = () => addToSheet(song_title, song_artist, song_lyrics, button);
+            button.onclick = () => addToSheet(song_title, song_artist, button);
             updateClearSheetButton();
         }
 
@@ -105,7 +105,7 @@
                     <td style="display:none;"><a href="${song.youtube}" target="_blank">YouTube</a></td>
                     <td style="display:none;"><a href="${song.spotify}" target="_blank">Spotify</a></td>
                     <td>
-                        <button data-lyrics="${encodeURIComponent(song.lyrics)}" onclick='${sheetSongs.some(s => s.title === song.title && s.artist === song.artist) ? `removeFromSheet("${song.title}", "${song.artist}", this)` : `addToSheet("${song.title}", "${song.artist}", "${encodeURIComponent(song.lyrics)}", this)`}'>
+                        <button data-lyrics="${encodeURIComponent(song.lyrics)}" onclick='${sheetSongs.some(s => s.title === song.title && s.artist === song.artist) ? `removeFromSheet("${song.title}", "${song.artist}", this)` : `addToSheet("${song.title}", "${song.artist}", this)`}'>
                             ${sheetSongs.some(s => s.title === song.title && s.artist === song.artist) ? "Remove from Sheet" : "Add to Sheet"}
                         </button>
                     </td>
@@ -161,6 +161,9 @@
                 localStorage.removeItem("sheetSongs");
                 updateClearSheetButton();
                 alert("Sheet cleared.");
+
+                // reload the page to update the sheet
+                location.reload();
             }
         });
 
