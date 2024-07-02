@@ -376,7 +376,6 @@
             if (!sheetSongs.some(s => s.title === song.title && s.artist === song.artist)) {
                 sheetSongs.push(song);
                 localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
-                alert(`${song.title} added to the sheet.`);
                 updateClearSheetButton();
                 return;
             }
