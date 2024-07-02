@@ -80,10 +80,12 @@
         // Fetch songs to populate data area
         const songs = "/api/songs";
         const songsTableBody = document.getElementById("songs-table-body");
+        let sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
         const smartboardModeSwitch = document.getElementById("smartboard-mode");
 
         // Function to render songs into the table
         function renderSongs(songs) {
+            sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
             songsTableBody.innerHTML = "";
             songs.forEach(song => {
                 const songRow = document.createElement("tr");
