@@ -61,6 +61,10 @@
             cursor: grab;
         }
 
+        .song-item-used {
+            color: #f2cb05;
+        }
+
         #editor-container {
             display: flex;
             justify-content: center;
@@ -165,6 +169,16 @@
         const songsContainer = document.getElementById("songs");
         const uploadInput = document.getElementById("upload");
 
+        function getSheetSongsFromLocalStorage() {
+            return JSON.parse(localStorage.getItem('sheetSongs')) || [];
+        }
+
+        function addSongToLocalStorageSheet(song) {
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            sheetSongs.push(song);
+            localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
+        }
+
         const editor = new Quill('#editor', {
             theme: 'snow',
             readOnly: true, // Set the editor to read-only
@@ -173,12 +187,30 @@
             }
         });
 
+        // Load the sheet songs from local storage into the editor
+        getSheetSongsFromLocalStorage().forEach(song => {
+            const newContent = `<h2>${song.title}</h2><p>${song.lyrics}</p><br><br>`;
+            editor.clipboard.dangerouslyPasteHTML(editor.getLength() - 1, newContent);
+        });
+
+
+
+        // populate the song list with the songs titles and artists
         function renderSongs(songs) {
+            const sheetSongs = getSheetSongsFromLocalStorage();
             songsContainer.innerHTML = "";
             songs.forEach(song => {
                 const songDiv = document.createElement("div");
-                songDiv.classList.add("song-item");
                 songDiv.setAttribute("draggable", "true");
+                songDiv.classList.add("song-item");
+                // Check if the song is already used in the sheet
+                const isUsed = sheetSongs.some(sheetSong => sheetSong.title === song.title);
+                if (isUsed) {
+                    songDiv.classList.add("song-item-used");
+                }
+
+                
+                // Add the song data as attributes to the song item that will be used when dragging and dropping
                 songDiv.setAttribute("data-title", song.title);
                 songDiv.setAttribute("data-artist", song.artist);
                 songDiv.setAttribute("data-lyrics", song.lyrics.replace(/\r\n|\r|\n/g, ""));
@@ -192,6 +224,8 @@
             addDragAndDropListeners();
         }
 
+        // Add drag and drop event listeners to the song items and the editor container
+        // to allow dragging and dropping songs into the editor
         function addDragAndDropListeners() {
             const songItems = document.querySelectorAll('.song-item');
             songItems.forEach(item => {
@@ -227,6 +261,16 @@
             event.preventDefault();
             const data = event.dataTransfer.getData('text/plain');
             const song = JSON.parse(data);
+
+            const songSheet = getSheetSongsFromLocalStorage();
+            // Check if the song is already used in the sheet
+            const isUsed = songSheet.some(sheetSong => sheetSong.title === song.title);
+            if (isUsed) {
+                return;
+            }
+
+            // Add the new song to the sheet songs
+            addSongToLocalStorageSheet(song);
 
             // Append only the lyrics content with an empty line to the existing content
             const newContent = `<h2>${song.title}</h2><p>${song.lyrics}</p><br><br>`;
