@@ -15,7 +15,6 @@
             height: 100vh;
             margin: 0;
             font-family: Arial, sans-serif;
-            renderSongs(songs);
         }
 
         #navbar {
@@ -201,19 +200,20 @@
 
         // populate the song list with the songs titles and artists
         function renderSongs(songs) {
+            console.log("rendering songs");
             const sheetSongs = getSheetSongsFromLocalStorage();
             songsContainer.innerHTML = "";
             songs.forEach(song => {
                 const songDiv = document.createElement("div");
                 songDiv.setAttribute("draggable", "true");
                 songDiv.classList.add("song-item");
+                
                 // Check if the song is already used in the sheet
                 const isUsed = sheetSongs.some(sheetSong => sheetSong.title === song.title);
                 if (isUsed) {
                     songDiv.classList.add("song-item-used");
                 }
 
-                
                 // Add the song data as attributes to the song item that will be used when dragging and dropping
                 songDiv.setAttribute("data-title", song.title);
                 songDiv.setAttribute("data-artist", song.artist);
@@ -270,6 +270,7 @@
             // Check if the song is already used in the sheet
             const isUsed = songSheet.some(sheetSong => sheetSong.title === song.title);
             if (isUsed) {
+                alert(`${song.title} is already in the sheet.`);
                 return;
             }
 
@@ -279,6 +280,10 @@
             // Append only the lyrics content with an empty line to the existing content
             const newContent = `<h2>${song.title}</h2><p>${song.lyrics}</p><br><br>`;
             editor.clipboard.dangerouslyPasteHTML(editor.getLength() - 1, newContent);
+
+            // Update the song list to mark the song as used
+            let songItem = document.querySelector(`.song-item[data-title="${song.title}"]`);
+            songItem.classList.add("song-item-used");
         }
 
         function handleFileUpload(event) {
