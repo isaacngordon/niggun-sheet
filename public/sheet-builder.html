@@ -17,11 +17,6 @@
             font-family: Arial, sans-serif;
         }
 
-        .song-container {
-            break-inside: avoid-column;
-            page-break-inside: avoid;
-        }
-
         #navbar {
             background-color: #000000;
             color: #ffffff;
@@ -105,9 +100,7 @@
             column-gap: 40px;
         }
 
-        .ql-editor>* {
-            break-inside: avoid-column;
-        }
+
 
         #footer {
             background-color: #000000;
@@ -183,6 +176,17 @@
         const songsContainer = document.getElementById("songs");
         const uploadInput = document.getElementById("upload");
 
+        function songContainerStyling() {
+            return `
+                padding: 20px;
+                background-color: green;
+                color: red;
+                border-radius: 10px;
+                box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+                margin: 10px;
+            `;
+        }
+
         function getSheetSongsFromLocalStorage() {
             return JSON.parse(localStorage.getItem('sheetSongs')) || [];
         }
@@ -203,7 +207,7 @@
 
         // Load the sheet songs from local storage into the editor
         getSheetSongsFromLocalStorage().forEach(song => {
-            const newContent = `<div class="song-container"><h2>${song.title}</h2><p>${song.lyrics}</p></div><br><br>`;
+            const newContent = `<h2>${song.title}</h2><p>${song.lyrics}</p><br><br>`;
             editor.clipboard.dangerouslyPasteHTML(editor.getLength() - 1, newContent);
         });
 
@@ -291,7 +295,7 @@
             addSongToLocalStorageSheet(song);
 
             // Append only the lyrics content with an empty line to the existing content
-            const newContent = `<div class="song-container"><h2>${song.title}</h2><p>${song.lyrics}</p><br><br></div>`;
+            const newContent = `<div style="${songContainerStyling()}"><h2>${song.title}</h2><p>${song.lyrics}</p></div>`;
             editor.clipboard.dangerouslyPasteHTML(editor.getLength() - 1, newContent);
 
             // Update the song list to mark the song as used
@@ -358,6 +362,10 @@
                         padding: 60px;
                         column-count: 2;
                         column-gap: 40px;
+                        direction: rtl;
+                    }
+                    #editor > * {
+                        break-inside: avoid-column;
                     }
                 </style>
             `;
