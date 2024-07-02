@@ -17,6 +17,11 @@
             font-family: Arial, sans-serif;
         }
 
+        .song-container {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
         #navbar {
             background-color: #000000;
             color: #ffffff;
@@ -193,7 +198,7 @@
 
         // Load the sheet songs from local storage into the editor
         getSheetSongsFromLocalStorage().forEach(song => {
-            const newContent = `<div><h2>${song.title}</h2><p>${song.lyrics}</p></div><br><br>`;
+            const newContent = `<div class="song-container"><h2>${song.title}</h2><p>${song.lyrics}</p></div><br><br>`;
             editor.clipboard.dangerouslyPasteHTML(editor.getLength() - 1, newContent);
         });
 
@@ -281,7 +286,7 @@
             addSongToLocalStorageSheet(song);
 
             // Append only the lyrics content with an empty line to the existing content
-            const newContent = `<div><h2>${song.title}</h2><p>${song.lyrics}</p><br><br></div>`;
+            const newContent = `<div class="song-container"><h2>${song.title}</h2><p>${song.lyrics}</p><br><br></div>`;
             editor.clipboard.dangerouslyPasteHTML(editor.getLength() - 1, newContent);
 
             // Update the song list to mark the song as used
