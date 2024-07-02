@@ -56,6 +56,7 @@
     <script>
         const songsEndpoint = "/api/songs";
         const songsTableBody = document.getElementById("songs-table-body");
+        let sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
         const smartboardModeSwitch = document.getElementById("smartboard-mode");
 
         function addToSheet(song_title, song_artist, song_lyrics, button) {
@@ -83,6 +84,7 @@
         }
 
         function renderSongs(songs) {
+            sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
             songsTableBody.innerHTML = "";
             songs.forEach(song => {
                 const songRow = document.createElement("tr");
