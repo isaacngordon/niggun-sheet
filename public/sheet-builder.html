@@ -148,10 +148,12 @@
 
     <div id="content">
         <div id="song-list">
+            <div style="display: flex; flex-direction: column;">
+                <button id="clear-sheet" disabled>Clear Sheet</button>
+                <input type="file" id="upload" accept=".txt" />
+            </div>
             <h2>All Niggunim</h2>
             <div id="songs"></div>
-            <input type="file" id="upload" accept=".txt" />
-            <button id="clear-sheet" disabled>Clear Sheet</button>
         </div>
         <div id="editor-container">
             <div id="editor"></div>

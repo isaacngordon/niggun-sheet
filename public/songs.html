@@ -15,15 +15,17 @@
 
     <div id="songs-table">
         <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-            <h2>All Niggunim</h2>
-            <div id="smartboard-toggle">
-                <label for="smartboard-mode">Smartboard Mode</label>
-                <input type="checkbox" id="smartboard-mode">
-                <script>
-                    document.getElementById("smartboard-mode").checked = localStorage.getItem("smartboardMode") === "true";
-                </script>
+            <div style="display: flex; flex-direction: column;">
+                <button id="clear-sheet" disabled>Clear Sheet</button>
+                <div id="smartboard-toggle">
+                    <label for="smartboard-mode">Smartboard Mode</label>
+                    <input type="checkbox" id="smartboard-mode">
+                    <script>
+                        document.getElementById("smartboard-mode").checked = localStorage.getItem("smartboardMode") === "true";
+                    </script>
+                </div>
             </div>
-            <button id="clear-sheet" disabled>Clear Sheet</button>
+            <h2>All Niggunim</h2>
         </div>
         
         <input type="search" id="song-search" placeholder="Search...">
