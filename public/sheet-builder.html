@@ -151,6 +151,7 @@
             <h2>All Niggunim</h2>
             <div id="songs"></div>
             <input type="file" id="upload" accept=".txt" />
+            <button id="clear-sheet" disabled>Clear Sheet</button>
         </div>
         <div id="editor-container">
             <div id="editor"></div>
@@ -349,6 +350,36 @@
             printWindow.document.close();
             printWindow.print();
         });
+        function updateClearSheetButton() {
+            const clearSheetButton = document.getElementById("clear-sheet");
+            const sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
+            clearSheetButton.disabled = sheetSongs.length === 0;
+        }
+
+        document.getElementById("clear-sheet").addEventListener("click", function () {
+            if (confirm("Are you sure you want to clear the sheet?")) {
+                localStorage.removeItem("sheetSongs");
+                updateClearSheetButton();
+                alert("Sheet cleared.");
+                editor.setContents([]); // Clear the editor content
+            }
+        });
+
+        // Initial button state update
+        updateClearSheetButton();
+
+        // Update button state whenever a song is added to the sheet
+        function addSongToLocalStorageSheet(song) {
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            if (!sheetSongs.some(s => s.title === song.title && s.artist === song.artist)) {
+                sheetSongs.push(song);
+                localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
+                alert(`${song.title} added to the sheet.`);
+                updateClearSheetButton();
+                return;
+            }
+            alert(`${song.title} is already in the sheet.`);
+        }
     </script>
 
 </body>
