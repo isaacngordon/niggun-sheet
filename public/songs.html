@@ -43,6 +43,7 @@
                     document.getElementById("smartboard-mode").checked = localStorage.getItem("smartboardMode") === "true"; 
                 </script>
             </div>
+            <button id="clear-sheet" disabled>Clear Sheet</button>
         </div>
         
         <!-- Search field -->
@@ -147,6 +148,35 @@
                     songsTableBody.innerText = "Error loading songs.";
                 });
         });
+        function updateClearSheetButton() {
+            const clearSheetButton = document.getElementById("clear-sheet");
+            const sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
+            clearSheetButton.disabled = sheetSongs.length === 0;
+        }
+
+        document.getElementById("clear-sheet").addEventListener("click", function () {
+            if (confirm("Are you sure you want to clear the sheet?")) {
+                localStorage.removeItem("sheetSongs");
+                updateClearSheetButton();
+                alert("Sheet cleared.");
+            }
+        });
+
+        // Initial button state update
+        updateClearSheetButton();
+
+        // Update button state whenever a song is added to the sheet
+        function addToSheet(song_title, song_artist, song_lyrics) {
+            let sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
+            if (!sheetSongs.some(s => s.title === song_title && s.artist === song_artist)) {
+                sheetSongs.push({title: song_title, artist: song_artist, lyrics: decodeURIComponent(song_lyrics)});
+                localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
+                alert(`${song_title} added to the sheet.`);
+                updateClearSheetButton();
+                return;
+            }
+            alert(`${song_title} is already in the sheet.`);
+        }
     </script>
 
 </body>
