@@ -88,16 +88,17 @@
             padding: 60px;
             position: relative;
             color: black;
-            direction: rtl;
-            text-align: right;
-            column-count: 2;
-            column-gap: 40px;
+            
             overflow-y: auto;
         }
 
         .ql-editor {
             height: 100%;
+            width: 100%;
             overflow: auto;
+            direction: rtl; 
+            column-count: 2;
+            column-gap: 40px;
         }
 
         #footer {
@@ -192,7 +193,7 @@
 
         // Load the sheet songs from local storage into the editor
         getSheetSongsFromLocalStorage().forEach(song => {
-            const newContent = `<h2>${song.title}</h2><p>${song.lyrics}</p><br><br>`;
+            const newContent = `<div><h2>${song.title}</h2><p>${song.lyrics}</p></div><br><br>`;
             editor.clipboard.dangerouslyPasteHTML(editor.getLength() - 1, newContent);
         });
 
@@ -219,8 +220,10 @@
                 songDiv.setAttribute("data-artist", song.artist);
                 songDiv.setAttribute("data-lyrics", song.lyrics.replace(/\r\n|\r|\n/g, ""));
                 songDiv.innerHTML = `
+                <div>
                     <strong>${song.title}</strong><br>
                     <small>${song.artist}</small>
+                </div>
                 `;
                 songsContainer.appendChild(songDiv);
             });
@@ -278,7 +281,7 @@
             addSongToLocalStorageSheet(song);
 
             // Append only the lyrics content with an empty line to the existing content
-            const newContent = `<h2>${song.title}</h2><p>${song.lyrics}</p><br><br>`;
+            const newContent = `<div><h2>${song.title}</h2><p>${song.lyrics}</p><br><br></div>`;
             editor.clipboard.dangerouslyPasteHTML(editor.getLength() - 1, newContent);
 
             // Update the song list to mark the song as used
