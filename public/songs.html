@@ -14,8 +14,9 @@
     </div>
 
     <div id="songs-table">
-        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-            <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; flex-direction: column; justify-content: space-between; align-items: center;">
+            <h2>All Niggunim</h2>
+            <div style="display: flex; flex-direction: row;">
                 <button id="clear-sheet" disabled>Clear Sheet</button>
                 <div id="smartboard-toggle">
                     <label for="smartboard-mode">Smartboard Mode</label>
@@ -25,7 +26,6 @@
                     </script>
                 </div>
             </div>
-            <h2>All Niggunim</h2>
         </div>
         
         <input type="search" id="song-search" placeholder="Search...">
@@ -167,18 +167,6 @@
         // Initial button state update
         updateClearSheetButton();
 
-        // Update button state whenever a song is added to the sheet
-        function addToSheet(song_title, song_artist, song_lyrics) {
-            let sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
-            if (!sheetSongs.some(s => s.title === song_title && s.artist === song_artist)) {
-                sheetSongs.push({title: song_title, artist: song_artist, lyrics: decodeURIComponent(song_lyrics)});
-                localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
-                alert(`${song_title} added to the sheet.`);
-                updateClearSheetButton();
-                return;
-            }
-            alert(`${song_title} is already in the sheet.`);
-        }
     </script>
 </body>
 </html>
