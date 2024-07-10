@@ -139,6 +139,7 @@
             button.textContent = "Add to Sheet";
             button.onclick = () => addToSheet(song_title, song_artist, button);
             updateClearSheetButton();
+            renderSheetSongs();
         }
 
         function renderSongs(songs) {
