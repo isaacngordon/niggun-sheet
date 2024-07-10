@@ -235,7 +235,7 @@
             sheetSongsList.innerHTML = "";
             sheetSongs.forEach(song => {
                 const songItem = document.createElement("li");
-                songItem.textContent = `${song.title} by ${song.artist}`;
+                songItem.textContent = `${song.title}`;
                 sheetSongsList.appendChild(songItem);
             });
         }
