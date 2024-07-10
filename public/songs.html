@@ -242,6 +242,11 @@
         document.getElementById("sheet-tab").addEventListener("click", function () {
             const sheetContainer = document.getElementById("sheet-container");
             sheetContainer.classList.toggle("open");
+            if (sheetContainer.classList.contains("open")) {
+                this.textContent = "Close";
+            } else {
+                this.textContent = "View Selected Songs";
+            }
             renderSheetSongs();
         });
     </script>
