@@ -135,6 +135,22 @@
         .slider.round:before {
             border-radius: 50%;
         }
+        #font-size-controls {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1;
+        }
+
+        .font-size-button {
+            background-color: #f2cb05;
+            color: #000000;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
     </style>
 </head>
 
@@ -166,7 +182,23 @@
         Your browser does not support the audio element.
     </audio>
 
+    <div id="font-size-controls">
+        <button class="font-size-button" id="increase-font">+</button>
+        <button class="font-size-button" id="decrease-font">-</button>
+    </div>
+
     <script>
+        // Function to change font size
+        function changeFontSize(increase) {
+            const lyricsElement = document.getElementById("song-lyrics");
+            const currentFontSize = window.getComputedStyle(lyricsElement, null).getPropertyValue('font-size');
+            const currentSize = parseFloat(currentFontSize);
+            lyricsElement.style.fontSize = (increase ? currentSize + 2 : currentSize - 2) + 'px';
+        }
+
+        // Event listeners for font size buttons
+        document.getElementById("increase-font").addEventListener("click", () => changeFontSize(true));
+        document.getElementById("decrease-font").addEventListener("click", () => changeFontSize(false));
         // Function to get URL parameters
         function getParameterByName(name, url) {
             if (!url) url = window.location.href;
