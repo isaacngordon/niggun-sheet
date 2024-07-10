@@ -5,7 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Niggun Sheet | Songs List</title>
     <link rel="stylesheet" href="css/main.css">
-</head>
+<style>
+    #sheet-tab {
+        position: fixed;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: #333;
+        color: white;
+        padding: 10px;
+        cursor: pointer;
+        z-index: 1000;
+    }
+
+    #sheet-container {
+        position: fixed;
+        right: -300px;
+        top: 0;
+        width: 300px;
+        height: 100%;
+        background-color: white;
+        box-shadow: -2px 0 5px rgba(0,0,0,0.5);
+        transition: right 0.3s ease;
+        z-index: 999;
+        overflow-y: auto;
+    }
+
+    #sheet-container.open {
+        right: 0;
+    }
+
+    #sheet-container h2 {
+        text-align: center;
+    }
+
+    #sheet-container ul {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    #sheet-container ul li {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+</style>
 <body>
     <div id="navbar">
         <a href="/">Home Page</a>
@@ -46,6 +89,14 @@
                 <!-- Songs will be dynamically populated here -->
             </tbody>
         </table>
+    </div>
+
+    <div id="sheet-tab">Sheet</div>
+    <div id="sheet-container">
+        <h2>Selected Songs</h2>
+        <ul id="sheet-songs-list">
+            <!-- Selected songs will be dynamically populated here -->
+        </ul>
     </div>
 
     <div id="footer">
@@ -170,6 +221,23 @@
         // Initial button state update
         updateClearSheetButton();
 
-    </script>
+        // Function to render the selected songs in the sheet
+        function renderSheetSongs() {
+            const sheetSongsList = document.getElementById("sheet-songs-list");
+            const sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
+            sheetSongsList.innerHTML = "";
+            sheetSongs.forEach(song => {
+                const songItem = document.createElement("li");
+                songItem.textContent = `${song.title} by ${song.artist}`;
+                sheetSongsList.appendChild(songItem);
+            });
+        }
+
+        // Event listener for the sheet tab
+        document.getElementById("sheet-tab").addEventListener("click", function () {
+            const sheetContainer = document.getElementById("sheet-container");
+            sheetContainer.classList.toggle("open");
+            renderSheetSongs();
+        });
 </body>
 </html>
