@@ -125,6 +125,7 @@
                 button.textContent = "Remove from Sheet";
                 button.onclick = () => removeFromSheet(song_title, song_artist, button);
                 updateClearSheetButton();
+                renderSheetSongs();
                 return;
             }
             alert(`${song_title} is already in the sheet.`);
