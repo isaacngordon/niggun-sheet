@@ -95,7 +95,7 @@
 
         .editor-song {
             break-inside: avoid-column;  
-            font-size: 12pt;
+            font-size: 1.5vw; /* Responsive font size */
         }
 
         #footer {
@@ -335,7 +335,10 @@
                         column-count: 2;
                         column-gap: 40px;
                     }
-                    #editor > * {
+                    #editor {
+                        font-size: 12pt; /* Fixed font size for printing */
+                    }
+                    #editor > * { 
                         break-inside: avoid-column;
                     }
                 </style>
