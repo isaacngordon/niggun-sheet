@@ -38,7 +38,7 @@
         #content {
             display: flex;
             flex: 1;
-            overflow: hidden;
+            overflow: auto; /* Allow scrolling when content overflows */
         }
 
         #song-list {
@@ -50,7 +50,7 @@
             border-radius: 10px;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
-            overflow-x: auto; /* Ensure scroll bar appears when content overflows */
+            overflow-x: hidden; /* Ensure scroll bar appears when content overflows */
             flex-shrink: 0;
         }
 
