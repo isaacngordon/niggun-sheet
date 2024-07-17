@@ -327,21 +327,31 @@
                         box-sizing: border-box;
                         overflow: hidden;
                     }
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        width: calc(100vh * 8.5 / 11);
+                        height: 100vh;
+                        box-sizing: border-box;
+                        overflow: hidden;
+                    }
                     #editor-container {
-                        background: url('/assets/sheetskin.jpg') no-repeat center center !important;
-                        background-size: cover !important;
+                        background: url('/assets/sheetskin.png') no-repeat center center !important;
+                        background-size: 100% 100% !important;
+                        width: calc(100vh * 8.5 / 11);
+                        height: 100vh;
+                        margin: 0 auto;
+                        overflow: hidden;
                     }
                     #editor {
                         height: 100%;
                         width: 100%;
                         padding: 60px;
-                        column-count: 2;
+                        column-count: 3;
                         column-gap: 40px;
+                        font-size: 1.2vh; /* Responsive font size */
                     }
-                    #editor {
-                        font-size: 12pt; /* Fixed font size for printing */
-                    }
-                    #editor > * { 
+                    .editor-song {
                         break-inside: avoid-column;
                     }
                 </style>
