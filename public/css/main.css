@@ -173,3 +173,8 @@ input[type="checkbox"]:checked {
 #smartboard-toggle {
     margin-left: auto;
 }
+.footer-copyright {
+    font-size: 0.8em;
+    color: grey;
+    margin-top: 10px;
+}
