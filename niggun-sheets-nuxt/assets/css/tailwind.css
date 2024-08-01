@@ -1,0 +1,10 @@
+/* assets/css/tailwind.css */
+@layer tailwind-base {
+    @tailwind base;
+  }
+  
+  @layer tailwind-utilities {
+    @tailwind components;
+    @tailwind utilities;
+  }
+  
