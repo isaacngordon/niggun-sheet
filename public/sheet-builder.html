@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sheet Builder</title>
+    <!-- Include Quill from CDNJS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.6/quill.snow.css">
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #navbar {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #navbar a {
+            color: #f2cb05;
+            margin: 0 10px;
+            text-decoration: none;
+        }
+
+        #navbar a:hover {
+            text-decoration: underline;
+        }
+
+        #content {
+            display: flex;
+            flex: 1;
+            overflow: auto; /* Allow scrolling when content overflows */
+        }
+
+        #song-list {
+            width: 300px;
+            margin: 2rem;
+            padding: 20px;
+            background-color: #000000;
+            color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            overflow-x: hidden; /* Ensure scroll bar appears when content overflows */
+            flex-shrink: 0;
+        }
+
+        .song-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ffffff;
+            border-radius: 5px;
+            cursor: grab;
+        }
+
+        .song-item-used {
+            color: #f2cb05;
+        }
+
+        #editor-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            position: relative;
+            width: calc(100vh * 8.5 / 11);
+            height: 100vh;
+            margin: 0 auto;
+            overflow: auto; /* Allow scrolling when content overflows */
+            min-height: 500px; /* Minimum height for the sheet builder */
+            background: url('/assets/sheetskin.png') no-repeat center center;
+            background-size: 100% 100%;
+        }
+
+        #editor {
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+            padding: 60px;
+            position: relative;
+            color: black;
+            overflow-y: hidden;
+            columns: 3;
+            column-gap: 40px;
+        }
+
+        .editor-song {
+            break-inside: avoid-column;  
+            font-size: 1.2vh; /* Responsive font size */
+        }
+
+        #footer {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+        }
+
+        #footer a {
+            color: #f2cb05;
+            margin: 0 10px;
+            text-decoration: none;
+        }
+
+        #footer a:hover {
+            text-decoration: underline;
+        }
+
+        .drag-over {
+            border: 2px dashed #f2cb05;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="navbar">
+        <a href="/">Home Page</a>
+        <a href="/songs.html">Song Directory</a>
+        <a href="/sheet-builder.html">Sheet Builder</a>
+    </div>
+
+    <div id="content">
+        <div id="song-list">
+            <div style="display: flex; flex-direction: row; justify-content: space-between; margin-bottom: 4px;">
+                <button id="clear-sheet" disabled>Clear Sheet</button>
+                <button id="print-button">Print</button>
+            </div>
+            <input type="file" id="upload" accept=".txt" />
+            <h2>All Niggunim</h2>
+            <div id="songs"></div>
+        </div>
+        
+        <div id="editor-container">
+            <div id="editor"></div>
+        </div>
+    </div>
+
+    <div id="footer">
+        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
+            target="_blank">Download Niggun Sheet</a>
+        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
+            target="_blank">Download Simcha Sheet</a>
+    </div>
+
+    <script>
+        const songsEndpoint = "/api/songs";
+        const songsContainer = document.getElementById("songs");
+        const uploadInput = document.getElementById("upload");
+
+        function songContainerStyling() {
+            return `
+                padding: 20px;
+                background-color: green;
+                color: red;
+                border-radius: 10px;
+                box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+                margin: 10px;
+            `;
+        }
+
+        function getSheetSongsFromLocalStorage() {
+            return JSON.parse(localStorage.getItem('sheetSongs')) || [];
+        }
+
+        function addSongToLocalStorageSheet(song) {
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            sheetSongs.push(song);
+            localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
+        }
+
+
+        // Load the sheet songs from local storage into the editor
+        getSheetSongsFromLocalStorage().forEach(song => {
+            const newContent = `<div class="editor-song"><h2>${song.title}</h2><p>${song.lyrics}</p></div>`;
+            document.getElementById("editor").innerHTML += newContent;
+        });
+
+
+
+        // populate the song list with the songs titles and artists
+        function renderSongs(songs) {
+            console.log("rendering songs");
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            songsContainer.innerHTML = "";
+            songs.forEach(song => {
+                const songDiv = document.createElement("div");
+                songDiv.setAttribute("draggable", "true");
+                songDiv.classList.add("song-item");
+
+                // Check if the song is already used in the sheet
+                const isUsed = sheetSongs.some(sheetSong => sheetSong.title === song.title);
+                if (isUsed) {
+                    songDiv.classList.add("song-item-used");
+                }
+
+                // Add the song data as attributes to the song item that will be used when dragging and dropping
+                songDiv.setAttribute("data-title", song.title);
+                songDiv.setAttribute("data-artist", song.artist);
+                songDiv.setAttribute("data-lyrics", song.lyrics.replace(/\r\n|\r|\n/g, ""));
+                songDiv.innerHTML = `
+                <div>
+                    <strong>${song.title}</strong><br>
+                    <small>${song.artist}</small>
+                </div>
+                `;
+                songsContainer.appendChild(songDiv);
+            });
+
+            addDragAndDropListeners();
+        }
+
+        // Add drag and drop event listeners to the song items and the editor container
+        // to allow dragging and dropping songs into the editor
+        function addDragAndDropListeners() {
+            const songItems = document.querySelectorAll('.song-item');
+            songItems.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+
+            const editorContainer = document.querySelector('#editor-container');
+            editorContainer.addEventListener('dragover', handleDragOver);
+            editorContainer.addEventListener('drop', handleDrop);
+        }
+
+        function handleDragStart(event) {
+            event.dataTransfer.setData('text/plain', JSON.stringify({
+                title: event.target.getAttribute('data-title'),
+                artist: event.target.getAttribute('data-artist'),
+                lyrics: event.target.getAttribute('data-lyrics')
+            }));
+            setTimeout(() => {
+                event.target.classList.add('hide');
+            }, 0);
+        }
+
+        function handleDragEnd(event) {
+            event.target.classList.remove('hide');
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            const data = event.dataTransfer.getData('text/plain');
+            const song = JSON.parse(data);
+
+            const songSheet = getSheetSongsFromLocalStorage();
+            // Check if the song is already used in the sheet
+            const isUsed = songSheet.some(sheetSong => sheetSong.title === song.title);
+            if (isUsed) {
+                alert(`${song.title} is already in the sheet.`);
+                return;
+            }
+
+            // Add the new song to the sheet songs
+            addSongToLocalStorageSheet(song);
+
+            // Append only the lyrics content with an empty line to the existing content
+            const newContent = `<div class="editor-song"><h2>${song.title}</h2><p>${song.lyrics}</p></div>`;
+            document.getElementById("editor").innerHTML += newContent;
+
+            // Update the song list to mark the song as used
+            let songItem = document.querySelector(`.song-item[data-title="${song.title}"]`);
+            songItem.classList.add("song-item-used");
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                const title = lines[0].trim();
+                const artist = lines[1].trim();
+                const lyrics = lines.slice(2).join('<br>').trim();
+
+                const newSong = { title, artist, lyrics };
+                // Add the new song to the songs array
+                songs.push(newSong);
+                renderSongs(songs);
+            };
+            reader.readAsText(file);
+        }
+
+        uploadInput.addEventListener("change", handleFileUpload);
+
+        let songs = [];
+        fetch(songsEndpoint)
+            .then(response => response.json())
+            .then(data => {
+                songs = data;
+                renderSongs(songs);
+            })
+            .catch(error => {
+                console.error('Error loading songs:', error);
+                songsContainer.innerText = "Error loading songs.";
+            });
+
+        // Print functionality
+        document.getElementById('print-button').addEventListener('click', function () {
+            const printContents = document.getElementById('editor-container').innerHTML;
+
+            const printStyles = `
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        width: 8.5in;
+                        height: 11in;
+                        box-sizing: border-box;
+                        overflow: hidden;
+                    }
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        width: calc(100vh * 8.5 / 11);
+                        height: 100vh;
+                        box-sizing: border-box;
+                        overflow: hidden;
+                    }
+                    #editor-container {
+                        background: url('/assets/sheetskin.png') no-repeat center center !important;
+                        background-size: 100% 100% !important;
+                        width: calc(100vh * 8.5 / 11);
+                        height: 100vh;
+                        margin: 0 auto;
+                        overflow: hidden;
+                    }
+                    #editor {
+                        height: 100%;
+                        width: 100%;
+                        padding: 60px;
+                        column-count: 3;
+                        column-gap: 40px;
+                        font-size: 1.2vh; /* Responsive font size */
+                    }
+                    .editor-song {
+                        break-inside: avoid-column;
+                    }
+                </style>
+            `;
+
+            const printWindow = window.open('', '', 'height=800,width=600');
+            printWindow.document.write('<html><head><title>Print</title>');
+            printWindow.document.write(printStyles);
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(printContents);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        });
+        function updateClearSheetButton() {
+            const clearSheetButton = document.getElementById("clear-sheet");
+            const sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
+            clearSheetButton.disabled = sheetSongs.length === 0;
+        }
+
+        document.getElementById("clear-sheet").addEventListener("click", function () {
+            if (confirm("Are you sure you want to clear the sheet?")) {
+                localStorage.removeItem("sheetSongs");
+                updateClearSheetButton();
+                renderSongs(songs);
+                alert("Sheet cleared.");
+                document.getElementById("editor").innerHTML = "";
+            }
+        });
+
+        // Initial button state update
+        updateClearSheetButton();
+
+        // Update button state whenever a song is added to the sheet
+        function addSongToLocalStorageSheet(song) {
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            if (!sheetSongs.some(s => s.title === song.title && s.artist === song.artist)) {
+                sheetSongs.push(song);
+                localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
+                updateClearSheetButton();
+                return;
+            }
+            alert(`${song.title} is already in the sheet.`);
+        }
+    </script>
+
+</body>
+
+</html>

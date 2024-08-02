@@ -1,8 +1,9 @@
 // server.js
 const serverless = require('serverless-http');
 const express = require('express');
-const app = express();
 const path = require('path');
+
+const app = express();
 
 // Importing route handlers
 const songsHandler = require('./api/songs');
