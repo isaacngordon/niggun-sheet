@@ -1,13 +1,13 @@
 const fs = require('fs');
 const csv = require('csv-parser');
-const {runQuery, getRow} = require('./songs_db'); // Assume you have a configured SQLite connection
+const {runUpdateQuery, getRow} = require('./db'); // Assume you have a configured SQLite connection
 
 
 // Function to insert artist if not exists
 async function insertArtist(artistName) {
     if (!artistName) return null;
 
-    const artistId = await runQuery(
+    const artistId = await runUpdateQuery(
         `INSERT INTO artists (artist_name)
          SELECT ?
          WHERE NOT EXISTS (SELECT 1 FROM artists WHERE artist_name = ?)`,
@@ -27,7 +27,7 @@ async function insertArtist(artistName) {
 
 // Function to insert song if not exists
 async function insertSong(songTitleEn, songTitleHe, artistId) {
-    const songId = await runQuery(
+    const songId = await runUpdateQuery(
         `INSERT INTO songs (song_title_en, song_title_he, artist_id)
          SELECT ?, ?, ?
          WHERE NOT EXISTS (SELECT 1 FROM songs WHERE song_title_en = ? AND artist_id = ?)`,
@@ -47,7 +47,7 @@ async function insertSong(songTitleEn, songTitleHe, artistId) {
 
 // Function to insert lyrics if not exists
 async function insertLyrics(songId, lyricTextHe, lyricTextEn) { // Added lyricTextEn parameter
-    await runQuery(
+    await runUpdateQuery(
         `INSERT INTO lyrics (song_id, lyric_text_he, lyric_text_en) 
          SELECT ?, ?, ? 
          WHERE NOT EXISTS (SELECT 1 FROM lyrics WHERE song_id = ? AND lyric_text_he = ?)`,
@@ -59,7 +59,7 @@ async function insertLyrics(songId, lyricTextHe, lyricTextEn) { // Added lyricTe
 async function insertLink(songId, linkUrl, linkType) {
     if (!linkUrl) return;
 
-    await runQuery(
+    await runUpdateQuery(
         `INSERT INTO links (link_url, song_id, link_type)
          SELECT ?, ?, ?
          WHERE NOT EXISTS (SELECT 1 FROM links WHERE link_url = ? AND song_id = ?)`,

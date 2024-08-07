@@ -3,7 +3,7 @@ const app = express();
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const {db} = require('../data/songs_db');
+const { getAllRows } = require('../data/db');
 
 const songsFilePath = path.join(__dirname, '../data/songs.csv');
 
@@ -25,7 +25,7 @@ function csv_handler(req, res) {
             if (!line) return;
             const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
             const [search_title, title, lyrics, artist, drive, youtube] = line.split(regex).map(cell => cell.replace(/"/g, ''));
-            return {search_title,  title, lyrics, artist, drive, youtube };
+            return { search_title, title, lyrics, artist, drive, youtube };
         });
 
         // remove the first element in the array if it is null otherwise return the array
@@ -34,26 +34,25 @@ function csv_handler(req, res) {
     });
 }
 
-function get_all_songs_handler(req, res) {
+async function get_all_songs_handler(req, res) {
     //log request 
     console.log(`Handling GET /songs ${req.query} from ${req.ip}`);
 
-    const stmt = fs.readFileSync(path.join(__dirname, '../data/sql/get_all_songs.sql'), 'utf-8');
-
-    db.all(stmt, (err, rows) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: 'Internal Server Error' });
-        }
-
+    try {
+        const stmt = fs.readFileSync(path.join(__dirname, '../data/sql/get_song_list.sql'), 'utf-8');
+        console.log(stmt);
+        const rows = await getAllRows(stmt).catch(err => { throw err; });
+        console.log(rows);
         res.json(rows);
-    });
-
+    }
+    catch (err) {
+        console.error("Error in get_all_songs_handler: ", err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 }
 
-app.get('/', (req, res) => {
-    return csv_handler(req, res);
-});
+app.get('/', csv_handler);
+app.get('/all', get_all_songs_handler);
 
 
 module.exports = app;

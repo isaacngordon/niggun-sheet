@@ -9,7 +9,7 @@ const db = new sqlite3.Database('./db.db', (err) => {
 });
 
 // Helper function to run SQL queries with async/await
-function runQuery(query, params = []) {
+function runUpdateQuery(query, params = []) {
   return new Promise((resolve, reject) => {
       db.run(query, params, function(err) {
           if (err) {
@@ -32,6 +32,17 @@ function getRow(query, params = []) {
   });
 }
 
+// Helper function to get all rows with async/await
+function getAllRows(query, params = []) {
+  return new Promise((resolve, reject) =>
+      db.all(query, params, (err, rows) => {
+          if (err) {
+              return reject(err);
+          }
+          resolve(rows);
+      })
+  );
+}
 
 // export the database connection
-module.exports = {db, runQuery, getRow};
+module.exports = {db, runUpdateQuery, getRow, getAllRows};
