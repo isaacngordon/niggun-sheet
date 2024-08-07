@@ -39,3 +39,6 @@
 .DS_Store
 Thumbs.db
 .aider*
+
+# Ignore backup files
+/data/backups/**

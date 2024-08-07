@@ -6,14 +6,19 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "dev": "nodemon server.js -e html,js,css,csv"
+    "dev": "nodemon server.js -e html,js,css,csv",
+    "db-migrate": "node data/migrate.js",
+    "db-seed": "node data/seed.js data/songs.csv",
+    "db-backup": "prefix=$(echo $(( $(ls data/backups | grep -o '^[0-9]*' | sort -n | tail -1) + 1 ))); timestamp=$(date +\"%Y%m%d_%H%M%S\"); filepath=\"data/backups/${prefix}_${timestamp}_backup.sql\"; sqlite3 db.db .dump > $filepath; echo $filepath"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
+    "csv-parser": "^3.0.0",
     "express": "^4.18.2",
-    "serverless-http": "^3.2.0"
+    "serverless-http": "^3.2.0",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
