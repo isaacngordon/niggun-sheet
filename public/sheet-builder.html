@@ -207,7 +207,7 @@
                 // Add the song data as attributes to the song item that will be used when dragging and dropping
                 songDiv.setAttribute("data-title", song.title);
                 songDiv.setAttribute("data-artist", song.artist);
-                songDiv.setAttribute("data-lyrics", song.lyrics.replace(/\r\n|\r|\n/g, ""));
+                songDiv.setAttribute("data-lyrics", song.lyrics ? song.lyrics.replace(/\r\n|\r|\n/g, ""): "Lyrics not available");
                 songDiv.innerHTML = `
                 <div>
                     <strong>${song.title}</strong><br>
@@ -305,6 +305,7 @@
             .then(response => response.json())
             .then(data => {
                 songs = data;
+                console.log('Songs loaded:', songs);
                 renderSongs(songs);
             })
             .catch(error => {

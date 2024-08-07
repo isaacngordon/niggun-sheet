@@ -51,8 +51,8 @@ async function get_all_songs_handler(req, res) {
     }
 }
 
-app.get('/', csv_handler);
-app.get('/all', get_all_songs_handler);
+app.get('/', get_all_songs_handler);
+app.get('/csv', csv_handler);
 
 
 module.exports = app;
