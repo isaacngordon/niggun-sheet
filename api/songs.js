@@ -3,7 +3,7 @@ const app = express();
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const db = require('../data/songs_db');
+const {db} = require('../data/songs_db');
 
 const songsFilePath = path.join(__dirname, '../data/songs.csv');
 
@@ -51,7 +51,7 @@ function get_all_songs_handler(req, res) {
 
 }
 
-app.get('/api/songs', (req, res) => {
+app.get('/', (req, res) => {
     return csv_handler(req, res);
 });
 
