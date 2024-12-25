@@ -21,33 +21,35 @@
 
 <body>
 
-    <div id="navbar">
-        <a href="/">Home Page</a>
-        <a href="/songs.html">Song Directory</a>
-        <a href="/sheet-builder.html">Sheet Builder</a>
-    </div>
-    
-    <!-- Hero Section w Title and Search -->
-    <div id="hero">
-        <h1>Niggun Sheet</h1>
-        <p>Search for niggunim and simcha songs</p>
-        <!-- Add an ID to the search input field -->
-        <input type="search" id="song-search" placeholder="search...">
-        <div id="button-container">
-            <button id="search-button" class="primary-button" onclick="performSearch()">Search</button>
-            <button id="lucky-button" class="secondary-button">I'm Feeling Lucky</button>
+    <div class="container">
+        <div id="navbar">
+            <a href="/">Home Page</a>
+            <a href="/songs.html">Song Directory</a>
+            <a href="/sheet-builder.html">Sheet Builder</a>
         </div>
+
+        <!-- Hero Section w Title and Search -->
+        <div id="hero">
+            <h1>Niggun Sheet</h1>
+            <p>Search for niggunim and simcha songs</p>
+            <!-- Add an ID to the search input field -->
+            <input type="search" id="song-search" placeholder="search...">
+            <div id="button-container">
+                <button id="search-button" class="primary-button" onclick="performSearch()">Search</button>
+                <button id="lucky-button" class="secondary-button">I'm Feeling Lucky</button>
+            </div>
+        </div>
+        <!-- Highlighted Download Section -->
+        <div id="download-section" style="text-align: center; margin-top: 20px;">
+            <h2>Get Your Free Sheets</h2>
+            <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
+                target="_blank" class="download-button">Download Niggun Sheet</a>
+            <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
+                target="_blank" class="download-button">Download Simcha Sheet</a>
+        </div>
+
     </div>
 
-    <!-- Highlighted Download Section -->
-    <div id="download-section" style="text-align: center; margin-top: 20px;">
-        <h2>Get Your Free Sheets</h2>
-        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank"
-            class="download-button">Download Niggun Sheet</a>
-        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank"
-            class="download-button">Download Simcha Sheet</a>
-    </div>
-    
     <!-- Foot containing links to external sites -->
     <div id="footer">
         <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"

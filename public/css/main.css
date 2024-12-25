@@ -18,6 +18,10 @@ body {
     background-color: black;
 }
 
+.container {
+    display: flex;
+    flex-direction: column;
+}
 
 a {
     color: #f2cb05; /* Yellow for links */
