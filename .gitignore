@@ -11,6 +11,7 @@
 # Ignore build output
 /build
 /dist
+data/backups/**
 
 # Ignore logs and temporary files
 /log
