@@ -159,6 +159,14 @@ h1 {
     text-align: center;
 }
 
+#button-container {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem; /* Add space between buttons */
+    flex-direction: column; /* Stack buttons vertically on small screens */
+    align-items: center;
+}
+
 .primary-button {
     background-color: #f2cb05;
     color: #000000;
