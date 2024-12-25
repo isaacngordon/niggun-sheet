@@ -9,7 +9,8 @@ body {
     margin: 0; /* Remove default margin */
     display: flex;
     flex-direction: column;
-    min-height: 100vh; /* Set minimum height to 100% of viewport height */
+    height: 100vh; /* Set height to 100% of viewport height */
+    overflow: hidden; /* Prevent scrolling */
 }
 #footer {
     margin-top: auto; /* Push the footer to the bottom of the page */
@@ -23,7 +24,8 @@ body {
     flex-direction: column;
     align-items: center; /* Center content horizontally */
     justify-content: center; /* Center content vertically */
-    min-height: 100vh; /* Ensure it takes full viewport height */
+    flex: 1; /* Allow container to grow and fill available space */
+    overflow: auto; /* Allow content to scroll if necessary */
 }
 
 a {
