@@ -219,11 +219,8 @@
 
         function clearSearch() {
             document.getElementById("song-search").value = '';
-            const searchTitleCells = document.querySelectorAll(".search-title");
-            searchTitleCells.forEach(cell => {
-                const row = cell.parentNode;
-                row.style.display = "";
-            });
+            // Reload the page without search query
+            window.location.href = window.location.pathname;
         }
 
         smartboardModeSwitch.addEventListener("change", function () {
