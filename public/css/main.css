@@ -142,7 +142,7 @@ h1 {
     margin: 0 auto; /* Center the element horizontally */
     width: 800px;
     max-width: 90%;
-    margin-top: calc(100vh / 5); /* Apply the golden ratio to the margin-top */
+    margin-top: 10px;
     text-align: center;
 }
 
