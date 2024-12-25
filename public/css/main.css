@@ -180,7 +180,7 @@ h1 {
 }
 
 .download-button {
-    display: inline-block;
+    display: block;
     margin: 0.625rem auto; /* Center the download buttons */
     padding: 0.625rem 1.25rem;
     font-size: 1rem;
