@@ -256,4 +256,17 @@ h1 {
         padding: 0.5rem;
         font-size: 0.875rem;
     }
+
+    #editor-container {
+        width: 100%;
+        height: auto;
+        margin: 0;
+        padding: 10px;
+    }
+
+    #editor {
+        padding: 20px;
+        column-count: 1;
+        column-gap: 20px;
+    }
 }
