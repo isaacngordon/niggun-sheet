@@ -167,6 +167,12 @@ h1 {
     align-items: center;
 }
 
+@media (min-width: 768px) {
+    #button-container {
+        flex-direction: row; /* Align buttons side by side on larger screens */
+    }
+}
+
 .primary-button {
     background-color: #f2cb05;
     color: #000000;
