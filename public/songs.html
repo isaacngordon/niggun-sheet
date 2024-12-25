@@ -172,10 +172,28 @@
             });
         }
 
+        // Function to get query parameter by name
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Populate search box and filter results based on query parameter
+        const initialSearchQuery = getQueryParam('search') || '';
+        document.getElementById('song-search').value = initialSearchQuery;
+
         fetch(songsEndpoint)
             .then(response => response.json())
             .then(data => {
-                renderSongs(data);
+                if (initialSearchQuery) {
+                    const filteredResults = data.filter(song =>
+                        song.title.toLowerCase().includes(initialSearchQuery.toLowerCase()) || 
+                        song.artist.toLowerCase().includes(initialSearchQuery.toLowerCase())
+                    );
+                    renderSongs(filteredResults);
+                } else {
+                    renderSongs(data);
+                }
             })
             .catch(error => {
                 console.error('Error loading songs:', error);

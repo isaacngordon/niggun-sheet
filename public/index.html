@@ -34,7 +34,7 @@
         <!-- Add an ID to the search input field -->
         <input type="search" id="song-search" placeholder="search...">
         <div id="button-container" >
-            <button id="search-button" class="primary-button">Search</button>
+            <button id="search-button" class="primary-button" onclick="performSearch()">Search</button>
             <button id="lucky-button" class="secondary-button">I'm Feeling Lucky</button>
         </div>
     </div>
@@ -71,25 +71,11 @@
             searchResults.style.display = 'block';
         }
 
-        // Add event listener for input change
-        document.getElementById('song-search').addEventListener('input', function() {
-            // Get the search query value
-            const searchQuery = this.value.toLowerCase();
-            // Fetch songs data from the server
-            fetch('/api/songs')
-                .then(response => response.json())
-                .then(data => {
-                    // Filter songs based on the search query
-                    const filteredResults = data.filter(song =>
-                        song.title.toLowerCase().includes(searchQuery) || song.artist.toLowerCase().includes(searchQuery)
-                    );
-                    // Display search results
-                    displaySearchResults(filteredResults);
-                })
-                .catch(error => {
-                    console.error('Error fetching songs:', error);
-                });
-        });
+        // Function to perform search and navigate to songs.html
+        function performSearch() {
+            const searchQuery = document.getElementById('song-search').value;
+            window.location.href = `/songs.html?search=${encodeURIComponent(searchQuery)}`;
+        }
 
         // Hide search results when clicking outside the search input field
         document.addEventListener('click', function(event) {
