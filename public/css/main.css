@@ -193,26 +193,24 @@ h1 {
     font-size: 1rem;
 }
 
-.download-button {
-    display: block;
-    margin: 0.625rem auto; /* Center the download buttons */
-    padding: 0.625rem 1.25rem;
-    font-size: 1rem;
-    color: #000000;
-    background-color: #f2cb05;
-    border-radius: 0.3125rem;
-    text-decoration: none;
-    transition: background-color 0.3s ease;
-    border: none;
-    cursor: pointer;
+#download-section {
+    text-align: center;
+    margin: 20px auto;
+    max-width: 800px;
 }
 
-.download-button:hover {
-    background-color: #d4a905;
+#button-container {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem; /* Add space between buttons */
+    flex-direction: column; /* Stack buttons vertically on small screens */
+    align-items: center;
 }
 
-input[type="checkbox"]:checked {
-    background-color: #f2cb05;
+@media (min-width: 768px) {
+    #button-container {
+        flex-direction: row; /* Align buttons side by side on larger screens */
+    }
 }
 
 #clear-sheet {
