@@ -33,7 +33,7 @@
             <h1>Niggun Sheet</h1>
             <p>Search for niggunim and simcha songs</p>
             <!-- Add an ID to the search input field -->
-            <input type="search" id="song-search" placeholder="search...">
+            <input type="search" id="song-search" placeholder="search..." onkeydown="if(event.key === 'Enter') performSearch()">
             <div id="button-container">
                 <button id="search-button" class="primary-button" onclick="performSearch()">Search</button>
                 <button id="lucky-button" class="secondary-button">I'm Feeling Lucky</button>
