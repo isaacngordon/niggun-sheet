@@ -131,6 +131,8 @@
                 return;
             }
             alert(`${song_title} is already in the sheet.`);
+            // Reload the page without search query
+            window.location.href = window.location.pathname;
         }
 
         function removeFromSheet(song_title, song_artist, button) {
