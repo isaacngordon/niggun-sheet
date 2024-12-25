@@ -164,6 +164,24 @@ h1 {
     cursor: pointer; /* Add cursor pointer to secondary button */
 }
 
+.download-button {
+    display: inline-block;
+    margin: 10px;
+    padding: 10px 20px; /* Match padding with primary button */
+    font-size: 18px;
+    color: #000000; /* Black text for consistency */
+    background-color: #f2cb05; /* Yellow background for consistency */
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+    border: none; /* Remove border for consistency */
+    cursor: pointer; /* Add cursor pointer */
+}
+
+.download-button:hover {
+    background-color: #d4a905; /* Slightly darker yellow on hover */
+}
+
 input[type="checkbox"]:checked {
     background-color: #f2cb05; /* Yellow background for checked checkbox */
 }#clear-sheet {
