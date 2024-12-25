@@ -76,7 +76,7 @@
             </div>
         </div>
         
-        <input type="search" id="song-search" placeholder="Search...">
+        <input type="search" id="song-search" placeholder="Search..." onkeydown="if(event.key === 'Enter') performSearch()">
         <button id="search-button" onclick="performSearch()">Search</button>
         <button id="clear-search-button" onclick="clearSearch()">Clear Search</button>
         <table>
