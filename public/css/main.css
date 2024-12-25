@@ -21,6 +21,9 @@ body {
 .container {
     display: flex;
     flex-direction: column;
+    align-items: center; /* Center content horizontally */
+    justify-content: center; /* Center content vertically */
+    min-height: 100vh; /* Ensure it takes full viewport height */
 }
 
 a {
