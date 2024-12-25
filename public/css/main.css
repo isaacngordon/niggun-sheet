@@ -21,14 +21,16 @@ body {
     background-color: black;
 }
 
-.container {
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Center content horizontally */
-    justify-content: center; /* Center content vertically */
-    flex: 1; /* Allow container to grow and fill available space */
-    overflow: auto; /* Allow content to scroll if necessary */
-}
+.container {                                                                         
+    display: flex;                                                                   
+    flex-direction: column;                                                          
+    align-items: center; /* Center content horizontally */                           
+    justify-content: center; /* Center content vertically */                         
+    flex: 1; /* Allow container to grow and fill available space */                  
+    overflow: auto; /* Allow content to scroll if necessary */                       
+    gap: 30px; /* Add space between sections */                                      
+} 
+
 
 a {
     color: #f2cb05; /* Yellow for links */
@@ -198,6 +200,12 @@ h1 {
     margin: 20px auto;
     max-width: 800px;
 }
+
+#cta-section {                                                                       
+    text-align: center;                                                              
+    margin: 0 auto;                     
+    max-width: 800px;                                                                
+} 
 
 #button-container {
     display: flex;
