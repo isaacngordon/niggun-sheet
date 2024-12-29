@@ -24,30 +24,51 @@
     <div id="navbar">
         <a href="/">Home Page</a>
         <a href="/songs.html">Song Directory</a>
-        <a href="/sheet-builder.html">Sheet Builder</a> 
+        <a href="/sheet-builder.html">Sheet Builder</a>
     </div>
 
-    <!-- Hero Section w Title and Search -->
-    <div id="hero">
-        <h1>Niggun Sheet</h1>
-        <p>Search for niggunim and simcha songs</p>
-        <!-- Add an ID to the search input field -->
-        <input type="search" id="song-search" placeholder="search...">
-        <div id="button-container" >
-            <button id="search-button" class="primary-button">Search</button>
-            <button id="lucky-button" class="secondary-button">I'm Feeling Lucky</button>
+    <div class="container" style="min-height: min-content;">
+        <!-- Hero Section w Title and Search -->
+        <div id="hero">
+            <h1>Niggun Sheet</h1>
+            <p>Search for niggunim and simcha songs</p>
+            <!-- Add an ID to the search input field -->
+            <input type="search" id="song-search" placeholder="search..." onkeydown="if(event.key === 'Enter') performSearch()">
+            <div id="button-container">
+                <button id="search-button" class="primary-button" onclick="performSearch()">Search</button>
+                <button id="lucky-button" class="secondary-button">I'm Feeling Lucky</button>
+            </div>
         </div>
-    </div>
+
+        <!-- Highlighted Download Section -->
+        <div id="download-section">
+            <h2>Download the Original Niggun Sheets Here</h2>
+            <div >
+                <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
+                    target="_blank" class="download-button primary-button">Download Niggun Sheet</a>
+                <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
+                    target="_blank" class="download-button primary-button">Download Simcha Sheet</a>
+            </div>
+        </div>
+
+        <!-- Call to Action Section for Sheet Builder -->
+        <div id="cta-section">
+            <h2>Create Your Own Sheet</h2>
+            <p>Use our Sheet Builder to create personalized niggun sheets for your events.</p>
+            <a href="/sheet-builder.html" class="primary-button">Go to Sheet Builder</a>
+        </div>
+
     </div>
 
     <!-- Foot containing links to external sites -->
     <div id="footer">
-        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
-        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
+        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
+            target="_blank">Download Niggun Sheet</a>
+        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
+            target="_blank">Download Simcha Sheet</a>
         <div class="footer-copyright">copyright Yehuda Jacobs</div>
     </div>
 
-    <!-- Add your JavaScript link here -->
     <script>
         // Function to display search results
         function displaySearchResults(results) {
@@ -60,7 +81,7 @@
                 const resultLink = document.createElement('a');
                 resultLink.textContent = `${result.title}`;
                 // Redirect to dynamic page with song details when clicked
-                resultLink.addEventListener('click', function() {
+                resultLink.addEventListener('click', function () {
                     // Navigate to dynamic page with song details
                     window.location.href = `/song-details.html?title=${encodeURIComponent(result.title)}&artist=${encodeURIComponent(result.artist)}`;
                 });
@@ -71,28 +92,14 @@
             searchResults.style.display = 'block';
         }
 
-        // Add event listener for input change
-        document.getElementById('song-search').addEventListener('input', function() {
-            // Get the search query value
-            const searchQuery = this.value.toLowerCase();
-            // Fetch songs data from the server
-            fetch('/api/songs')
-                .then(response => response.json())
-                .then(data => {
-                    // Filter songs based on the search query
-                    const filteredResults = data.filter(song =>
-                        song.title.toLowerCase().includes(searchQuery) || song.artist.toLowerCase().includes(searchQuery)
-                    );
-                    // Display search results
-                    displaySearchResults(filteredResults);
-                })
-                .catch(error => {
-                    console.error('Error fetching songs:', error);
-                });
-        });
+        // Function to perform search and navigate to songs.html
+        function performSearch() {
+            const searchQuery = document.getElementById('song-search').value;
+            window.location.href = `/songs.html?search=${encodeURIComponent(searchQuery)}`;
+        }
 
         // Hide search results when clicking outside the search input field
-        document.addEventListener('click', function(event) {
+        document.addEventListener('click', function (event) {
             const searchInput = document.getElementById('song-search');
             const searchResults = document.getElementById('search-results');
             if (event.target !== searchInput && event.target !== searchResults) {
@@ -104,4 +111,3 @@
 </body>
 
 </html>
-

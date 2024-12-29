@@ -4,12 +4,15 @@ body {
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
-    background-color: #000000; /* Light gray background */
-    color: #ffffff; /* Dark text */
-    margin: 0; /* Remove default margin */
+    background-color: #000000;
+    color: #ffffff;
+    margin: 0;
     display: flex;
     flex-direction: column;
-    min-height: 100vh; /* Set minimum height to 100% of viewport height */
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    font-size: 1rem; /* Base font size */
 }
 #footer {
     margin-top: auto; /* Push the footer to the bottom of the page */
@@ -17,6 +20,16 @@ body {
 .black-bg {
     background-color: black;
 }
+
+.container {                                                                         
+    display: flex;                                                                   
+    flex-direction: column;                                                          
+    align-items: center; /* Center content horizontally */                           
+    justify-content: center; /* Center content vertically */                         
+    flex: 1; /* Allow container to grow and fill available space */                  
+    overflow: auto; /* Allow content to scroll if necessary */                       
+    gap: 30px; /* Add space between sections */                                      
+} 
 
 
 a {
@@ -45,48 +58,50 @@ a:hover {
 }
 
 #songs-table {
-    max-width: 800px; /* Set maximum width for songs table */
-    width: 80%; /* Make songs table full page width */
-    padding: 20px;
-    background-color: #000000; /* Black background for song table */
-    border: 1px solid #000000; /* Light border */
-    border-radius: 10px;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* Shadow effect */
-    margin: 6rem auto; /* Center the table horizontally */
-    flex: 1; /* Allow the songs table to grow to fill the available space */
+    max-width: 800px;
+    width: 90%;
+    padding: 1.25rem;
+    background-color: #000000;
+    border: 1px solid #000000;
+    border-radius: 0.625rem;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    margin: 3rem auto;
+    flex: 1;
 }
 
 #songs-table h2 {
     margin-top: 0;
-    color: #f2cb05; /* Yellow for heading */
+    color: #f2cb05;
+    font-size: 1.5rem;
 }
 
 #song-search {
     width: 100%;
-    padding: 10px;
-    margin-bottom: 20px;
+    padding: 0.625rem;
+    margin-bottom: 1.25rem;
     border: 1px solid #2b2525;
-    border-radius: 5px;
+    border-radius: 0.3125rem;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    text-align: center; /* Center-align table contents */
+    text-align: center;
 }
 
 th, td {
-    padding: 10px;
+    padding: 0.625rem;
     border-bottom: 1px solid #dddddd;
     text-align: left;
+    font-size: 0.875rem;
 }
 
 th {
-    background-color: #373737; /* Light gray background for table header */
+    background-color: #373737;
 }
 
 tr:hover {
-    background-color: #1b1b1b; /* Halfway between #000000 and #373737 */
+    background-color: #1b1b1b;
 }
 
 /* Footer styles */
@@ -139,42 +154,119 @@ h1 {
 }
 
 #hero {
-    margin: 0 auto; /* Center the element horizontally */
-    width: 800px;
-    max-width: 90%;
-    margin-top: calc(100vh / 5); /* Apply the golden ratio to the margin-top */
+    margin: 0 auto;
+    width: 90%;
+    max-width: 800px;
+    margin-top: 0.625rem;
     text-align: center;
 }
 
+#button-container {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem; /* Add space between buttons */
+    flex-direction: column; /* Stack buttons vertically on small screens */
+    align-items: center;
+}
+
+@media (min-width: 768px) {
+    #button-container {
+        flex-direction: row; /* Align buttons side by side on larger screens */
+    }
+}
+
 .primary-button {
-    background-color: #f2cb05; /* Yellow background for primary button */
-    color: #000000; /* Black text for primary button */
-    padding: 10px 20px; /* Add padding to primary button */
-    border: none; /* Remove border from primary button */
-    border-radius: 5px; /* Add border radius to primary button */
-    cursor: pointer; /* Add cursor pointer to primary button */
+    background-color: #f2cb05;
+    color: #000000;
+    padding: 0.625rem 1.25rem;
+    border: none;
+    border-radius: 0.3125rem;
+    cursor: pointer;
+    font-size: 1rem;
 }
 
 .secondary-button {
-    background-color: transparent; /* Transparent background for secondary button */
-    color: #f2cb05; /* Yellow text for secondary button */
-    padding: 10px 20px; /* Add padding to secondary button */
-    border: 1px solid #f2cb05; /* Add border to secondary button */
-    border-radius: 5px; /* Add border radius to secondary button */
-    cursor: pointer; /* Add cursor pointer to secondary button */
+    background-color: transparent;
+    color: #f2cb05;
+    padding: 0.625rem 1.25rem;
+    border: 1px solid #f2cb05;
+    border-radius: 0.3125rem;
+    cursor: pointer;
+    font-size: 1rem;
 }
 
-input[type="checkbox"]:checked {
-    background-color: #f2cb05; /* Yellow background for checked checkbox */
-}#clear-sheet {
+#download-section {
+    text-align: center;
+    margin: 20px auto;
+    max-width: 800px;
+}
+
+#cta-section {                                                                       
+    text-align: center;                                                              
+    margin: 0 auto;                     
+    max-width: 800px;                                                                
+} 
+
+#button-container {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem; /* Add space between buttons */
+    flex-direction: column; /* Stack buttons vertically on small screens */
+    align-items: center;
+}
+
+@media (min-width: 768px) {
+    #button-container {
+        flex-direction: row; /* Align buttons side by side on larger screens */
+    }
+}
+
+#clear-sheet {
     margin-right: auto;
 }
 
 #smartboard-toggle {
     margin-left: auto;
 }
+
 .footer-copyright {
     font-size: 0.8em;
     color: grey;
-    margin-top: 10px;
+    margin-top: 0.625rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        font-size: 0.875rem;
+    }
+
+    #navbar a {
+        display: block;
+        margin: 0.5rem 0;
+    }
+
+    #songs-table {
+        width: 95%;
+        margin: 2rem auto;
+    }
+
+    .primary-button, .secondary-button, .download-button {
+        width: 100%;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    #editor-container {
+        width: 100%;
+        height: auto;
+        margin: 0;
+        padding: 10px;
+    }
+
+    #editor {
+        padding: 20px;
+        column-count: 1;
+        column-gap: 20px;
+    }
 }

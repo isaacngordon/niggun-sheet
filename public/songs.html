@@ -76,7 +76,9 @@
             </div>
         </div>
         
-        <input type="search" id="song-search" placeholder="Search...">
+        <input type="search" id="song-search" placeholder="Search..." onkeydown="if(event.key === 'Enter') performSearch()">
+        <button id="search-button" onclick="performSearch()">Search</button>
+        <button id="clear-search-button" onclick="clearSearch()">Clear Search</button>
         <table>
             <thead>
                 <tr>
@@ -129,6 +131,8 @@
                 return;
             }
             alert(`${song_title} is already in the sheet.`);
+            // Reload the page without search query
+            window.location.href = window.location.pathname;
         }
 
         function removeFromSheet(song_title, song_artist, button) {
@@ -172,18 +176,36 @@
             });
         }
 
+        // Function to get query parameter by name
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Populate search box and filter results based on query parameter
+        const initialSearchQuery = getQueryParam('search') || '';
+        document.getElementById('song-search').value = initialSearchQuery;
+
         fetch(songsEndpoint)
             .then(response => response.json())
             .then(data => {
-                renderSongs(data);
+                if (initialSearchQuery) {
+                    const filteredResults = data.filter(song =>
+                        song.title.toLowerCase().includes(initialSearchQuery.toLowerCase()) || 
+                        song.artist.toLowerCase().includes(initialSearchQuery.toLowerCase())
+                    );
+                    renderSongs(filteredResults);
+                } else {
+                    renderSongs(data);
+                }
             })
             .catch(error => {
                 console.error('Error loading songs:', error);
                 songsTableBody.innerText = "Error loading songs.";
             });
 
-        document.getElementById("song-search").addEventListener("input", function (event) {
-            const query = event.target.value.toLowerCase();
+        function performSearch() {
+            const query = document.getElementById("song-search").value.toLowerCase();
             const searchTitleCells = document.querySelectorAll(".search-title");
             searchTitleCells.forEach(cell => {
                 const row = cell.parentNode;
@@ -193,7 +215,13 @@
                     row.style.display = "none";
                 }
             });
-        });
+        }
+
+        function clearSearch() {
+            document.getElementById("song-search").value = '';
+            // Reload the page without search query
+            window.location.href = window.location.pathname;
+        }
 
         smartboardModeSwitch.addEventListener("change", function () {
             localStorage.setItem("smartboardMode", this.checked);
