@@ -258,18 +258,745 @@ h1 {
     }
 
     #editor-container {
-        width: 100%;
-        height: auto;
-        margin: 0;
-        padding: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #ffffff;
+        border-radius: 0; /* Remove border radius to match the border graphic */
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        position: relative;
+        margin: 20px auto;
+        overflow: hidden;
+        width: calc(8.5in * 0.8);
+        height: calc(11in * 0.8);
+        max-height: calc(100vh - 120px);
+        background: url('/assets/border-graphic.png') no-repeat center center; /* Use the border graphic */
+        background-size: 100% 100%; /* Ensure it covers the entire container */
     }
 
     #editor {
-        padding: 20px;
-        column-count: 1;
+        box-sizing: border-box;
+        height: 100%;
+        width: 100%;
+        padding: 0.8in; /* Increased padding to account for the double border */
+        position: relative;
+        color: black;
+        overflow: hidden;
         column-gap: 20px;
+        column-fill: auto;
+        font-size: 12pt;
+        direction: rtl;
+        text-align: right;
+        margin: 0 auto;
     }
     .editor-song p {
           white-space: nowrap;
          }
 }
+/* Global style updates - replace harsh black with softer tones */
+body {
+    font-family: 'Inter', Arial, sans-serif; /* Modern font */
+    background-color: #121212; /* Softer black background */
+    color: #f8f8f8; /* Off-white for better readability */
+}
+
+/* Navigation bar improvements */
+#navbar {
+    background-color: #1a1a1a; /* Softer black for navbar */
+    padding: 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+#navbar a {
+    color: #f2cb05;
+    margin: 0 15px;
+    font-weight: 500;
+    transition: opacity 0.2s;
+}
+
+#navbar a:hover {
+    opacity: 0.8;
+    text-decoration: none;
+}
+
+/* Home page - grayscale background */
+body.home {
+    background-image: url("../assets/background_small.jpg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: #121212;
+}
+
+body.home::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    background-size: cover;
+    filter: grayscale(100%) brightness(0.4);
+    z-index: -1;
+}
+
+/* Song directory improvements */
+body.song-directory {
+    background-image: none; /* Remove background image */
+    background-color: #121212;
+}
+
+#song-list {
+    background-color: #1a1a1a; /* Softer black */
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#song-list h2 {
+    color: #f2cb05;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Song item styling */
+.song-item {
+    margin-bottom: 10px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2); /* 20% opacity */
+    border-radius: 5px;
+    cursor: grab;
+    transition: background-color 0.2s;
+}
+
+.song-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.song-item-used {
+    color: #f2cb05;
+}
+
+/* Sheet builder styling */
+#editor-container {
+    background: 
+        url('/assets/border-graphic.png') no-repeat center center,
+        url('/assets/sheetskin.png') no-repeat center center;
+    background-size: 100% 100%, cover;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Controls and buttons styling */
+#sheet-controls {
+    margin-bottom: 15px;
+}
+
+#clear-sheet, #print-button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#clear-sheet {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #f8f8f8;
+}
+
+#clear-sheet:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+#clear-sheet:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#print-button {
+    background-color: #f2cb05;
+    color: #121212;
+}
+
+#print-button:hover {
+    background-color: #e0bc00;
+}
+
+.option-button {
+    background-color: #232323;
+    color: #f2cb05;
+    border: 1px solid #f2cb05;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.option-button:hover {
+    background-color: rgba(242, 203, 5, 0.1);
+}
+
+.option-button.active {
+    background-color: #f2cb05;
+    color: #1a1a1a;
+}
+
+#toggle-dev-widgets {
+    background-color: #232323;
+    color: #f2cb05;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid #232323;
+    transition: all 0.2s;
+}
+
+#toggle-dev-widgets:hover {
+    background-color: #2d2d2d;
+}
+
+#toggle-dev-widgets.active {
+    background-color: #f2cb05;
+    color: #1a1a1a;
+}
+
+.scale-indicator {
+    background-color: #f2cb05;
+    color: #121212;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 12px;
+}
+
+/* Footer styling */
+#footer {
+    background-color: #1a1a1a; /* Softer black */
+    padding: 15px;
+    margin-top: 30px;
+}
+
+#footer a {
+    color: #f2cb05;
+    font-weight: 500;
+    transition: opacity 0.2s;
+}
+
+#footer a:hover {
+    opacity: 0.8;
+    text-decoration: none;
+}
+
+/* Dev controls styling */
+#dev-controls {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+#dev-controls h3 {
+    color: #f2cb05;
+}
+
+.control-buttons button {
+    background-color: #f2cb05;
+    color: #121212;
+    font-weight: 500;
+    border: none;
+}
+
+.control-buttons button:hover {
+    background-color: #e0bc00;
+}
+
+/* Song title styling */
+.song-title {
+    font-weight: 600;
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* Remove button styling */
+.remove-button {
+    color: rgba(220, 53, 69, 0.8); /* Softer red */
+    font-size: 1.1em;
+    font-weight: bold;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    line-height: 20px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.remove-button:hover {
+    background-color: rgba(220, 53, 69, 0.15);
+    color: rgba(220, 53, 69, 1);
+}
+
+/* File upload styling */
+#upload {
+    margin: 10px 0;
+    padding: 8px;
+    background-color: #232323;
+    color: #f8f8f8;
+    border: 1px solid #333;
+    border-radius: 4px;
+    width: 100%;
+}
+
+/* Drag and drop enhancements */
+.drag-over {
+    border: 2px dashed #f2cb05;
+    background-color: rgba(242, 203, 5, 0.1);
+}
+
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+    #navbar {
+        padding: 10px;
+    }
+    
+    #navbar a {
+        margin: 0 8px;
+    }
+    
+    .option-button {
+        padding: 5px 8px;
+        font-size: 11px;
+    }
+}
+/* Navbar Styling */
+#navbar {
+    background-color: #1a1a1a; /* Softer black for navbar */
+    color: #ffffff;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 10;
+}
+
+#navbar a {
+    color: #f8f8f8;
+    margin: 0 15px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+#navbar a:hover {
+    color: rgb(255, 218, 42); /* Your specified yellow */
+    text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    #navbar {
+        padding: 10px;
+    }
+    
+    #navbar a {
+        margin: 0 8px;
+        font-size: 0.9rem;
+    }
+}
+/* Global Navbar Styling */
+#navbar {
+    background-color: #1a1a1a; /* Softer black for navbar */
+    color: #ffffff;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 10;
+}
+
+#navbar a {
+    color: #f8f8f8;
+    margin: 0 15px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+#navbar a:hover {
+    color: rgb(255, 218, 42); /* Your specified yellow */
+    text-decoration: none;
+}
+
+/* Global Footer Styling */
+#footer {
+    background-color: #1a1a1a; /* Softer black */
+    color: #f8f8f8;
+    padding: 15px;
+    text-align: center;
+    margin-top: 30px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#footer a {
+    color: #f8f8f8;
+    margin: 0 15px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+#footer a:hover {
+    color: rgb(255, 218, 42); /* Your specified yellow */
+    text-decoration: none;
+}
+
+.footer-copyright {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 768px) {
+    #navbar, #footer {
+        padding: 10px;
+    }
+    
+    #navbar a, #footer a {
+        margin: 0 8px;
+        font-size: 0.9rem;
+    }
+    
+    #footer a {
+        display: block;
+        margin: 10px 0;
+    }
+}
+/* Modern header styles */
+.bg-gray-900 {
+    background-color: #121212;
+  }
+  
+  .text-white {
+    color: #ffffff;
+  }
+  
+  .text-gray-100 {
+    color: #f8f8f8;
+  }
+  
+  .text-gray-900 {
+    color: #121212;
+  }
+  
+  .text-yellow-400 {
+    color: rgb(255, 218, 42);
+  }
+  
+  .bg-yellow-400 {
+    background-color: rgb(255, 218, 42);
+  }
+  
+  .hover\:bg-yellow-500:hover {
+    background-color: rgb(235, 198, 22);
+  }
+  
+  .hover\:text-yellow-400:hover {
+    color: rgb(255, 218, 42);
+  }
+  
+  .hover\:bg-gray-800:hover {
+    background-color: #1a1a1a;
+  }
+  
+  .sticky {
+    position: sticky;
+  }
+  
+  .top-0 {
+    top: 0;
+  }
+  
+  .z-50 {
+    z-index: 50;
+  }
+  
+  .h-16 {
+    height: 4rem;
+  }
+  
+  .w-15 {
+    width: 3.75rem;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  .flex {
+    display: flex;
+  }
+  
+  .relative {
+    position: relative;
+  }
+  
+  .items-center {
+    align-items: center;
+  }
+  
+  .justify-between {
+    justify-between: space-between;
+  }
+  
+  .justify-center {
+    justify-content: center;
+  }
+  
+  .justify-end {
+    justify-content: flex-end;
+  }
+  
+  .px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .py-3 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  
+  .px-2\.5 {
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+  }
+  
+  .ml-2 {
+    margin-left: 0.5rem;
+  }
+  
+  .ml-2\.5 {
+    margin-left: 0.625rem;
+  }
+  
+  .gap-2 {
+    gap: 0.5rem;
+  }
+  
+  .gap-3 {
+    gap: 0.75rem;
+  }
+  
+  .font-bold {
+    font-weight: 700;
+  }
+  
+  .font-normal {
+    font-weight: 400;
+  }
+  
+  .text-base {
+    font-size: 1rem;
+  }
+  
+  .text-sm {
+    font-size: 0.875rem;
+  }
+  
+  .text-xs {
+    font-size: 0.75rem;
+  }
+  
+  .uppercase {
+    text-transform: uppercase;
+  }
+  
+  .whitespace-nowrap {
+    white-space: nowrap;
+  }
+  
+  .rounded-full {
+    border-radius: 9999px;
+  }
+  
+  .rounded-sm {
+    border-radius: 0.125rem;
+  }
+  
+  .transition-colors {
+    transition-property: color, background-color, border-color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+  
+  .order-1 {
+    order: 1;
+  }
+  
+  .min-h-5 {
+    min-height: 1.25rem;
+  }
+  
+  .min-h-8 {
+    min-height: 2rem;
+  }
+  
+  .shrink-0 {
+    flex-shrink: 0;
+  }
+  
+  .p-1 {
+    padding: 0.25rem;
+  }
+  
+  .space-y-1 > * + * {
+    margin-top: 0.25rem;
+  }
+  
+  @media (min-width: 640px) {
+    .sm\:order-2 {
+      order: 2;
+    }
+    
+    .sm\:mr-0 {
+      margin-right: 0;
+    }
+    
+    .sm\:px-6 {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+    
+    .sm\:py-1 {
+      padding-top: 0.25rem;
+      padding-bottom: 0.25rem;
+    }
+    
+    .sm\:px-5\.5 {
+      padding-left: 1.375rem;
+      padding-right: 1.375rem;
+    }
+    
+    .sm\:block {
+      display: block;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .lg\:hidden {
+      display: none;
+    }
+    
+    .lg\:flex {
+      display: flex;
+    }
+    
+    .lg\:px-8 {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+  
+  @media (min-width: 1536px) {
+    .2xl\:gap-4 {
+      gap: 1rem;
+    }
+  }
+  
+  @media (min-width: 1920px) {
+    .3xl\:gap-8 {
+      gap: 2rem;
+    }
+  }
+
+  /* Updated color scheme */
+.text-header-link {
+    color: rgb(178, 178, 178);
+  }
+  
+  .hover\:text-white:hover {
+    color: #ffffff;
+  }
+  
+  /* Additional CSS for the spread-out header layout */
+  .lg\:flex-1 {
+    flex: 1 1 0%;
+  }
+  
+  .lg\:items-center {
+    align-items: center;
+  }
+  
+  .lg\:justify-start {
+    justify-content: flex-start;
+  }
+  
+  .gap-8 {
+    gap: 2rem;
+  }
+  
+  .ml-4 {
+    margin-left: 1rem;
+  }
+  
+  .px-3 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  .justify-center {
+    justify-content: center;
+  }
+  /* Additional CSS for the logo at far left */
+.mr-8 {
+    margin-right: 2rem;
+  }
+  
+  .ml-auto {
+    margin-left: auto;
+  }
+  
+  .lg\:justify-center {
+    justify-content: center;
+  }
+  /* Header styles */
+.bg-gray-900 {
+    background-color: #121212;
+  }
+  
+  .text-header-link {
+    color: rgb(178, 178, 178);
+  }
+  
+  .text-white {
+    color: #ffffff;
+  }
+  
+  .hover\:text-white:hover {
+    color: #ffffff;
+  }
+  
+  .text-gray-900 {
+    color: #121212;
+  }
+  
+  .bg-yellow-400 {
+    background-color: rgb(255, 218, 42);
+  }
+  
+  .hover\:bg-yellow-500:hover {
+    background-color: rgb(235, 198, 22);
+  }
+  
+  /* Layout classes */
+  .mr-8 {
+    margin-right: 2rem;
+  }
+  
+  .ml-auto {
+    margin-left: auto;
+  }
+  
+  /* ...other classes from previous examples... */

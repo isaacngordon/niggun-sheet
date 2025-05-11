@@ -8,89 +8,280 @@
     <link rel="stylesheet" href="css/main.css">
     
     <style>
-        /* Add your custom styles here */
         body {
-            background-color: white; /* White background */
-            color: black; /* Black text color */
-            text-align: center; /* Center align content */
+            background-color: #121212;
+            color: #f8f8f8;
+            text-align: left;
+            font-family: 'Inter', Arial, sans-serif;
+        }
+
+        /* Main content wrapper to push footer down */
+        .content-wrapper {
+            flex: 1; /* This makes the content expand and push footer down */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Rest of your styles remain the same */
+        a:not(#navbar a, #footer a), 
+        a:not(#navbar a, #footer a):visited, 
+        a:not(#navbar a, #footer a):hover, 
+        a:not(#navbar a, #footer a):active {
+            color: #f8f8f8;
+            text-decoration: none;
         }
 
         #song-details {
-            max-width: 600px; /* Limit width to 600px */
-            width: 80%;
-            margin: 6rem auto; /* Center horizontally */
+            max-width: 800px;
+            width: 90%;
+            margin: 3rem auto;
+            background-color: #1a1a1a;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            padding: 2rem;
+        }
+        
+        #song-details h2 {
+            color: #f8f8f8;
+            margin-top: 0;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        #details-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        #details-container p {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+        
+        #details-container strong {
+            color: #f8f8f8;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            display: inline-block;
+            min-width: 80px;
+        }
+        
+        /* RTL styling for artist and lyrics */
+        #song-artist, #song-lyrics {
+            direction: rtl;
+            text-align: right;
+            color: #f8f8f8;
+        }
+        
+        #song-lyrics {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 6px;
+            white-space: pre-line;
+            margin: 1.5rem 0 !important;
+            border-left: 3px solid rgba(255, 255, 255, 0.2);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .links-section {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        /* Yellow styling ONLY for buttons - using the exact RGB value */
+        .link-button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: #232323;
+            padding: 0.75rem 1.25rem;
+            border-radius: 6px;
+            color: rgb(255, 218, 42) !important;
+            text-decoration: none !important;
+            transition: all 0.2s;
+            border-left: 3px solid rgb(255, 218, 42);
+        }
+        
+        .link-button:hover {
+            background-color: #2d2d2d;
+            transform: translateY(-2px);
+        }
+        
+        /* Force yellow text for button content */
+        .link-button span {
+            color: rgb(255, 218, 42) !important;
+        }
+        
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        /* Updated yellow for back button */
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: rgba(255, 218, 42, 0.1);
+            color: rgb(255, 218, 42) !important;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none !important;
+            transition: all 0.2s;
+        }
+        
+        .back-button:hover {
+            background-color: rgba(255, 218, 42, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            #song-details {
+                width: 95%;
+                padding: 1.5rem;
+                margin: 2rem auto;
+            }
+            
+            #details-container strong {
+                min-width: 70px;
+            }
+            
+            .links-section {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
         }
     </style>
 </head>
 
-<!-- Google tag (gtag.js) -->
-<!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-BM1G2V2EMD"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-BM1G2V2EMD');
-</script> -->
-
 <body>
     <div id="navbar">
-        <a href="/">Home Page</a>
+        <a href="/">Home</a>
         <a href="/songs.html">Song Directory</a>
-        <a href="/sheet-builder.html">Sheet Builder</a> 
+        <a href="/sheet-builder.html">Sheet Builder</a>
+        <a href="/contact.html">Contact</a>
     </div>
 
-    <div id="song-details">
-        <h2>Song Details</h2>
-        <div id="details-container">
-            <p><strong>Title:</strong> <span id="song-title">Loading...</span></p>
-            <p><strong>Artist:</strong> <span id="song-artist">Loading...</span></p>
-            <p><strong>Lyrics:</strong></p>
-            <p id="song-lyrics">Loading...</p>
-            <p><strong>Google Drive:</strong> <a id="google-drive-link" href="#" target="_blank">Link</a></p>
-            <p><strong>YouTube:</strong> <a id="youtube-link" href="#" target="_blank">Link</a></p>
-            <p><strong>Spotify:</strong> <a id="spotify-link" href="#" target="_blank">Link</a></p>
+    <div class="content-wrapper">
+        <div id="song-details">
+            <div class="header-row">
+                <a href="javascript:history.back()" class="back-button">← Back</a>
+            </div>
+            
+            <h2 id="song-title">Loading...</h2>
+            
+            <div id="details-container">
+                <p><strong>Artist:</strong> <span id="song-artist">Loading...</span></p>
+                
+                <p><strong>Lyrics:</strong></p>
+                <div id="song-lyrics">Loading...</div>
+                
+                <div class="links-section">
+                    <a id="google-drive-link" class="link-button" href="#" target="_blank">
+                        <span>Google Drive</span>
+                    </a>
+                    <a id="youtube-link" class="link-button" href="#" target="_blank">
+                        <span>YouTube</span>
+                    </a>
+                    <a id="spotify-link" class="link-button" href="#" target="_blank">
+                        <span>Spotify</span>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
     <div id="footer">
         <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
         <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
+        <div class="footer-copyright">© 2025 Yehudah Jacobs - The Niggun Sheet</div>
     </div>
 
     <script>
-        // Function to get URL parameters
-        function getParameterByName(name, url) {
-            if (!url) url = window.location.href;
-            name = name.replace(/[\[\]]/g, '\\$&');
-            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
-                results = regex.exec(url);
-            if (!results) return null;
-            if (!results[2]) return '';
-            return decodeURIComponent(results[2].replace(/\+/g, ' '));
-        }
+        // Fix: Wrap in DOM ready event to ensure elements are loaded before accessing
+        document.addEventListener('DOMContentLoaded', function() {
+            // Function to get URL parameters
+            function getParameterByName(name, url) {
+                if (!url) url = window.location.href;
+                name = name.replace(/[\[\]]/g, '\\$&');
+                var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                    results = regex.exec(url);
+                if (!results) return null;
+                if (!results[2]) return '';
+                return decodeURIComponent(results[2].replace(/\+/g, ' '));
+            }
 
-        // Function to strip HTML tags from text
-        function stripHtmlTags(html) {
-            let doc = new DOMParser().parseFromString(html, 'text/html');
-            return doc.body.textContent || "";
-        }
+            // Function to strip HTML tags from text
+            function stripHtmlTags(html) {
+                if (!html) return "";
+                let doc = new DOMParser().parseFromString(html, 'text/html');
+                return doc.body.textContent || "";
+            }
 
-        // Get song details from URL parameters
-        const title = getParameterByName('title');
-        const artist = getParameterByName('artist');
-        const lyrics = getParameterByName('lyrics');
-        const drive = getParameterByName('drive');
-        const youtube = getParameterByName('youtube');
-        const spotify = getParameterByName('spotify');
+            // Get song details from URL parameters
+            const title = getParameterByName('title');
+            const artist = getParameterByName('artist');
+            const lyrics = getParameterByName('lyrics');
+            const drive = getParameterByName('drive');
+            const youtube = getParameterByName('youtube');
+            const spotify = getParameterByName('spotify');
 
-        // Populate song details
-        document.getElementById("song-title").innerText = title;
-        document.getElementById("song-artist").innerText = artist;
-        document.getElementById("song-lyrics").innerText = stripHtmlTags(lyrics);
-        document.getElementById("google-drive-link").href = drive;
-        document.getElementById("youtube-link").href = youtube;
-        document.getElementById("spotify-link").href = spotify;
+            // Debug - check if parameters are being received
+            console.log("Received parameters:", {title, artist, lyrics, drive, youtube, spotify});
+
+            // Populate song details - with error handling
+            const titleElement = document.getElementById("song-title");
+            const artistElement = document.getElementById("song-artist");
+            const lyricsElement = document.getElementById("song-lyrics");
+            
+            if (titleElement) titleElement.innerText = title || "Song Details";
+            if (artistElement) artistElement.innerText = artist || "Unknown Artist";
+            
+            const lyricsText = stripHtmlTags(lyrics);
+            if (lyricsElement) lyricsElement.innerText = lyricsText || "No lyrics available";
+            
+            // Handle links
+            const driveLink = document.getElementById("google-drive-link");
+            const youtubeLink = document.getElementById("youtube-link");
+            const spotifyLink = document.getElementById("spotify-link");
+            
+            if (driveLink) {
+                if (drive && drive !== "null" && drive !== "undefined") {
+                    driveLink.href = drive;
+                } else {
+                    driveLink.style.opacity = "0.5";
+                    driveLink.style.pointerEvents = "none";
+                    driveLink.innerHTML = "<span>Google Drive (Not Available)</span>";
+                }
+            }
+            
+            if (youtubeLink) {
+                if (youtube && youtube !== "null" && youtube !== "undefined") {
+                    youtubeLink.href = youtube;
+                } else {
+                    youtubeLink.style.opacity = "0.5";
+                    youtubeLink.style.pointerEvents = "none";
+                    youtubeLink.innerHTML = "<span>YouTube (Not Available)</span>";
+                }
+            }
+            
+            if (spotifyLink) {
+                if (spotify && spotify !== "null" && spotify !== "undefined") {
+                    spotifyLink.href = spotify;
+                } else {
+                    spotifyLink.style.opacity = "0.5";
+                    spotifyLink.style.pointerEvents = "none";
+                    spotifyLink.innerHTML = "<span>Spotify (Not Available)</span>";
+                }
+            }
+        });
     </script>
 </body>
 
