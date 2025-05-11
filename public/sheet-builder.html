@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sheet Builder</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.6/quill.snow.css">
     <link rel="stylesheet" href="css/main.css">
     <style>
         body {
@@ -70,33 +69,159 @@
             justify-content: center;
             align-items: center;
             background-color: #ffffff;
-            border-radius: 10px;
+            border-radius: 0; /* Remove border radius to match the border graphic */
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
             position: relative;
-            width: 100%;
-            height: auto;
-            margin: 0 auto;
-            overflow: auto;
-            min-height: 500px;
-            background: url('/assets/sheetskin.png') no-repeat center center;
-            background-size: cover;
+            margin: 20px auto;
+            overflow: hidden;
+            width: calc(8.5in * 0.8);
+            height: calc(11in * 0.8);
+            max-height: calc(100vh - 120px);
+            background: 
+    url('/assets/border-graphic.png') no-repeat center center,
+    url('/assets/sheetskin.png') no-repeat center center;
+background-size: 100% 100%, cover; /* Ensure it covers the entire container */
         }
 
         #editor {
             box-sizing: border-box;
             height: 100%;
             width: 100%;
-            padding: 60px;
+            padding: 0.8in; /* Increased padding to account for the double border */
             position: relative;
             color: black;
-            overflow-y: hidden;
-            columns: 3;
-            column-gap: 40px;
+            overflow: hidden;
+            column-gap: 20px;
+            column-fill: auto;
+            font-size: 12pt;
+            direction: rtl;
+            text-align: right;
+            margin: 0 auto;
+        }
+        
+        .editor-song {
+            break-inside: avoid-column; /* Prevent breaking within columns */
+            page-break-inside: avoid; /* Prevent breaking across pages when printing */
+            margin-bottom: 0.15in;
+            line-height: 1.2;
+            position: relative;
+            padding: 0.05in;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+            display: inline-block; /* Keep the song as a block that won't wrap */
+            width: 100%;
         }
 
-        .editor-song {
-            break-inside: avoid-column;
-            font-size: 1.2vh;
+        .editor-song:hover {
+            background-color: rgba(242, 203, 5, 0.1);
+        }
+
+        /* Prevent unauthorized line breaks in paragraphs */
+        .editor-song p {
+            white-space: nowrap;
+        }
+
+        .remove-button {
+            position: absolute;
+            top: 0.05in;
+            left: 0.05in;
+            color: rgba(255, 0, 0, 0.7);
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            line-height: 20px;
+            display: none;
+            z-index: 100;
+        }
+
+        .editor-song:hover .remove-button {
+            display: block;
+        }
+
+        /* Dev control widget */
+        #dev-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        
+        #dev-controls h3 {
+            margin: 0;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        #font-size-slider, #column-count-slider {
+            width: 100%;
+        }
+        
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .control-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 5px;
+        }
+        
+        .control-buttons button {
+            background-color: #f2cb05;
+            border: none;
+            color: black;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        
+        .control-display {
+            text-align: center;
+            font-weight: bold;
+            min-width: 40px;
+        }
+        
+        /* Layout for additional pages */
+        .page-container {
+            width: calc(8.5in * 0.8);
+            height: calc(11in * 0.8);
+            background: 
+    url('/assets/border-graphic.png') no-repeat center center,
+    url('/assets/sheetskin.png') no-repeat center center;
+background-size: 100% 100%, cover; /* Ensure it covers the entire container */
+            margin: 20px auto;
+            position: relative;
+            border-radius: 0; /* Remove border radius to match the graphic */
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .page-editor {
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+            padding: 0.8in; /* Increased padding to account for the double border */
+            position: relative;
+            color: black;
+            direction: rtl;
+            text-align: right;
+            overflow: hidden;
         }
 
         #footer {
@@ -119,6 +244,120 @@
         .drag-over {
             border: 2px dashed #f2cb05;
         }
+
+        /* Controls for scaling and sheet management */
+        #sheet-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        .scale-indicator {
+            background-color: #f2cb05;
+            color: #000;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        /* Individual song controls */
+        .song-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .song-control button {
+            background: none;
+            border: none;
+            color: #f2cb05;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .song-control button:hover {
+            text-decoration: underline;
+        }
+        
+        /* Toggle button for dev widgets */
+        #toggle-dev-widgets {
+            background-color: #333;
+            color: #f2cb05;
+            cursor: pointer;
+        }
+
+        #toggle-dev-widgets.active {
+            background-color: #f2cb05;
+            color: #333;
+        }
+        
+        /* Print-specific styles */
+        @media print {
+            @page {
+                size: 8.5in 11in;
+                margin: 0;
+            }
+            
+            body {
+                margin: 0;
+                padding: 0;
+                background: none;
+            }
+            
+            /* Hide everything by default */
+            body * {
+                visibility: hidden;
+            }
+            
+            /* Only show the editor container and its contents */
+            #print-container, #print-container * {
+                visibility: visible;
+            }
+            
+            /* Hide controls during print */
+            .remove-button, .song-control {
+                display: none !important;
+            }
+            
+            /* Force background images to print */
+            .print-page {
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Handle page breaks */
+            .print-page {
+                page-break-after: always;
+            }
+            
+            .print-page:last-child {
+                page-break-after: avoid;
+            }
+        }
+        
+        /* Media query for mobile responsiveness */
+        @media (max-width: 768px) {
+            #content {
+                flex-direction: column;
+            }
+            
+            #song-list {
+                width: auto;
+                max-height: 300px;
+                margin: 1rem;
+            }
+            
+            #editor-container {
+                width: 90%;
+                height: auto;
+                aspect-ratio: 8.5/11;
+            }
+        }
     </style>
 </head>
 
@@ -131,9 +370,11 @@
 
     <div id="content">
         <div id="song-list">
-            <div style="display: flex; flex-direction: row; justify-content: space-between; margin-bottom: 4px;">
+            <div id="sheet-controls">
                 <button id="clear-sheet" disabled>Clear Sheet</button>
                 <button id="print-button">Print</button>
+                <button id="toggle-dev-widgets">Dev Tools</button>
+                <span id="scale-indicator" class="scale-indicator">Scale: 100%</span>
             </div>
             <input type="file" id="upload" accept=".txt" />
             <h2>All Niggunim</h2>
@@ -141,21 +382,97 @@
         </div>
 
         <div id="editor-container">
-            <div id="editor"></div>
+            <div id="editor" dir="rtl"></div>
         </div>
     </div>
 
     <div id="footer">
-        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
-        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
+        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
+            target="_blank">Download Niggun Sheet</a>
+        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
+            target="_blank">Download Simcha Sheet</a>
     </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+    
+    <!-- Dev controls for font size and column adjustment -->
+    <div id="dev-controls">
+        <h3>Sheet Controls</h3>
+        
+        <div class="control-row">
+            <label for="font-size-slider">Font Size:</label>
+            <input type="range" id="font-size-slider" min="6" max="24" value="12" step="0.5">
+            <div id="size-display" class="control-display">12pt</div>
+        </div>
+        <div class="control-buttons">
+            <button id="size-decrease">-</button>
+            <button id="size-reset">Reset</button>
+            <button id="size-increase">+</button>
+        </div>
+        
+        <div class="control-row" style="margin-top: 10px;">
+            <label for="column-count-slider">Columns:</label>
+            <input type="range" id="column-count-slider" min="1" max="3" value="1" step="1">
+            <div id="column-display" class="control-display">1</div>
+        </div>
+        <div class="control-buttons">
+            <button id="col-decrease">-</button>
+            <button id="col-auto">Auto</button>
+            <button id="col-increase">+</button>
+        </div>
+        
+        <div class="control-row" style="margin-top: 10px;">
+            <label for="column-gap-slider">Column Spacing:</label>
+            <input type="range" id="column-gap-slider" min="5" max="50" value="20" step="1">
+            <div id="gap-display" class="control-display">20px</div>
+        </div>
+        <div class="control-buttons">
+            <button id="gap-decrease">-</button>
+            <button id="gap-reset">Reset</button>
+            <button id="gap-increase">+</button>
+        </div>
+        
+        <div style="margin-top: 10px;">
+            <button id="add-page-btn" style="width: 100%;">Add Page</button>
+        </div>
+    </div>
     <script>
         const songsEndpoint = "/api/songs";
         const songsContainer = document.getElementById("songs");
         const uploadInput = document.getElementById("upload");
-        const editorContainer = document.getElementById("editor-container");
+        const editor = document.getElementById("editor");
+        const scaleIndicator = document.getElementById("scale-indicator");
+        
+        // Base font size that will be scaled
+        const baseFontSize = 18; // in pt - starting larger
+        let currentScale = 1.0;
+        let currentColumns = 1; // Start with 1 column
+        let autoColumns = true; // Auto column management enabled by default
+        let pageCount = 1;
+        let columnGap = 20; // Default column gap in px
+        let devWidgetsVisible = false; // Dev widgets hidden by default
+        
+        // Initialize with base settings
+        editor.style.fontSize = baseFontSize + 'pt';
+        editor.style.columnCount = currentColumns;
+        editor.style.columnGap = columnGap + 'px';
+
+        // Reset state when page loads
+        window.addEventListener('load', function() {
+            // Only necessary if the page might be reloaded without clearing session
+            initializeSheet();
+            updateClearSheetButton();
+            
+            // Initialize dev widgets visibility
+            devWidgetsVisible = localStorage.getItem('devWidgetsVisible') === 'true';
+            if (devWidgetsVisible) {
+                document.getElementById('dev-controls').style.display = 'flex';
+                document.getElementById('toggle-dev-widgets').classList.add('active');
+            } else {
+                document.getElementById('dev-controls').style.display = 'none';
+            }
+            
+            // Add event listener for the toggle button
+            document.getElementById('toggle-dev-widgets').addEventListener('click', toggleDevWidgets);
+        });
 
         function getSheetSongsFromLocalStorage() {
             return JSON.parse(localStorage.getItem('sheetSongs')) || [];
@@ -163,20 +480,577 @@
 
         function addSongToLocalStorageSheet(song) {
             const sheetSongs = getSheetSongsFromLocalStorage();
-            sheetSongs.push(song);
-            localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
+            if (!sheetSongs.some(s => s.title === song.title && s.artist === song.artist)) {
+                sheetSongs.push(song);
+                localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
+                updateClearSheetButton();
+                return true;
+            }
+            return false;
         }
 
-        // Load the sheet songs from local storage into the editor
-        getSheetSongsFromLocalStorage().forEach(song => {
-            const newContent = `<div class="editor-song"><h2>${song.title}</h2><p>${song.lyrics}</p></div>`;
-            document.getElementById("editor").innerHTML += newContent;
-        });
+        function removeSongFromSheet(title, artist) {
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            const updatedSongs = sheetSongs.filter(song => 
+                !(song.title === title && song.artist === artist)
+            );
+            localStorage.setItem('sheetSongs', JSON.stringify(updatedSongs));
+            
+            // Update song list UI to reflect changes
+            const songItem = document.querySelector(`.song-item[data-title="${title}"]`);
+            if (songItem) {
+                songItem.classList.remove("song-item-used");
+            }
+            
+            updateClearSheetButton();
+        }
 
+        // Function to toggle dev widgets visibility
+        function toggleDevWidgets() {
+            devWidgetsVisible = !devWidgetsVisible;
+            const devControls = document.getElementById('dev-controls');
+            
+            if (devWidgetsVisible) {
+                devControls.style.display = 'flex';
+                document.getElementById('toggle-dev-widgets').classList.add('active');
+            } else {
+                devControls.style.display = 'none';
+                document.getElementById('toggle-dev-widgets').classList.remove('active');
+            }
+            
+            // Save preference to localStorage
+            localStorage.setItem('devWidgetsVisible', devWidgetsVisible);
+        }
+
+        // Helper function to check if the editor content is overflowing
+        function checkForOverflow() {
+            return (
+                editor.scrollHeight > editor.clientHeight || 
+                editor.scrollWidth > editor.clientWidth
+            );
+        }
+
+        // Helper function to check for lines crossing between song boundaries
+        function checkForSongBoundaryCrossings() {
+            // Get all song elements
+            const songs = editor.querySelectorAll('.editor-song');
+            if (songs.length < 2) return false; // Need at least 2 songs to have crossings
+            
+            // Store song boundaries
+            const songBoundaries = [];
+            songs.forEach(song => {
+                const rect = song.getBoundingClientRect();
+                songBoundaries.push({
+                    song: song,
+                    left: rect.left,
+                    right: rect.right,
+                    top: rect.top,
+                    bottom: rect.bottom
+                });
+            });
+            
+            // For each song, check if its lines cross into another song's boundary
+            for (const songData of songBoundaries) {
+                const song = songData.song;
+                
+                // Get all line elements in the song (paragraphs and br tags create lines)
+                const paragraphs = song.querySelectorAll('p');
+                
+                for (const paragraph of paragraphs) {
+                    // Check each text node and <br> tag
+                    const textNodes = getTextNodes(paragraph);
+                    const brTags = paragraph.querySelectorAll('br');
+                    
+                    // Function to check if an element crosses song boundaries
+                    const checkElementCrossing = (element) => {
+                        // Create a range for this element
+                        const range = document.createRange();
+                        range.selectNode(element);
+                        
+                        // Get all text rectangles
+                        const rects = range.getClientRects();
+                        
+                        // Check if any rectangle crosses into another song's boundary
+                        for (const rect of rects) {
+                            // Skip tiny rectangles (might be whitespace)
+                            if (rect.width < 5 || rect.height < 5) continue;
+                            
+                            // Check if this rect extends outside the song's boundary
+                            if (rect.left < songData.left || rect.right > songData.right ||
+                                rect.top < songData.top || rect.bottom > songData.bottom) {
+                                
+                                // Now check if it extends into another song's boundary
+                                for (const otherSong of songBoundaries) {
+                                    if (otherSong.song === song) continue; // Skip self
+                                    
+                                    // Check if the rect intersects with another song
+                                    const intersects = !(
+                                        rect.right < otherSong.left || 
+                                        rect.left > otherSong.right ||
+                                        rect.bottom < otherSong.top || 
+                                        rect.top > otherSong.bottom
+                                    );
+                                    
+                                    if (intersects) {
+                                        return true; // Found a boundary crossing
+                                    }
+                                }
+                            }
+                        }
+                        
+                        return false;
+                    };
+                    
+                    // Check text nodes for crossings
+                    for (const textNode of textNodes) {
+                        if (checkElementCrossing(textNode)) {
+                            return true; // Found a crossing
+                        }
+                    }
+                    
+                    // Check <br> tags for crossings
+                    for (const br of brTags) {
+                        if (checkElementCrossing(br)) {
+                            return true; // Found a crossing
+                        }
+                    }
+                }
+            }
+            
+            // No boundary crossings found
+            return false;
+        }
+
+        // Helper function to check if content approaches the border margins
+        function checkForBorderMarginViolations() {
+            // Get editor dimensions
+            const editorRect = editor.getBoundingClientRect();
+            
+            // Define the inner border margin (as a percentage of the editor size)
+            const borderMarginPercentage = 0.09; // Adjust this based on your graphic's inner border
+            
+            // Calculate the inner border rectangle
+            const innerBorderMargin = {
+                left: editorRect.left + (editorRect.width * borderMarginPercentage),
+                right: editorRect.right - (editorRect.width * borderMarginPercentage),
+                top: editorRect.top + (editorRect.height * borderMarginPercentage),
+                bottom: editorRect.bottom - (editorRect.height * borderMarginPercentage)
+            };
+            
+            // Get all song elements
+            const songs = editor.querySelectorAll('.editor-song');
+            
+            // Check each song for margin violations
+            for (const song of songs) {
+                // Get all elements in the song that might have content
+                const textElements = song.querySelectorAll('p, br');
+                
+                for (const element of textElements) {
+                    // Get client rects for this element
+                    const rects = element.getClientRects();
+                    
+                    // Check if any rectangle violates the inner border margin
+                    for (const rect of rects) {
+                        // Skip tiny rectangles (might be whitespace)
+                        if (rect.width < 5 || rect.height < 5) continue;
+                        
+                        // Check if this rect extends outside the inner border margin
+                        if (rect.left < innerBorderMargin.left || 
+                            rect.right > innerBorderMargin.right ||
+                            rect.top < innerBorderMargin.top || 
+                            rect.bottom > innerBorderMargin.bottom) {
+                            console.log("Border margin violation detected");
+                            return true; // Found a margin violation
+                        }
+                    }
+                }
+            }
+            
+            // No margin violations found
+            return false;
+        }
+
+        // Helper function to check for unauthorized line breaks within songs
+        function checkForUnauthorizedLineBreaks() {
+            // Get all song elements
+            const songs = editor.querySelectorAll('.editor-song');
+            
+            // Check each song for unauthorized line breaks
+            for (const song of songs) {
+                const paragraphs = song.querySelectorAll('p');
+                
+                for (const paragraph of paragraphs) {
+                    // Count authorized breaks (<br> tags)
+                    const authorizedBreaks = paragraph.querySelectorAll('br').length;
+                    
+                    // Get the text nodes and check for wrapping
+                    const textNodes = getTextNodes(paragraph);
+                    
+                    // For each text node, check if it occupies more than one line
+                    for (const textNode of textNodes) {
+                        // Skip empty text nodes
+                        if (!textNode.textContent.trim()) continue;
+                        
+                        // Get client rects for this text node
+                        const range = document.createRange();
+                        range.selectNodeContents(textNode);
+                        const rects = range.getClientRects();
+                        
+                        // If more than one rect, text is wrapping
+                        if (rects.length > 1) {
+                            // Found an unauthorized line break
+                            return true;
+                        }
+                    }
+                    
+                    // Another approach: check if the computed height of the paragraph is more than expected
+                    const lineHeight = parseFloat(window.getComputedStyle(paragraph).lineHeight);
+                    const expectedHeight = (authorizedBreaks + 1) * lineHeight;
+                    
+                    // Allow a small tolerance (10% extra height)
+                    if (paragraph.offsetHeight > expectedHeight * 1.1) {
+                        return true;
+                    }
+                }
+            }
+            
+            // No unauthorized line breaks found
+            return false;
+        }
+
+        // Helper function to get all text nodes in an element
+        function getTextNodes(element) {
+            const textNodes = [];
+            const walker = document.createTreeWalker(
+                element,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            let node;
+            while (node = walker.nextNode()) {
+                textNodes.push(node);
+            }
+            
+            return textNodes;
+        }
+
+        // Function to strictly enforce content boundaries and prevent unauthorized line breaks
+        function checkContentAndManageLayout() {
+            // Always enable auto columns for this improved version
+            autoColumns = true;
+            
+            // STEP 1: Start with baseline settings
+            currentColumns = 1;
+            currentScale = 1.0;
+            editor.style.fontSize = baseFontSize + 'pt';
+            editor.style.columnCount = currentColumns;
+            
+            // STEP 2: Initial overflow check - make overflow visible for accurate measurement
+            editor.style.overflow = "visible";
+            let isOverflowing = checkForOverflow();
+            
+            // STEP 3: Try increasing columns first
+            if (isOverflowing) {
+                currentColumns = 2;
+                editor.style.columnCount = currentColumns;
+                isOverflowing = checkForOverflow();
+                
+                if (isOverflowing) {
+                    currentColumns = 3;
+                    editor.style.columnCount = currentColumns;
+                    isOverflowing = checkForOverflow();
+                }
+            }
+            
+            // STEP 4: Check for all types of layout issues
+            let hasUnauthorizedLineBreaks = checkForUnauthorizedLineBreaks();
+            let hasBoundaryCrossings = checkForSongBoundaryCrossings();
+            let hasBorderMarginViolations = checkForBorderMarginViolations();
+            
+            // STEP 5: If any layout issues exist, reduce font size gradually
+            if (isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) {
+                let attempts = 0;
+                let scaleStep = 0.02; // Smaller steps for finer control
+                
+                while ((isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) 
+                       && currentScale > 0.5 && attempts < 50) {
+                    currentScale -= scaleStep;
+                    editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
+                    isOverflowing = checkForOverflow();
+                    hasUnauthorizedLineBreaks = checkForUnauthorizedLineBreaks();
+                    hasBoundaryCrossings = checkForSongBoundaryCrossings();
+                    hasBorderMarginViolations = checkForBorderMarginViolations();
+                    attempts++;
+                }
+            }
+            
+            // STEP 6: SAFETY CHECK - if STILL issues persist, take drastic measures
+            if (checkForOverflow() || checkForUnauthorizedLineBreaks() || 
+                checkForSongBoundaryCrossings() || checkForBorderMarginViolations()) {
+                console.warn("Strict enforcement activated - issues persist after normal adjustments");
+                
+                // Use more aggressive scaling if needed
+                while ((checkForOverflow() || checkForUnauthorizedLineBreaks() || 
+                        checkForSongBoundaryCrossings() || checkForBorderMarginViolations()) && currentScale > 0.3) {
+                    currentScale -= 0.05;
+                    editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
+                }
+                
+                // Last resort - force no overflow
+                editor.style.overflow = "hidden";
+            } else {
+                // All good, maintain overflow as hidden
+                editor.style.overflow = "hidden";
+            }
+            
+            // Update UI to reflect the changes
+            updateLayoutControls();
+            
+            // Log final state for debugging
+            console.log(`Final layout: ${currentColumns} columns, scale: ${Math.round(currentScale * 100)}%, 
+                          overflow: ${checkForOverflow() ? 'YES' : 'NO'}, 
+                          unauthorized breaks: ${checkForUnauthorizedLineBreaks() ? 'YES' : 'NO'},
+                          boundary crossings: ${checkForSongBoundaryCrossings() ? 'YES' : 'NO'},
+                          border margin violations: ${checkForBorderMarginViolations() ? 'YES' : 'NO'}`);
+        }
+        
+        // Function to update layout controls in the UI
+        function updateLayoutControls() {
+            // Update column slider and display
+            const columnSlider = document.getElementById('column-count-slider');
+            const columnDisplay = document.getElementById('column-display');
+            
+            if (columnSlider && columnDisplay) {
+                columnSlider.value = currentColumns;
+                columnDisplay.textContent = currentColumns;
+            }
+            
+            // Update font size display
+            const fontSizeSlider = document.getElementById('font-size-slider');
+            const sizeDisplay = document.getElementById('size-display');
+            
+            if (fontSizeSlider && sizeDisplay) {
+                const currentSize = baseFontSize * currentScale;
+                fontSizeSlider.value = currentSize;
+                sizeDisplay.textContent = Math.round(currentSize * 10) / 10 + 'pt';
+            }
+            
+            // Update column gap display
+            const columnGapSlider = document.getElementById('column-gap-slider');
+            const gapDisplay = document.getElementById('gap-display');
+            
+            if (columnGapSlider && gapDisplay) {
+                columnGapSlider.value = columnGap;
+                gapDisplay.textContent = columnGap + 'px';
+            }
+            
+            // Update scale indicator
+            scaleIndicator.textContent = `Scale: ${Math.round(currentScale * 100)}%`;
+            scaleIndicator.style.backgroundColor = currentScale < 0.8 ? '#ff9900' : '#f2cb05';
+        }
+        
+        // Function to manually set column count
+        function setColumnCount(count) {
+            autoColumns = false; // Disable auto management when manually set
+            currentColumns = count;
+            editor.style.columnCount = currentColumns;
+            
+            const columnSlider = document.getElementById('column-count-slider');
+            const columnDisplay = document.getElementById('column-display');
+            
+            if (columnSlider && columnDisplay) {
+                columnSlider.value = currentColumns;
+                columnDisplay.textContent = currentColumns;
+            }
+        }
+        
+        // Function to add a new page
+        function addNewPage() {
+            // Create a new page container
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'page-container';
+            pageContainer.id = 'page-' + (++pageCount);
+            
+            // Create a new editor for this page
+            const pageEditor = document.createElement('div');
+            pageEditor.className = 'page-editor';
+            pageEditor.style.columnCount = currentColumns;
+            pageEditor.style.fontSize = editor.style.fontSize;
+            pageEditor.style.columnGap = columnGap + 'px';
+            pageEditor.style.overflow = "hidden"; // Ensure overflow is hidden
+            pageEditor.dir = 'rtl';
+            
+            // Append to page container and insert before footer
+            pageContainer.appendChild(pageEditor);
+            document.getElementById('footer').before(pageContainer);
+            
+            return pageEditor; // Return the new editor for adding content
+        }
+        
+        // Function to check if content overflows and scale if needed
+        function checkOverflowAndScale() {
+            // First try to adjust columns automatically
+            if (autoColumns) {
+                checkContentAndManageLayout();
+                return;
+            }
+            
+            // If auto columns disabled, just scale the font
+            // Reset scale to check natural size
+            editor.style.fontSize = baseFontSize + 'pt';
+            currentScale = 1.0;
+            
+            // Check if content overflows
+            if (editor.scrollHeight > editor.clientHeight || editor.scrollWidth > editor.clientWidth) {
+                // Start scaling down until it fits
+                let scaleStep = 0.05;
+                while ((editor.scrollHeight > editor.clientHeight || editor.scrollWidth > editor.clientWidth) 
+                      && currentScale > 0.5) {
+                    currentScale -= scaleStep;
+                    editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
+                }
+                
+                // Update scale indicator
+                scaleIndicator.textContent = `Scale: ${Math.round(currentScale * 100)}%`;
+                scaleIndicator.style.backgroundColor = currentScale < 0.8 ? '#ff9900' : '#f2cb05';
+            } else {
+                scaleIndicator.textContent = 'Scale: 100%';
+                scaleIndicator.style.backgroundColor = '#f2cb05';
+            }
+            
+            updateLayoutControls();
+        }
+
+        // Initialize sheet with songs from localStorage
+        function initializeSheet() {
+            editor.innerHTML = ''; // Clear editor
+            
+            // Load songs from localStorage
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            sheetSongs.forEach((song, index) => {
+                appendSongToEditor(song, index);
+            });
+            
+            // Initialize with auto column management
+            const fontSizeSlider = document.getElementById('font-size-slider');
+            const sizeDisplay = document.getElementById('size-display');
+            const columnSlider = document.getElementById('column-count-slider');
+            const columnDisplay = document.getElementById('column-display');
+            const columnGapSlider = document.getElementById('column-gap-slider');
+            const gapDisplay = document.getElementById('gap-display');
+            
+            if (fontSizeSlider && sizeDisplay) {
+                fontSizeSlider.value = baseFontSize;
+                sizeDisplay.textContent = baseFontSize + 'pt';
+            }
+            
+            if (columnSlider && columnDisplay) {
+                columnSlider.value = 1;
+                columnDisplay.textContent = 1;
+            }
+            
+            if (columnGapSlider && gapDisplay) {
+                columnGapSlider.value = columnGap;
+                gapDisplay.textContent = columnGap + 'px';
+            }
+            
+            // Check and adjust columns and scaling
+            checkContentAndManageLayout();
+        }
+
+        // Append a song to the editor
+        function appendSongToEditor(song, index) {
+            const songDiv = document.createElement('div');
+            songDiv.className = 'editor-song';
+            songDiv.setAttribute('data-title', song.title);
+            songDiv.setAttribute('data-artist', song.artist);
+            songDiv.setAttribute('data-index', index);
+            songDiv.setAttribute('dir', 'rtl');
+            
+            // Format lyrics properly - preserve all line breaks but only use explicit ones
+            // Replace all forms of line breaks with consistent \n for processing
+            let cleanLyrics = song.lyrics
+                .replace(/\\n/g, '\n')
+                .replace(/<br>/g, '\n')
+                .replace(/<br\/>/g, '\n')
+                .replace(/<br \/>/g, '\n');
+                
+            // Make sure line breaks are preserved by using innerHTML with <br> tags
+            cleanLyrics = cleanLyrics.split('\n').join('<br>');
+            
+            // Create remove button
+            const removeButton = document.createElement('div');
+            removeButton.className = 'remove-button';
+            removeButton.textContent = '×';
+            removeButton.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent event from bubbling up
+                removeSongFromEditor(song.title, song.artist);
+            });
+            
+            // Create lyrics paragraph - using innerHTML with <br> tags to ensure breaks display
+            const lyricsPara = document.createElement('p');
+            lyricsPara.innerHTML = cleanLyrics;
+            // Add CSS to prevent text wrapping within lines (only break at <br> tags)
+            lyricsPara.style.whiteSpace = "nowrap";
+            
+            // Append elements
+            songDiv.appendChild(removeButton);
+            songDiv.appendChild(lyricsPara);
+            
+            // Add to editor
+            editor.appendChild(songDiv);
+            
+            // Ensure proper layout after adding content
+            // Use a timeout to ensure DOM has updated
+            setTimeout(() => {
+                // Check for all types of layout issues
+                checkContentAndManageLayout();
+                
+                // Double-check to ensure everything is correct
+                if (checkForOverflow() || checkForUnauthorizedLineBreaks() || 
+                    checkForSongBoundaryCrossings() || checkForBorderMarginViolations()) {
+                    console.warn("Post-add issues detected - applying stricter enforcement");
+                    
+                    // Force more drastic scaling if needed
+                    while ((checkForOverflow() || checkForUnauthorizedLineBreaks() || 
+                            checkForSongBoundaryCrossings() || checkForBorderMarginViolations()) && currentScale > 0.3) {
+                        currentScale -= 0.05;
+                        editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
+                    }
+                    
+                    // Last resort - ensure hidden overflow
+                    editor.style.overflow = "hidden";
+                    
+                    // Update UI
+                    updateLayoutControls();
+                }
+            }, 20);
+        }
+
+        // Function to remove a song from the editor
+        function removeSongFromEditor(title, artist) {
+            // Remove from localStorage
+            removeSongFromSheet(title, artist);
+            
+            // Remove from editor
+            const songElement = editor.querySelector(`[data-title="${title}"][data-artist="${artist}"]`);
+            if (songElement) {
+                editor.removeChild(songElement);
+                
+                // Recalculate columns and scaling after removal
+                setTimeout(() => {
+                    checkContentAndManageLayout();
+                }, 20);
+            }
+        }
+
+        // Populate the song list with song titles and artists
         function renderSongs(songs) {
-            console.log("rendering songs");
             const sheetSongs = getSheetSongsFromLocalStorage();
             songsContainer.innerHTML = "";
+            
             songs.forEach(song => {
                 const songDiv = document.createElement("div");
                 songDiv.setAttribute("draggable", "true");
@@ -188,13 +1062,15 @@
                     songDiv.classList.add("song-item-used");
                 }
 
+                // Add song data as attributes for drag and drop
                 songDiv.setAttribute("data-title", song.title);
-                songDiv.setAttribute("data-artist", song.artist);
-                songDiv.setAttribute("data-lyrics", song.lyrics ? song.lyrics.replace(/\r\n|\r|\n/g, ""): "Lyrics not available");
+                songDiv.setAttribute("data-artist", song.artist || "Unknown");
+                songDiv.setAttribute("data-lyrics", song.lyrics.replace(/\r\n|\r|\n/g, "\\n"));
+                
                 songDiv.innerHTML = `
                 <div>
                     <strong>${song.title}</strong><br>
-                    <small>${song.artist}</small>
+                    <small>${song.artist || "Unknown"}</small>
                 </div>
                 `;
                 songsContainer.appendChild(songDiv);
@@ -203,6 +1079,7 @@
             addDragAndDropListeners();
         }
 
+        // Add drag and drop event listeners
         function addDragAndDropListeners() {
             const songItems = document.querySelectorAll('.song-item');
             songItems.forEach(item => {
@@ -210,6 +1087,7 @@
                 item.addEventListener('dragend', handleDragEnd);
             });
 
+            const editorContainer = document.querySelector('#editor-container');
             editorContainer.addEventListener('dragover', handleDragOver);
             editorContainer.addEventListener('drop', handleDrop);
         }
@@ -231,29 +1109,31 @@
 
         function handleDragOver(event) {
             event.preventDefault();
+            event.currentTarget.classList.add('drag-over');
         }
 
         function handleDrop(event) {
             event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+            
             const data = event.dataTransfer.getData('text/plain');
             const song = JSON.parse(data);
 
-            const songSheet = getSheetSongsFromLocalStorage();
-            const isUsed = songSheet.some(sheetSong => sheetSong.title === song.title);
-            if (isUsed) {
+            // Add song to localStorage sheet
+            if (addSongToLocalStorageSheet(song)) {
+                // Update the editor with the new song
+                const sheetSongs = getSheetSongsFromLocalStorage();
+                appendSongToEditor(song, sheetSongs.length - 1);
+                
+                // Update the song list to mark the song as used
+                let songItem = document.querySelector(`.song-item[data-title="${song.title}"]`);
+                if (songItem) songItem.classList.add("song-item-used");
+            } else {
                 alert(`${song.title} is already in the sheet.`);
-                return;
             }
-
-            addSongToLocalStorageSheet(song);
-
-            const newContent = `<div class="editor-song"><h2>${song.title}</h2><p>${song.lyrics}</p></div>`;
-            document.getElementById("editor").innerHTML += newContent;
-
-            let songItem = document.querySelector(`.song-item[data-title="${song.title}"]`);
-            songItem.classList.add("song-item-used");
         }
 
+        // Handle file upload
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -264,9 +1144,10 @@
                 const lines = text.split('\n');
                 const title = lines[0].trim();
                 const artist = lines[1].trim();
-                const lyrics = lines.slice(2).join('<br>').trim();
+                const lyrics = lines.slice(2).join('\\n').trim();
 
                 const newSong = { title, artist, lyrics };
+                // Add the new song to the songs array
                 songs.push(newSong);
                 renderSongs(songs);
             };
@@ -275,63 +1156,452 @@
 
         uploadInput.addEventListener("change", handleFileUpload);
 
-        let songs = [];
-        fetch(songsEndpoint)
-            .then(response => response.json())
-            .then(data => {
-                songs = data;
-                console.log('Songs loaded:', songs);
-                renderSongs(songs);
-            })
-            .catch(error => {
-                console.error('Error loading songs:', error);
-                songsContainer.innerText = "Error loading songs.";
-            });
-
-        // Print functionality
-        document.getElementById('print-button').addEventListener('click', function () {
-            const editor = document.getElementById('editor');
-
-            const opt = {
-                margin: 0,
-                filename: 'Niggun_Sheet.pdf',
-                image: { type: 'jpeg', quality: 1 },
-                html2canvas: { scale: 4, backgroundColor: null }, // Adjust scale for larger content
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-
-            html2pdf().from(editor).set(opt).save();
-        });
-
+        // Print functionality - using a dedicated print window
+        
         function updateClearSheetButton() {
             const clearSheetButton = document.getElementById("clear-sheet");
             const sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
             clearSheetButton.disabled = sheetSongs.length === 0;
         }
 
-        document.getElementById("clear-sheet").addEventListener("click", function () {
-            if (confirm("Are you sure you want to clear the sheet?")) {
-                localStorage.removeItem("sheetSongs");
-                updateClearSheetButton();
-                renderSongs(songs);
-                alert("Sheet cleared.");
-                document.getElementById("editor").innerHTML = "";
-            }
+// SVG-based printing solution - captures EXACT layout
+document.getElementById('print-button').addEventListener('click', function() {
+    // Show processing indicator
+    const processingIndicator = document.createElement('div');
+    processingIndicator.style.position = 'fixed';
+    processingIndicator.style.top = '50%';
+    processingIndicator.style.left = '50%';
+    processingIndicator.style.transform = 'translate(-50%, -50%)';
+    processingIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    processingIndicator.style.color = 'white';
+    processingIndicator.style.padding = '20px';
+    processingIndicator.style.borderRadius = '5px';
+    processingIndicator.style.zIndex = '9999';
+    processingIndicator.textContent = 'Preparing print output...';
+    document.body.appendChild(processingIndicator);
+    
+    // Create a container for SVG snapshots
+    const printContainer = document.createElement('div');
+    printContainer.id = 'svg-print-container';
+    printContainer.style.position = 'fixed';
+    printContainer.style.left = '-9999px';
+    printContainer.style.top = '0';
+    document.body.appendChild(printContainer);
+    
+    // Get all pages to print
+    const mainEditor = document.getElementById('editor-container');
+    const additionalPages = document.querySelectorAll('.page-container');
+    const pagesToPrint = [mainEditor, ...Array.from(additionalPages)];
+    
+    // Set up promises for all captures
+    const capturePromises = pagesToPrint.map((page, index) => 
+        captureDOMtoSVG(page, index)
+    );
+    
+    // Process all captures
+    Promise.all(capturePromises)
+        .then(svgElements => {
+            // Add all SVG elements to print container
+            svgElements.forEach(svg => {
+                if (svg) {
+                    const pageWrapper = document.createElement('div');
+                    pageWrapper.className = 'print-page-wrapper';
+                    pageWrapper.style.width = '8.5in';
+                    pageWrapper.style.height = '11in';
+                    pageWrapper.style.margin = '0 auto';
+                    pageWrapper.style.pageBreakAfter = 'always';
+                    pageWrapper.style.position = 'relative';
+                    
+                    pageWrapper.appendChild(svg);
+                    printContainer.appendChild(pageWrapper);
+                }
+            });
+            
+            // Inject print CSS
+            const printStyle = document.createElement('style');
+            printStyle.id = 'svg-print-styles';
+            printStyle.innerHTML = `
+                @media print {
+                    body * { visibility: hidden; }
+                    #svg-print-container, #svg-print-container * { visibility: visible; }
+                    #svg-print-container { position: absolute; top: 0; left: 0; width: 100%; }
+                    @page { size: 8.5in 11in; margin: 0; }
+                    .print-page-wrapper { page-break-after: always; }
+                    .print-page-wrapper:last-child { page-break-after: avoid; }
+                    svg { max-width: 100%; height: auto; }
+                }
+            `;
+            document.head.appendChild(printStyle);
+            
+            // Hide indicator
+            document.body.removeChild(processingIndicator);
+            
+            // Position print container and print
+            setTimeout(() => {
+                printContainer.style.left = '0';
+                window.print();
+                
+                // Clean up after printing
+                setTimeout(() => {
+                    document.head.removeChild(printStyle);
+                    document.body.removeChild(printContainer);
+                }, 1000);
+            }, 500);
+        })
+        .catch(error => {
+            console.error('Error generating print output:', error);
+            processingIndicator.textContent = 'Error preparing print. Please try again.';
+            setTimeout(() => {
+                document.body.removeChild(processingIndicator);
+            }, 2000);
         });
+});
 
-        updateClearSheetButton();
-
-        function addSongToLocalStorageSheet(song) {
-            const sheetSongs = getSheetSongsFromLocalStorage();
-            if (!sheetSongs.some(s => s.title === song.title && s.artist === song.artist)) {
-                sheetSongs.push(song);
-                localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
-                updateClearSheetButton();
+// Function to capture a DOM element to SVG
+function captureDOMtoSVG(element, index) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Get dimensions
+            const rect = element.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            
+            // Create SVG element
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '8.5in');
+            svg.setAttribute('height', '11in');
+            svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+            
+            // Add a border background
+            const backgroundGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            
+            // First, add the sheet background
+            const sheetBackground = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            sheetBackground.setAttribute('width', width);
+            sheetBackground.setAttribute('height', height);
+            sheetBackground.setAttribute('fill', '#f9f8f0'); // Light cream color
+            backgroundGroup.appendChild(sheetBackground);
+            
+            // Add sheet texture as pattern
+            const sheetPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+            sheetPattern.setAttribute('id', `sheetPattern-${index}`);
+            sheetPattern.setAttribute('patternUnits', 'userSpaceOnUse');
+            sheetPattern.setAttribute('width', width);
+            sheetPattern.setAttribute('height', height);
+            
+            const sheetImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            sheetImage.setAttribute('href', '/assets/sheetskin.png');
+            sheetImage.setAttribute('width', width);
+            sheetImage.setAttribute('height', height);
+            sheetImage.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+            
+            sheetPattern.appendChild(sheetImage);
+            
+            // Add border pattern
+            const borderPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+            borderPattern.setAttribute('id', `borderPattern-${index}`);
+            borderPattern.setAttribute('patternUnits', 'userSpaceOnUse');
+            borderPattern.setAttribute('width', width);
+            borderPattern.setAttribute('height', height);
+            
+            const borderImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            borderImage.setAttribute('href', '/assets/border-graphic.png');
+            borderImage.setAttribute('width', width);
+            borderImage.setAttribute('height', height);
+            borderImage.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+            
+            borderPattern.appendChild(borderImage);
+            
+            // Add the patterns to the SVG
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            defs.appendChild(sheetPattern);
+            defs.appendChild(borderPattern);
+            svg.appendChild(defs);
+            
+            // Add background with pattern
+            const sheetRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            sheetRect.setAttribute('width', width);
+            sheetRect.setAttribute('height', height);
+            sheetRect.setAttribute('fill', `url(#sheetPattern-${index})`);
+            backgroundGroup.appendChild(sheetRect);
+            
+            // Add border with pattern
+            const borderRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            borderRect.setAttribute('width', width);
+            borderRect.setAttribute('height', height);
+            borderRect.setAttribute('fill', `url(#borderPattern-${index})`);
+            backgroundGroup.appendChild(borderRect);
+            
+            // Add the background group to SVG
+            svg.appendChild(backgroundGroup);
+            
+            // Find the editor content
+            const contentElement = element.querySelector('#editor') || element.querySelector('.page-editor');
+            
+            if (!contentElement) {
+                resolve(svg); // Return the svg with just the background if no content
                 return;
             }
-            alert(`${song.title} is already in the sheet.`);
+            
+            // Create a foreign object for the content
+            const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+            foreignObject.setAttribute('width', width);
+            foreignObject.setAttribute('height', height);
+            foreignObject.setAttribute('x', 0);
+            foreignObject.setAttribute('y', 0);
+            
+            // Clone the element
+            const contentClone = contentElement.cloneNode(true);
+            
+            // Remove any remove buttons
+            const removeButtons = contentClone.querySelectorAll('.remove-button');
+            removeButtons.forEach(btn => btn.parentNode.removeChild(btn));
+            
+            // Add the content to the foreign object
+            foreignObject.appendChild(contentClone);
+            
+            // Add the foreign object to the SVG
+            svg.appendChild(foreignObject);
+            
+            // Return the completed SVG
+            resolve(svg);
+            
+        } catch (error) {
+            reject(error);
         }
+    });
+}
+
+
+
+// Function to add both alternative print buttons
+function addAlternativePrintButtons() {
+    // Add a div to hold the buttons
+    const printButton = document.getElementById('print-button');
+    const parent = printButton.parentNode;
+    
+    const altButtonsContainer = document.createElement('div');
+    altButtonsContainer.style.marginTop = '10px';
+    
+    const altPrintButton1 = document.createElement('button');
+    altPrintButton1.id = 'alt-print-1';
+    altPrintButton1.textContent = 'Print Method 1';
+    altPrintButton1.style.marginRight = '10px';
+    
+    const altPrintButton2 = document.createElement('button');
+    altPrintButton2.id = 'alt-print-2';
+    altPrintButton2.textContent = 'Print Method 2';
+    
+    altButtonsContainer.appendChild(altPrintButton1);
+    altButtonsContainer.appendChild(altPrintButton2);
+    
+    parent.insertBefore(altButtonsContainer, printButton.nextSibling);
+    
+    // Set up event listeners for the new buttons
+    document.getElementById('alt-print-1').addEventListener('click', function() {
+        // The first alternative method (iframe or SVG-based)
+        setupIframePrinting();
+        document.getElementById('iframe-print-button').click();
+    });
+    
+    document.getElementById('alt-print-2').addEventListener('click', function() {
+        // The second alternative method (DOM snapshot)
+        setupDirectDOMPrint();
+        document.getElementById('dom-print-button').click();
+    });
+}
+
+
+// Function to create a printable page from a source element
+function createPrintablePage(sourceElement, container) {
+    // Create the page wrapper
+    const printPage = document.createElement('div');
+    printPage.className = 'print-page';
+    
+    // Create explicit elements for the background and border instead of CSS backgrounds
+    const backgroundElement = document.createElement('img');
+    backgroundElement.className = 'print-background';
+    backgroundElement.src = '/assets/sheetskin.png';
+    
+    const borderElement = document.createElement('img');
+    borderElement.className = 'print-border';
+    borderElement.src = '/assets/border-graphic.png';
+    
+    // Create the content container
+    const contentElement = document.createElement('div');
+    contentElement.className = 'print-content';
+    
+    // Clone the actual content (editor or page-editor element)
+    const editorElement = sourceElement.querySelector('#editor') || 
+                          sourceElement.querySelector('.page-editor');
+    
+    if (editorElement) {
+        // Copy styles from the original editor
+        const computedStyle = window.getComputedStyle(editorElement);
+        contentElement.style.columnCount = computedStyle.columnCount;
+        contentElement.style.columnGap = computedStyle.columnGap;
+        contentElement.style.fontSize = computedStyle.fontSize;
+        
+        // Clone the content
+        const clonedContent = editorElement.cloneNode(true);
+        
+        // Remove any remove buttons from the cloned content
+        const removeButtons = clonedContent.querySelectorAll('.remove-button');
+        removeButtons.forEach(button => button.remove());
+        
+        // Append the content to our container
+        contentElement.appendChild(clonedContent);
+    }
+    
+    // Assemble the printable page
+    printPage.appendChild(backgroundElement);
+    printPage.appendChild(borderElement);
+    printPage.appendChild(contentElement);
+    
+    // Add to the print container
+    container.appendChild(printPage);
+}
+
+        // Text size, column count, and column gap controls
+        const fontSizeSlider = document.getElementById('font-size-slider');
+        const sizeDisplay = document.getElementById('size-display');
+        const sizeDecreaseBtn = document.getElementById('size-decrease');
+        const sizeIncreaseBtn = document.getElementById('size-increase');
+        const sizeResetBtn = document.getElementById('size-reset');
+        
+        const columnSlider = document.getElementById('column-count-slider');
+        const columnDisplay = document.getElementById('column-display');
+        const colDecreaseBtn = document.getElementById('col-decrease');
+        const colIncreaseBtn = document.getElementById('col-increase');
+        const colAutoBtn = document.getElementById('col-auto');
+        
+        const columnGapSlider = document.getElementById('column-gap-slider');
+        const gapDisplay = document.getElementById('gap-display');
+        const gapDecreaseBtn = document.getElementById('gap-decrease');
+        const gapIncreaseBtn = document.getElementById('gap-increase');
+        const gapResetBtn = document.getElementById('gap-reset');
+        
+        const addPageBtn = document.getElementById('add-page-btn');
+        
+        // Function to update font size from dev controls (bypasses auto-scaling)
+        function updateFontSizeFromDevControls(size) {
+            // Update the UI elements
+            fontSizeSlider.value = size;
+            sizeDisplay.textContent = size + 'pt';
+            
+            // Apply the font size to the editor
+            editor.style.fontSize = size + 'pt';
+            
+            // Update current scale
+            currentScale = size / baseFontSize;
+            
+            // Apply to any additional pages
+            const pageEditors = document.querySelectorAll('.page-editor');
+            pageEditors.forEach(pageEditor => {
+                pageEditor.style.fontSize = size + 'pt';
+            });
+            
+            // Update scale indicator
+            updateLayoutControls();
+        }
+        
+        // Function to update column gap spacing
+        function updateColumnGap(gap) {
+            // Update value
+            columnGap = gap;
+            
+            // Update UI
+            columnGapSlider.value = gap;
+            gapDisplay.textContent = gap + 'px';
+            
+            // Apply to editor
+            editor.style.columnGap = gap + 'px';
+            
+            // Apply to any additional pages
+            const pageEditors = document.querySelectorAll('.page-editor');
+            pageEditors.forEach(pageEditor => {
+                pageEditor.style.columnGap = gap + 'px';
+            });
+        }
+        
+        // Event listeners for font size controls
+        fontSizeSlider.addEventListener('input', function() {
+            updateFontSizeFromDevControls(parseFloat(this.value));
+        });
+        
+        sizeDecreaseBtn.addEventListener('click', function() {
+            const newSize = Math.max(6, parseFloat(fontSizeSlider.value) - 0.5);
+            updateFontSizeFromDevControls(newSize);
+        });
+        
+        sizeIncreaseBtn.addEventListener('click', function() {
+            const newSize = Math.min(24, parseFloat(fontSizeSlider.value) + 0.5);
+            updateFontSizeFromDevControls(newSize);
+        });
+        
+        sizeResetBtn.addEventListener('click', function() {
+            updateFontSizeFromDevControls(baseFontSize);
+        });
+        
+        // Column count control event listeners
+        columnSlider.addEventListener('input', function() {
+            setColumnCount(parseInt(this.value));
+        });
+        
+        colDecreaseBtn.addEventListener('click', function() {
+            setColumnCount(Math.max(1, currentColumns - 1));
+        });
+        
+        colIncreaseBtn.addEventListener('click', function() {
+            setColumnCount(Math.min(3, currentColumns + 1));
+        });
+        
+        colAutoBtn.addEventListener('click', function() {
+            autoColumns = true;
+            checkContentAndManageLayout();
+        });
+        
+        // Column gap control event listeners
+        columnGapSlider.addEventListener('input', function() {
+            updateColumnGap(parseInt(this.value));
+        });
+        
+        gapDecreaseBtn.addEventListener('click', function() {
+            updateColumnGap(Math.max(5, columnGap - 5));
+        });
+        
+        gapIncreaseBtn.addEventListener('click', function() {
+            updateColumnGap(Math.min(50, columnGap + 5));
+        });
+        
+        gapResetBtn.addEventListener('click', function() {
+            updateColumnGap(20);
+        });
+        
+        // Add page button event listener
+        addPageBtn.addEventListener('click', function() {
+            addNewPage();
+        });
+        
+        // Make functions available to HTML onclick events
+        window.removeSongFromEditor = removeSongFromEditor;
+        
+        // Global variable to store songs data
+        let songs = [];
+        
+        // Fetch songs from API
+        fetch(songsEndpoint)
+            .then(response => response.json())
+            .then(data => {
+                songs = data;
+                renderSongs(songs);
+                initializeSheet(); // Initialize the sheet with any saved songs
+                updateClearSheetButton();
+            })
+            .catch(error => {
+                console.error('Error loading songs:', error);
+                songsContainer.innerText = "Error loading songs.";
+            });
     </script>
 </body>
-
 </html>

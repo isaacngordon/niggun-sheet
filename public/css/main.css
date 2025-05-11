@@ -269,4 +269,7 @@ h1 {
         column-count: 1;
         column-gap: 20px;
     }
+    .editor-song p {
+          white-space: nowrap;
+         }
 }
