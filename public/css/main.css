@@ -997,5 +997,303 @@ body.song-directory {
   .ml-auto {
     margin-left: auto;
   }
+  /* Hero Section Styles */
+
+/* Base layout and sizing */
+.hero-section {
+    position: relative;
+    min-height: 600px;
+  }
   
+  @media (min-width: 768px) {
+    .hero-section {
+      min-height: 700px;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .hero-section {
+      min-height: 800px;
+    }
+  }
+  
+  /* Background image */
+  .hero-bg-image {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  @media (min-width: 1280px) {
+    .hero-bg-image {
+      border-radius: 0.5rem;
+    }
+  }
+  
+  /* Gradient overlay */
+  .hero-gradient {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(0, 0, 0, 0) 44.61%, rgb(13, 13, 13) 82.46%), 
+                linear-gradient(270.69deg, rgba(0, 0, 0, 0) 60.37%, rgb(13, 13, 13) 95.62%);
+  }
+  
+  /* Content container */
+  .hero-content {
+    position: relative;
+    margin-bottom: 2.25rem;
+    padding: 10rem 1.25rem 5rem;
+  }
+  
+  @media (min-width: 1024px) {
+    .hero-content {
+      margin-bottom: 1.375rem;
+      padding: 10rem 2.5rem 8rem;
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .hero-content {
+      margin-bottom: 3.25rem;
+      padding-left: 6rem;
+      padding-right: 0;
+      padding-top: 12rem;
+      padding-bottom: 8rem;
+    }
+  }
+  
+  @media (min-width: 1536px) {
+    .hero-content {
+      margin-bottom: 3.375rem;
+      padding-top: 12rem;
+      padding-bottom: 9rem;
+    }
+  }
+  
+  @media (min-width: 1920px) {
+    .hero-content {
+      margin-bottom: 4.125rem;
+      padding-left: 8rem;
+      padding-right: 4rem;
+      padding-top: 13rem;
+      padding-bottom: 10rem;
+    }
+  }
+  
+  @media (min-width: 2560px) {
+    .hero-content {
+      padding-left: 10rem;
+      padding-right: 8.125rem;
+      padding-top: 15rem;
+      padding-bottom: 12rem;
+    }
+  }
+  
+  /* Flex container */
+  .hero-flex {
+    display: flex;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  
+  /* Heading styles */
+  .hero-title {
+    margin-bottom: 1rem;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: white;
+    max-width: 21rem;
+  }
+  
+  @media (min-width: 1024px) {
+    .hero-title {
+      font-size: 34px;
+      max-width: 27.5rem;
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .hero-title {
+      font-size: 42px;
+      max-width: 26.75rem;
+    }
+  }
+  
+  @media (min-width: 1536px) {
+    .hero-title {
+      max-width: 35.5rem;
+    }
+  }
+  
+  @media (min-width: 1920px) {
+    .hero-title {
+      font-size: 50px;
+    }
+  }
+  
+  @media (min-width: 2560px) {
+    .hero-title {
+      margin-bottom: 2rem;
+      font-size: 100px;
+      max-width: 72.75rem;
+    }
+  }
+  
+  /* Subtitle styles */
+  .hero-subtitle {
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+    color: white;
+    max-width: 22rem;
+  }
+  
+  @media (min-width: 1024px) {
+    .hero-subtitle {
+      margin-bottom: 2rem;
+      max-width: 28.5rem;
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .hero-subtitle {
+      max-width: 26.25rem;
+    }
+  }
+  
+  @media (min-width: 1536px) {
+    .hero-subtitle {
+      max-width: 32.75rem;
+    }
+  }
+  
+  @media (min-width: 1920px) {
+    .hero-subtitle {
+      margin-bottom: 3rem;
+      font-size: 1.125rem;
+      max-width: 36.25rem;
+    }
+  }
+  
+  @media (min-width: 2560px) {
+    .hero-subtitle {
+      font-size: 2.25rem;
+      max-width: 72.75rem;
+    }
+  }
+  
+  /* Button container */
+  .hero-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .hero-buttons {
+      flex-direction: row;
+    }
+  }
+  
+  /* Primary button container */
+  .primary-btn-container {
+    width: 8.75rem;
+  }
+  
+  @media (min-width: 640px) {
+    .primary-btn-container {
+      width: 11.125rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .primary-btn-container {
+      width: auto;
+    }
+  }
+  
+  /* Secondary button container */
+  .secondary-btn-container {
+    width: 8.75rem;
+  }
+  
+  @media (min-width: 1024px) {
+    .secondary-btn-container {
+      width: 9.75rem;
+    }
+  }
+  
+  /* Button base styles */
+  .btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    border-radius: 9999px;
+    width: 100%;
+    transition-property: color, background-color, border-color;
+    transition-duration: 300ms;
+    font-size: 1rem;
+    line-height: 1.25;
+    padding: 0.75rem 3.25rem;
+  }
+  
+  .btn:disabled {
+    cursor: not-allowed;
+    background-color: rgb(209, 213, 219);
+    border-color: rgb(209, 213, 219);
+    color: rgb(17, 24, 39);
+  }
+  
+  /* Primary button */
+  .btn-primary {
+    background-color: #FFD700; /* Yellow */
+    color: rgb(17, 24, 39);
+  }
+  
+  .btn-primary:hover {
+    background-color: #E6C200; /* Darker yellow */
+  }
+  
+  /* Secondary button */
+  .btn-secondary {
+    background-color: transparent;
+    color: white;
+    border: 1px solid white;
+  }
+  
+  .btn-secondary:hover {
+    background-color: white;
+    color: rgb(17, 24, 39);
+  }
+  
+  .btn-secondary:disabled {
+    background-color: transparent;
+    color: rgb(209, 213, 219);
+  }
+  
+  /* Button text container */
+  .btn-text {
+    position: relative;
+    display: flex;
+    min-height: 1.25rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+  
+  /* Secondary button adjustment */
+  .btn-secondary .btn-text {
+    margin: -1px 0;
+  }
+  
+  /* Button text */
+  .btn-label {
+    white-space: nowrap;
+  }
   /* ...other classes from previous examples... */
