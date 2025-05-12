@@ -940,6 +940,8 @@ background-size: 100% 100%, cover; /* Ensure it covers the entire container */
         // Replace the current checkContentAndManageLayout function with this improved version
 // that prioritizes font size over column count and ensures proper centering
 
+// This version prioritizes large text and fewer columns, especially in center mode with titles
+
 function checkContentAndManageLayout() {
     // Always enable auto columns for this improved version
     autoColumns = true;
@@ -965,20 +967,22 @@ function checkContentAndManageLayout() {
     editor.style.overflow = "visible";
     let isOverflowing = checkForOverflow();
     
-    // STEP 3: FIRST try scaling down font to a reasonable size (not too small)
-    // Only reduce to 75% before trying columns (0.75 of original size)
+    // STEP 3: FIRST try scaling down font more aggressively before adding columns
+    // Only move to 2 columns after reducing to 60% size, and 3 columns at 45% size
     let hasUnauthorizedLineBreaks = checkForUnauthorizedLineBreaks();
     let hasBoundaryCrossings = checkForSongBoundaryCrossings();
     let hasBorderMarginViolations = checkForBorderMarginViolations();
     
-    // If any issues exist, try reducing font size first
+    // If any issues exist, try reducing font size first - more aggressively
     if (isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) {
         let attempts = 0;
         let scaleStep = 0.02; // Smaller steps for finer control
         
-        // Only scale down to 75% before trying columns
+        // Reduce to 60% before trying 2 columns (more aggressive with titles)
+        const firstColumnThreshold = includeTitles ? 0.60 : 0.70;
+        
         while ((isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) 
-               && currentScale > 0.75 && attempts < 15) {
+               && currentScale > firstColumnThreshold && attempts < 25) {
             currentScale -= scaleStep;
             editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
             isOverflowing = checkForOverflow();
@@ -989,8 +993,9 @@ function checkContentAndManageLayout() {
         }
     }
     
-    // STEP 4: Only NOW try increasing columns if we still have issues
-    if (isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) {
+    // STEP 4: Only NOW try 2 columns if we still have issues and font is reasonably small
+    if ((isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) 
+        && currentScale <= 0.70) {
         // Try 2 columns
         currentColumns = 2;
         editor.style.columnCount = currentColumns;
@@ -1001,9 +1006,31 @@ function checkContentAndManageLayout() {
         hasBoundaryCrossings = checkForSongBoundaryCrossings();
         hasBorderMarginViolations = checkForBorderMarginViolations();
         
-        // If still having issues with 2 columns and we've already reduced font, try 3 columns
+        // STEP 5: Try reducing font size again before going to 3 columns
+        // If still having issues with 2 columns, try decreasing font size further
+        if (isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) {
+            let attempts = 0;
+            let scaleStep = 0.02;
+            
+            // Only reduce to 45% before trying 3 columns (more aggressive with titles)
+            const secondColumnThreshold = includeTitles ? 0.45 : 0.55;
+            
+            while ((isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) 
+                   && currentScale > secondColumnThreshold && attempts < 20) {
+                currentScale -= scaleStep;
+                editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
+                isOverflowing = checkForOverflow();
+                hasUnauthorizedLineBreaks = checkForUnauthorizedLineBreaks();
+                hasBoundaryCrossings = checkForSongBoundaryCrossings();
+                hasBorderMarginViolations = checkForBorderMarginViolations();
+                attempts++;
+            }
+        }
+        
+        // STEP 6: Only try 3 columns as a last resort if font is very small
+        // If still having issues with 2 columns and we've already reduced font significantly
         if ((isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) 
-            && currentScale < 0.95) {
+            && currentScale <= 0.55) {
             currentColumns = 3;
             editor.style.columnCount = currentColumns;
             
@@ -1015,13 +1042,13 @@ function checkContentAndManageLayout() {
         }
     }
     
-    // STEP 5: If still having issues, continue reducing font size
+    // STEP 7: If still having issues, continue reducing font size with current columns
     if (isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) {
         let attempts = 0;
         let scaleStep = 0.02; // Smaller steps for finer control
         
         while ((isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) 
-               && currentScale > 0.5 && attempts < 35) {
+               && currentScale > 0.35 && attempts < 35) {
             currentScale -= scaleStep;
             editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
             isOverflowing = checkForOverflow();
@@ -1032,7 +1059,7 @@ function checkContentAndManageLayout() {
         }
     }
     
-    // STEP 6: SAFETY CHECK - if STILL issues persist, take drastic measures
+    // STEP 8: SAFETY CHECK - if STILL issues persist, take drastic measures
     if (checkForOverflow() || checkForUnauthorizedLineBreaks() || 
         checkForSongBoundaryCrossings() || checkForBorderMarginViolations()) {
         console.warn("Strict enforcement activated - issues persist after normal adjustments");

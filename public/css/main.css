@@ -518,7 +518,6 @@ body.song-directory {
     font-size: 1.1em;
     margin-bottom: 8px;
     padding-bottom: 5px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 /* Remove button styling */

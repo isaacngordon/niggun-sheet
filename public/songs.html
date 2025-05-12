@@ -4,134 +4,725 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Niggun Sheet | Songs List</title>
-    <link rel="stylesheet" href="css/main.css">
-<style>
-    #sheet-tab {
-        position: fixed;
-        right: 0;
-        top: 20%;
-        transform: translateY(-20%);
-        background-color: #FFD700; /* Assuming #FFD700 is the yellow color being reused */
-        color: black;
-        padding: 10px;
-        cursor: pointer;
-        z-index: 1000;
-    }
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    #sheet-container.open {
-        right: 0;
-        color: black; /* Ensure text color is black when the tab is open */
-    }
+        /* Grey/Yellow Color Scheme */
+        :root {
+            --color-dark-grey: #1a1a1a;
+            --color-grey-900: #212121;
+            --color-grey-800: #2d2d2d;
+            --color-grey-700: #3d3d3d;
+            --color-grey-600: #4d4d4d;
+            --color-grey-500: #666666;
+            --color-grey-400: #808080;
+            --color-grey-300: #999999;
+            --color-grey-200: #b3b3b3;
+            --color-grey-100: #e0e0e0;
+            --color-yellow: #FFD700;
+            --color-yellow-dark: #e6c200;
+            --color-white: #ffffff;
+        }
 
-    #sheet-container {
-        position: fixed;
-        right: -300px;
-        top: 0;
-        width: 300px;
-        height: 100%;
-        background-color: white;
-        box-shadow: -2px 0 5px rgba(0,0,0,0.5);
-        transition: right 0.3s ease;
-        z-index: 999;
-        overflow-y: auto;
-    }
+        /* Base body styling - explicitly remove any background image */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--color-dark-grey);
+            color: var(--color-white);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            background-image: none !important; /* Force remove any background image */
+        }
 
-    #sheet-container.open {
-        right: 0;
-    }
+        /* Header styling */
+        header {
+            background-color: var(--color-grey-900);
+            border-bottom: 1px solid var(--color-grey-800);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
 
-    #sheet-container h2 {
-        text-align: center;
-    }
+        .header-inner {
+            display: flex;
+            height: 64px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-    #sheet-container ul {
-        list-style-type: none;
-        padding: 0;
-    }
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
 
-    #sheet-container ul li {
-        padding: 10px;
-        border-bottom: 1px solid #ddd;
-    }
-</style>
+        .logo-container img {
+            height: 40px;
+        }
+
+        /* Navigation */
+        .desktop-nav {
+            display: none;
+        }
+
+        @media (min-width: 1024px) {
+            .desktop-nav {
+                display: flex;
+                flex: 1;
+                justify-content: center;
+            }
+
+            .mobile-menu-button {
+                display: none;
+            }
+        }
+
+        .desktop-nav ul {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: normal;
+            color: var(--color-grey-300);
+            text-decoration: none;
+            white-space: nowrap;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--color-white);
+        }
+
+        .nav-link.active {
+            color: var(--color-white);
+            border-bottom: 2px solid var(--color-yellow);
+        }
+
+        .nav-badge {
+            margin-left: 8px;
+            border-radius: 2px;
+            background-color: var(--color-yellow);
+            padding: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: var(--color-grey-900);
+        }
+
+        /* Mobile menu button */
+        .mobile-menu-button {
+            display: block;
+            background: none;
+            border: none;
+            color: var(--color-white);
+            cursor: pointer;
+            margin-left: auto;
+            margin-right: 16px;
+        }
+
+        /* Mobile menu */
+        .mobile-menu {
+            display: none;
+            background-color: var(--color-grey-800);
+            padding: 8px 0;
+        }
+
+        .mobile-menu.visible {
+            display: block;
+        }
+
+        .mobile-menu a {
+            display: block;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: var(--color-grey-300);
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .mobile-menu a:hover {
+            color: var(--color-white);
+        }
+
+        .mobile-menu a.active {
+            color: var(--color-white);
+        }
+
+        /* Action button */
+        .action-button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            border-radius: 9999px;
+            background-color: var(--color-yellow);
+            color: var(--color-grey-900);
+            padding: 6px 20px;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .action-button:hover {
+            background-color: var(--color-yellow-dark);
+        }
+
+        /* Sheet tab styling */
+        #sheet-tab {
+            position: fixed;
+            right: 0;
+            top: 20%;
+            transform: translateY(-20%);
+            background-color: var(--color-yellow);
+            color: var(--color-grey-900);
+            padding: 12px 16px;
+            border-radius: 8px 0 0 8px;
+            cursor: pointer;
+            z-index: 1000;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        #sheet-tab:hover {
+            background-color: var(--color-yellow-dark);
+        }
+
+        /* Sheet container styling */
+        #sheet-container {
+            position: fixed;
+            right: -300px;
+            top: 0;
+            width: 300px;
+            height: 100%;
+            background-color: var(--color-grey-800);
+            box-shadow: -2px 0 10px rgba(0,0,0,0.5);
+            transition: right 0.3s ease;
+            z-index: 999;
+            overflow-y: auto;
+            color: var(--color-white);
+        }
+
+        #sheet-container.open {
+            right: 0;
+        }
+
+        #sheet-container h2 {
+            text-align: center;
+            margin: 0;
+            padding: 16px;
+            background-color: var(--color-yellow);
+            color: var(--color-grey-900);
+        }
+
+        #sheet-container ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #sheet-container ul li {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--color-grey-700);
+            font-weight: 500;
+        }
+
+        /* Main content area */
+        #songs-table {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 24px;
+            color: var(--color-white);
+        }
+
+        /* Controls styling */
+        .controls-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .search-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .action-controls {
+            display: flex;
+            align-items: center;
+        }
+
+        #smartboard-toggle {
+            display: flex;
+            align-items: center;
+            margin-left: 16px;
+        }
+
+        #smartboard-toggle label {
+            margin-right: 8px;
+            color: var(--color-grey-300);
+        }
+
+        /* Toggle switch */
+        #smartboard-mode {
+            position: relative;
+            appearance: none;
+            width: 40px;
+            height: 20px;
+            background-color: var(--color-grey-600);
+            border-radius: 20px;
+            outline: none;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+
+        #smartboard-mode:checked {
+            background-color: var(--color-yellow);
+        }
+
+        #smartboard-mode::after {
+            content: "";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: var(--color-white);
+            transition: left 0.3s;
+        }
+
+        #smartboard-mode:checked::after {
+            left: 22px;
+        }
+
+        /* Search controls */
+        #song-search {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--color-grey-700);
+            background-color: var(--color-grey-800);
+            color: var(--color-white);
+            width: 100%;
+            max-width: 400px;
+            font-size: 14px;
+            margin-right: 8px;
+            margin-bottom: 16px;
+        }
+
+        #song-search:focus {
+            outline: none;
+            border-color: var(--color-yellow);
+        }
+
+        #search-button, #clear-search-button {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-right: 8px;
+            margin-bottom: 16px;
+        }
+
+        #search-button {
+            background-color: var(--color-yellow);
+            color: var(--color-grey-900);
+        }
+
+        #search-button:hover {
+            background-color: var(--color-yellow-dark);
+        }
+
+        #clear-search-button {
+            background-color: var(--color-grey-600);
+            color: var(--color-white);
+        }
+
+        #clear-search-button:hover {
+            background-color: var(--color-grey-700);
+        }
+
+        #clear-sheet {
+            padding: 10px 16px;
+            border-radius: 8px;
+            background-color: var(--color-grey-600);
+            color: var(--color-white);
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #clear-sheet:hover {
+            background-color: var(--color-grey-700);
+        }
+
+        #clear-sheet:disabled {
+            background-color: var(--color-grey-800);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* Modern song listing */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 16px;
+            background-color: var(--color-grey-800);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        thead {
+            background-color: var(--color-grey-700);
+        }
+
+        th {
+            text-align: left;
+            padding: 16px;
+            font-weight: 600;
+            color: var(--color-grey-300);
+            border-bottom: 1px solid var(--color-grey-600);
+        }
+
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: var(--color-grey-800);
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: var(--color-grey-900);
+        }
+
+        tbody tr:hover {
+            background-color: var(--color-grey-700);
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--color-grey-700);
+        }
+
+        /* Song title styling */
+        .search-title a {
+            color: var(--color-white);
+            text-decoration: none;
+            font-weight: 500;
+            display: block;
+            transition: color 0.2s;
+        }
+
+        .search-title a:hover {
+            color: var(--color-yellow);
+        }
+
+        .song-display {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .song-title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .song-artist {
+            color: var(--color-grey-300);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        /* Action buttons */
+        td button {
+            background-color: var(--color-yellow);
+            color: var(--color-grey-900);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        td button:hover {
+            background-color: var(--color-yellow-dark);
+        }
+
+        /* Button for "Remove from Sheet" */
+        td button.remove-button {
+            background-color: var(--color-grey-600);
+            color: var(--color-white);
+        }
+
+        td button.remove-button:hover {
+            background-color: var(--color-grey-700);
+        }
+
+        /* Footer styling */
+        #footer {
+            background-color: var(--color-grey-900);
+            padding: 24px;
+            margin-top: 48px;
+            border-top: 1px solid var(--color-grey-800);
+            text-align: center;
+        }
+
+        #footer a {
+            display: inline-block;
+            background-color: var(--color-yellow);
+            color: var(--color-grey-900);
+            padding: 10px 20px;
+            margin: 0 10px 10px 0;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        #footer a:hover {
+            background-color: var(--color-yellow-dark);
+        }
+
+        .footer-copyright {
+            color: var(--color-grey-400);
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        /* Play button styling */
+        .play-button {
+            background-color: var(--color-yellow);
+            color: var(--color-grey-900);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 12px;
+        }
+
+        .play-button:hover {
+            background-color: var(--color-yellow-dark);
+            transform: scale(1.05);
+        }
+
+        .play-button.playing {
+            background-color: var(--color-grey-600);
+            color: var(--color-white);
+        }
+
+        .play-button.playing:hover {
+            background-color: var(--color-grey-700);
+        }
+
+        /* Flex layout for song cell */
+        .song-cell {
+            display: flex;
+            align-items: center;
+        }
+
+        /* Now playing indicator */
+        .now-playing {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--color-yellow);
+            margin-top: 4px;
+        }
+
+        .sound-wave {
+            display: flex;
+            align-items: center;
+            height: 12px;
+        }
+
+        .sound-wave span {
+            display: inline-block;
+            width: 3px;
+            height: 100%;
+            margin-right: 2px;
+            background-color: var(--color-yellow);
+            animation: soundWave 0.8s infinite ease-in-out;
+        }
+
+        .sound-wave span:nth-child(1) { animation-delay: 0s; }
+        .sound-wave span:nth-child(2) { animation-delay: 0.1s; }
+        .sound-wave span:nth-child(3) { animation-delay: 0.2s; }
+        .sound-wave span:nth-child(4) { animation-delay: 0.3s; }
+
+        @keyframes soundWave {
+            0%, 100% { height: 4px; }
+            50% { height: 12px; }
+        }
+
+        /* YouTube player container - hidden by default */
+        #youtube-player-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
+            visibility: hidden;
+            z-index: -1;
+        }
+
+        /* Progress bar for the audio */
+        .progress-container {
+            height: 4px;
+            width: 100%;
+            background-color: var(--color-grey-600);
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--color-yellow);
+            transition: width 0.1s;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .controls-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .action-controls {
+                margin-top: 16px;
+            }
+            
+            #song-search {
+                max-width: 100%;
+                width: calc(100% - 32px);
+            }
+        }
+    </style>
+
+<!-- YouTube API -->
+<script src="https://www.youtube.com/iframe_api"></script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-N0MP01KGSP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-N0MP01KGSP');
+</script>
+</head>
+
 <body>
-        <!-- Modern responsive header with your logo -->
-<!-- Modern responsive header with your logo repositioned -->
-<!-- Modern responsive header with updated color scheme -->
-<!-- Modern responsive header with logo at far left -->
-<header class="bg-gray-900 sticky top-0 z-50">
-    <div class="relative z-50 flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-      <!-- Logo positioned at far left -->
-      <div class="flex items-center">
-        <a href="/" class="mr-8">
-          <img src="/assets/Niggun_Sheet_Header_Logo.png" alt="Niggun Sheet" class="h-10" />
-        </a>
-      </div>
-      
-      <!-- Mobile menu button (only visible on mobile) -->
-      <div class="flex lg:hidden ml-auto">
-        <button type="button" class="block text-white" id="mobile-menu-button">
-          <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="bars" class="svg-inline--fa fa-bars" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="24" height="24">
-            <path fill="currentColor" d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"></path>
-          </svg>
-        </button>
-      </div>
-      
-      <!-- Desktop Navigation (now positioned after logo) -->
-      <div class="hidden lg:flex lg:items-center lg:flex-1 lg:justify-center">
-        <ul class="flex h-full items-center gap-8">
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/">Home</a>
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/songs.html">Song Directory</a>
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/sheet-builder.html">Sheet Builder
-            <span class="ml-2.5 rounded-sm bg-yellow-400 p-1 text-xs font-bold uppercase leading-none text-gray-900">new</span>
-          </a>
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/contact.html">Contact</a>
-        </ul>
-      </div>
-      
-      <!-- User Action Buttons -->
-      <div class="flex h-full min-h-8 shrink-0 items-center justify-end">
-        <button type="button" class="flex justify-center items-center font-bold rounded-full transition-colors bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-1.5 px-5 text-sm">
-          <span class="relative flex min-h-5 items-center justify-center">
-            <span class="whitespace-nowrap">Download Sheet</span>
-          </span>
-        </button>
-      </div>
-    </div>
-    
-    <!-- Mobile Menu (hidden by default) -->
-    <div id="mobile-menu" class="hidden lg:hidden">
-      <div class="space-y-1 px-4 pb-3 pt-2">
-        <a href="/" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Home</a>
-        <a href="/songs.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Song Directory</a>
-        <a href="/sheet-builder.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Sheet Builder <span class="ml-2 rounded-sm bg-yellow-400 p-1 text-xs font-bold uppercase leading-none text-gray-900">new</span></a>
-        <a href="/contact.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Contact</a>
-      </div>
-    </div>
-  </header>
+    <!-- Header -->
+    <header>
+        <div class="header-inner">
+            <!-- Logo -->
+            <div class="logo-container">
+                <a href="/">
+                    <img src="/assets/Niggun_Sheet_Header_Logo.png" alt="Niggun Sheet" />
+                </a>
+            </div>
+            
+            <!-- Mobile menu button -->
+            <button type="button" class="mobile-menu-button" id="mobile-menu-button">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            
+            <!-- Desktop Navigation -->
+            <nav class="desktop-nav">
+                <ul>
+                    <li><a href="/" class="nav-link">Home</a></li>
+                    <li><a href="/songs.html" class="nav-link active">Song Directory</a></li>
+                    <li>
+                        <a href="/sheet-builder.html" class="nav-link">
+                            Sheet Builder
+                            <span class="nav-badge">new</span>
+                        </a>
+                    </li>
+                    <li><a href="/contact.html" class="nav-link">Contact</a></li>
+                </ul>
+            </nav>
+            
+            <!-- Download button -->
+            <button type="button" class="action-button">
+                Download Sheet
+            </button>
+        </div>
+        
+        <!-- Mobile Menu (hidden by default) -->
+        <div id="mobile-menu" class="mobile-menu">
+            <a href="/">Home</a>
+            <a href="/songs.html" class="active">Song Directory</a>
+            <a href="/sheet-builder.html">Sheet Builder <span class="nav-badge">new</span></a>
+            <a href="/contact.html">Contact</a>
+        </div>
+    </header>
 
+    <!-- Main content -->
     <div id="songs-table">
-        <div style="display: flex; flex-direction: column; justify-content: space-between; align-items: center;">
-            <h2>All Niggunim</h2>
-            <div style="display: flex; flex-direction: row; justify-content: space-between; width: 100%;">
+        <h2>All Niggunim</h2>
+        <div class="controls-container">
+            <div class="search-controls">
+                <input type="search" id="song-search" placeholder="Search by title or artist..." onkeydown="if(event.key === 'Enter') performSearch()">
+                <button id="search-button" onclick="performSearch()">Search</button>
+                <button id="clear-search-button" onclick="clearSearch()">Clear</button>
+            </div>
+            <div class="action-controls">
                 <button id="clear-sheet" disabled>Clear Sheet</button>
                 <div id="smartboard-toggle">
                     <label for="smartboard-mode">Smartboard Mode</label>
                     <input type="checkbox" id="smartboard-mode">
-                    <script>
-                        document.getElementById("smartboard-mode").checked = localStorage.getItem("smartboardMode") === "true";
-                    </script>
                 </div>
             </div>
         </div>
         
-        <input type="search" id="song-search" placeholder="Search..." onkeydown="if(event.key === 'Enter') performSearch()">
-        <button id="search-button" onclick="performSearch()">Search</button>
-        <button id="clear-search-button" onclick="clearSearch()">Clear Search</button>
         <table>
             <thead>
                 <tr>
-                    <th>Search Title</th>
+                    <th>Song</th>
                     <th style="display:none;">Title</th>
                     <th style="display:none;">Artist</th>
                     <th style="display:none;">Lyrics</th>
@@ -147,6 +738,7 @@
         </table>
     </div>
 
+    <!-- Side panel for selected songs -->
     <div id="sheet-tab">View Selected Songs</div>
     <div id="sheet-container">
         <h2>Selected Songs</h2>
@@ -155,6 +747,10 @@
         </ul>
     </div>
 
+    <!-- Hidden YouTube player container -->
+    <div id="youtube-player-container"></div>
+
+    <!-- Footer -->
     <div id="footer">
         <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
         <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
@@ -162,6 +758,168 @@
     </div>
 
     <script>
+        // YouTube player variables
+        let player;
+        let currentlyPlaying = null;
+        let progressTimer;
+        
+        // Initialize YouTube API
+        function onYouTubeIframeAPIReady() {
+            // Ready for player creation when needed
+            console.log("YouTube API ready");
+        }
+        
+        // Extract YouTube video ID from URL
+        function getYouTubeId(url) {
+            if (!url) return null;
+            
+            // Match YouTube URL patterns
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+        
+        // Create YouTube player and play the video
+        function playYouTubeAudio(videoId, button, rowId) {
+            // If already playing something, pause it first
+            if (currentlyPlaying) {
+                const oldButton = document.querySelector(`#play-button-${currentlyPlaying}`);
+                if (oldButton) {
+                    oldButton.innerHTML = playIcon;
+                    oldButton.classList.remove('playing');
+                }
+                
+                // Remove now playing indicator from old row
+                const oldNowPlaying = document.querySelector(`#now-playing-${currentlyPlaying}`);
+                if (oldNowPlaying) {
+                    oldNowPlaying.style.display = 'none';
+                }
+                
+                // If clicking the same button, just stop
+                if (currentlyPlaying === rowId) {
+                    player.stopVideo();
+                    currentlyPlaying = null;
+                    clearInterval(progressTimer);
+                    return;
+                }
+            }
+            
+            // Update currently playing
+            currentlyPlaying = rowId;
+            
+            // Update button to pause icon
+            button.innerHTML = pauseIcon;
+            button.classList.add('playing');
+            
+            // Display the now playing indicator
+            const nowPlaying = document.querySelector(`#now-playing-${rowId}`);
+            if (nowPlaying) {
+                nowPlaying.style.display = 'flex';
+            }
+            
+            // If player already exists, load and play the new video
+            if (player) {
+                player.loadVideoById(videoId);
+                startProgressTracking(rowId);
+                return;
+            }
+            
+            // Create new player
+            player = new YT.Player('youtube-player-container', {
+                height: '1',
+                width: '1',
+                videoId: videoId,
+                playerVars: {
+                    'autoplay': 1,
+                    'controls': 0,
+                    'showinfo': 0,
+                    'rel': 0,
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+        
+        // When player is ready
+        function onPlayerReady(event) {
+            event.target.playVideo();
+            startProgressTracking(currentlyPlaying);
+        }
+        
+        // When player state changes
+        function onPlayerStateChange(event) {
+            // If video ends
+            if (event.data === YT.PlayerState.ENDED) {
+                resetPlayState();
+            }
+        }
+        
+        // Update progress bar
+        function startProgressTracking(rowId) {
+            clearInterval(progressTimer);
+            progressTimer = setInterval(() => {
+                if (player && player.getCurrentTime && player.getDuration) {
+                    try {
+                        const currentTime = player.getCurrentTime();
+                        const duration = player.getDuration();
+                        const progressPercent = (currentTime / duration) * 100;
+                        
+                        const progressBar = document.querySelector(`#progress-bar-${rowId}`);
+                        if (progressBar) {
+                            progressBar.style.width = `${progressPercent}%`;
+                        }
+                    } catch (e) {
+                        console.error("Error updating progress:", e);
+                    }
+                }
+            }, 1000);
+        }
+        
+        // Reset play state
+        function resetPlayState() {
+            if (currentlyPlaying) {
+                const button = document.querySelector(`#play-button-${currentlyPlaying}`);
+                if (button) {
+                    button.innerHTML = playIcon;
+                    button.classList.remove('playing');
+                }
+                
+                const nowPlaying = document.querySelector(`#now-playing-${currentlyPlaying}`);
+                if (nowPlaying) {
+                    nowPlaying.style.display = 'none';
+                }
+                
+                currentlyPlaying = null;
+                clearInterval(progressTimer);
+            }
+        }
+        
+        // Icons for play/pause
+        const playIcon = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 3L19 12L5 21V3Z" fill="currentColor"/>
+            </svg>
+        `;
+        
+        const pauseIcon = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 4H10V20H6V4Z" fill="currentColor"/>
+                <path d="M14 4H18V20H14V4Z" fill="currentColor"/>
+            </svg>
+        `;
+        
+        // Mobile menu toggle
+        document.getElementById("mobile-menu-button").addEventListener("click", function() {
+            const mobileMenu = document.getElementById("mobile-menu");
+            mobileMenu.classList.toggle("visible");
+        });
+        
+        // Set smartboard mode from localStorage
+        document.getElementById("smartboard-mode").checked = localStorage.getItem("smartboardMode") === "true";
+        
         const songsEndpoint = "/api/songs";
         const songsTableBody = document.getElementById("songs-table-body");
         let sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
@@ -175,6 +933,7 @@
                 localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
                 alert(`${song_title} added to the sheet.`);
                 button.textContent = "Remove from Sheet";
+                button.classList.add("remove-button"); // Add class for styling
                 button.onclick = () => removeFromSheet(song_title, song_artist, button);
                 updateClearSheetButton();
                 renderSheetSongs();
@@ -191,6 +950,7 @@
             localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
             alert(`${song_title} removed from the sheet.`);
             button.textContent = "Add to Sheet";
+            button.classList.remove("remove-button"); // Remove class for styling
             button.onclick = () => addToSheet(song_title, song_artist, button);
             updateClearSheetButton();
             renderSheetSongs();
@@ -199,17 +959,56 @@
         function renderSongs(songs) {
             sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
             songsTableBody.innerHTML = "";
-            songs.forEach(song => {
+            songs.forEach((song, index) => {
                 const songRow = document.createElement("tr");
                 songRow.classList.add("data-row");
+                
+                // Generate unique row ID
+                const rowId = `song-${index}`;
 
                 let queryString = `?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&lyrics=${encodeURIComponent(song.lyrics)}&drive=${encodeURIComponent(song.drive)}&youtube=${encodeURIComponent(song.youtube)}&spotify=${encodeURIComponent(song.spotify)}`;
                 let dynamicPageLink = smartboardModeSwitch.checked ?
                     `/smartboard-mode.html${queryString}` :
                     `/song-details.html${queryString}`;
 
+                const isInSheet = sheetSongs.some(s => s.title === song.title && s.artist === song.artist);
+                
+                // Only create play button if there's a YouTube link
+                const youtubeId = getYouTubeId(song.youtube);
+                const hasYouTube = youtubeId !== null;
+
                 songRow.innerHTML = `
-                    <td class="search-title"><a href="${dynamicPageLink}">${song.search_title}</a></td>
+                    <td class="search-title">
+                        <div class="song-cell">
+                            ${hasYouTube ? `
+                                <button id="play-button-${rowId}" class="play-button" onclick="playYouTubeAudio('${youtubeId}', this, '${rowId}')">
+                                    ${playIcon}
+                                </button>
+                            ` : ''}
+                            <div>
+                                <a href="${dynamicPageLink}">
+                                    <div class="song-display">
+                                        <div class="song-title">${song.search_title || song.title}</div>
+                                        <div class="song-artist">${song.artist}</div>
+                                        ${hasYouTube ? `
+                                            <div id="now-playing-${rowId}" class="now-playing" style="display: none;">
+                                                <div class="sound-wave">
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                </div>
+                                                Now playing
+                                            </div>
+                                            <div class="progress-container">
+                                                <div id="progress-bar-${rowId}" class="progress-bar"></div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </td>
                     <td style="display:none;">${song.title}</td>
                     <td style="display:none;">${song.artist}</td>
                     <td style="display:none;">${song.lyrics}</td>
@@ -217,8 +1016,12 @@
                     <td style="display:none;"><a href="${song.youtube}" target="_blank">YouTube</a></td>
                     <td style="display:none;"><a href="${song.spotify}" target="_blank">Spotify</a></td>
                     <td>
-                        <button data-lyrics="${encodeURIComponent(song.lyrics)}" onclick='${sheetSongs.some(s => s.title === song.title && s.artist === song.artist) ? `removeFromSheet("${song.title}", "${song.artist}", this)` : `addToSheet("${song.title}", "${song.artist}", this)`}'>
-                            ${sheetSongs.some(s => s.title === song.title && s.artist === song.artist) ? "Remove from Sheet" : "Add to Sheet"}
+                        <button data-lyrics="${encodeURIComponent(song.lyrics)}" 
+                            class="${isInSheet ? 'remove-button' : ''}"
+                            onclick='${isInSheet ? 
+                                `removeFromSheet("${song.title}", "${song.artist}", this)` : 
+                                `addToSheet("${song.title}", "${song.artist}", this)`}'>
+                            ${isInSheet ? "Remove from Sheet" : "Add to Sheet"}
                         </button>
                     </td>
                 `;
@@ -286,6 +1089,7 @@
                     songsTableBody.innerText = "Error loading songs.";
                 });
         });
+        
         function updateClearSheetButton() {
             const clearSheetButton = document.getElementById("clear-sheet");
             const sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
@@ -313,7 +1117,10 @@
             sheetSongsList.innerHTML = "";
             sheetSongs.forEach(song => {
                 const songItem = document.createElement("li");
-                songItem.textContent = `${song.title}`;
+                songItem.innerHTML = `
+                    <div class="song-title">${song.title}</div>
+                    <div class="song-artist">${song.artist}</div>
+                `;
                 sheetSongsList.appendChild(songItem);
             });
         }
