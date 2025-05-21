@@ -1,93 +1,445 @@
-<!DOCTYPE html>
 <html lang="en">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sheet Builder</title>
-    <link rel="stylesheet" href="css/main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        body {
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Modern dark theme color scheme */
+        :root {
+            --color-dark-grey: #1a1a1a;
+            --color-grey-900: #212121;
+            --color-grey-850: #1c1c1c;
+            --color-grey-800: #2d2d2d;
+            --color-grey-700: #3d3d3d;
+            --color-grey-600: #4d4d4d;
+            --color-grey-500: #666666;
+            --color-grey-400: #808080;
+            --color-grey-300: #999999;
+            --color-grey-200: #b3b3b3;
+            --color-grey-100: #e0e0e0;
+            --color-yellow: #FFDA2A;
+            --color-yellow-dark: #e6c200;
+            --color-yellow-light: #fff5c7;
+            --color-white: #ffffff;
+            --color-black: #000000;
+            --sidebar-width: 300px;
+            --header-height: 64px;
+        }
+
+        /* Songs list container */
+        .songs-container {
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            gap: 0.5rem;
+        }
+        
+        /* Typography styles */
+        .sidebar-header h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        
+        .sidebar-section-title div {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-grey-500);
+            margin-bottom: 0.75rem;
+        }
+        
+        .new-badge {
+            margin-left: 0.625rem;
+        }
+        
+        /* Layout styles for sidebar */
+        .sidebar-header {
+            padding-top: 1.5rem;
+            background-color: transparent;
+        }
+        
+        /* Toggle button visibility */
+        #sidebar-toggle {
+            display: block;
+        }
+        
+        @media (min-width: 1280px) {
+            #sidebar-toggle {
+                display: none;
+            }
+            
+            .sidebar-header {
+                padding-top: 2.25rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar-header {
+                padding-top: 1rem;
+            }
+        }
+
+        /* Base body styling */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--color-dark-grey);
+            color: var(--color-white);
             margin: 0;
-            font-family: Arial, sans-serif;
-        }
-
-        #navbar {
-            background-color: #000000;
-            color: #ffffff;
-            padding: 10px;
-            text-align: center;
-            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        #navbar a {
-            color: #f2cb05;
-            margin: 0 10px;
-            text-decoration: none;
-        }
-
-        #navbar a:hover {
-            text-decoration: underline;
-        }
-
-        #content {
+            padding: 0;
+            line-height: 1.5;
             display: flex;
-            flex: 1;
-            overflow: auto;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
-        #song-list {
-            width: 300px;
-            margin: 2rem;
-            padding: 20px;
+        /* Modern Header */
+        header {
             background-color: #000000;
-            color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-            overflow-y: auto;
-            overflow-x: hidden;
-            flex-shrink: 0;
+            color: var(--color-white);
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 50;
+            position: sticky;
+            top: 0;
         }
 
-        .song-item {
-            margin-bottom: 10px;
-            padding: 10px;
-            border: 1px solid #ffffff;
-            border-radius: 5px;
-            cursor: grab;
+        .header-container {
+            display: flex;
+            height: var(--header-height);
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
         }
 
-        .song-item-used {
-            color: #f2cb05;
+        .logo-container {
+            display: flex;
+            align-items: center;
         }
 
-        #editor-container {
+        .nav-links {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            height: 100%;
+            font-size: 1rem;
+            font-weight: 400;
+            color: #9ca3af;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--color-white);
+        }
+
+        .nav-link.active {
+            color: var(--color-yellow);
+        }
+
+        .new-badge {
+            margin-left: 0.625rem;
+            border-radius: 0.125rem;
+            background-color: var(--color-yellow);
+            padding: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            line-height: 1;
+            color: #111827;
+        }
+
+        .download-button {
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #ffffff;
-            border-radius: 0; /* Remove border radius to match the border graphic */
-            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            font-weight: 700;
+            border-radius: 9999px;
+            background-color: var(--color-yellow);
+            color: #111827;
+            padding: 0.375rem 1.25rem;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .download-button:hover {
+            background-color: var(--color-yellow-dark);
+        }
+
+        .mobile-menu-button {
+            display: none;
+            color: var(--color-white);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Main content layout - full height container */
+        #content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            height: calc(100vh - var(--header-height) - 70px); /* Exact space between header and footer */
             position: relative;
-            margin: 20px auto;
+        }
+
+        /* Song list sidebar */
+        #song-list {
+            width: var(--sidebar-width);
+            background-color: var(--color-dark-grey);
+            color: var(--color-white);
+            border-right: 1px solid var(--color-grey-800);
+            flex-shrink: 0;
+            padding: 0;
+            position: sticky;
+            top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Sidebar sections */
+        .sidebar-section {
+            margin-bottom: 0;
+            padding: 16px;
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Songs container - scrollable area */
+        .songs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 4px; /* Add some padding for the scrollbar */
+        }
+        
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--color-grey-800);
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+        
+        .sheet-controls-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--color-grey-800);
+            flex-shrink: 0;
+        }
+        
+        .sidebar-section-title {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            flex-shrink: 0;
+        }
+        
+        /* Sidebar navigation */
+        .sidebar-nav {
+            padding: 16px;
+            border-bottom: 1px solid var(--color-grey-800);
+            flex-shrink: 0;
+        }
+        
+        .nav-item-wrapper {
+            position: relative;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            transition: all 0.15s;
+            cursor: pointer;
+            color: var(--color-grey-300);
+        }
+        
+        .nav-item:hover {
+            background-color: var(--color-grey-850);
+            color: var(--color-white);
+        }
+        
+        .nav-item.active {
+            background-color: var(--color-grey-850);
+            color: var(--color-yellow);
+            border-left: 3px solid var(--color-yellow);
+            padding-left: 13px;
+        }
+        
+        .nav-item .icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: currentColor;
+        }
+
+        /* Sheet controls */
+        #sheet-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 1rem;
+        }
+
+        #sheet-controls button {
+            background-color: transparent;
+            color: var(--color-grey-300);
+            border: 1px solid var(--color-grey-700);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.15s;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #sheet-controls button:hover:not(:disabled) {
+            background-color: var(--color-grey-800);
+            color: var(--color-white);
+        }
+
+        #sheet-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #print-button, #sheet-controls .option-button.active {
+            background-color: var(--color-yellow);
+            color: var(--color-black);
+            border-color: var(--color-yellow);
+        }
+
+        #print-button:hover, #sheet-controls .option-button.active:hover {
+            background-color: var(--color-yellow-dark);
+            border-color: var(--color-yellow-dark);
+        }
+
+        .scale-indicator {
+            background-color: transparent;
+            color: var(--color-grey-300);
+            font-size: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            height: 40px;
+            border: 1px solid var(--color-grey-700);
+        }
+
+        /* File upload */
+        #upload {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 16px;
+            background-color: var(--color-grey-800);
+            color: var(--color-white);
+            border: 1px solid var(--color-grey-700);
+            border-radius: 6px;
+            transition: border-color 0.2s;
+            cursor: pointer;
+        }
+        
+        #upload:hover {
+            border-color: var(--color-yellow);
+        }
+
+        /* Fix song height for clean appearance in scrollable container */
+        .song-item {
+            padding: 10px 16px;
+            background-color: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: grab;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            color: var(--color-grey-300);
+            margin-bottom: 0;
+        }
+
+        .song-item:hover {
+            background-color: var(--color-grey-850);
+            border-color: transparent;
+            box-shadow: none;
+            color: var(--color-white);
+        }
+
+        .song-item-used {
+            border-left: 3px solid var(--color-yellow);
+            color: var(--color-yellow);
+            padding-left: 13px;
+        }
+
+        .song-item strong {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .song-item small {
+            color: var(--color-grey-400);
+            font-size: 0.85rem;
+        }
+        
+        /* Song content wrapper */
+        .song-content {
+            flex-grow: 1;
+        }
+       /* Editor container */
+       #editor-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--color-white);
+            border-radius: 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            margin: 30px auto;
             overflow: hidden;
             width: calc(8.5in * 0.8);
             height: calc(11in * 0.8);
-            max-height: calc(100vh - 120px);
             background: 
-    url('/assets/border-graphic.png') no-repeat center center,
-    url('/assets/sheetskin.png') no-repeat center center;
-background-size: 100% 100%, cover; /* Ensure it covers the entire container */
+                url('/assets/border-graphic.png') no-repeat center center,
+                url('/assets/sheetskin.png') no-repeat center center;
+            background-size: 100% 100%, cover;
         }
 
+
+        /* Adjusted editor for paper-like appearance */
         #editor {
             box-sizing: border-box;
             height: 100%;
             width: 100%;
-            padding: 0.8in; /* Increased padding to account for the double border */
+            padding: 0.8in;
             position: relative;
             color: black;
             overflow: hidden;
@@ -96,19 +448,21 @@ background-size: 100% 100%, cover; /* Ensure it covers the entire container */
             font-size: 12pt;
             direction: auto;
             text-align: center;
-            margin: 0 auto;
+            margin: 0;
+            border-radius: 0;
+            
         }
         
         .editor-song {
-            break-inside: avoid-column; /* Prevent breaking within columns */
-            page-break-inside: avoid; /* Prevent breaking across pages when printing */
+            break-inside: avoid-column;
+            page-break-inside: avoid;
             margin-bottom: 0.15in;
             line-height: 1.2;
             position: relative;
             padding: 0.05in;
             border-radius: 3px;
             transition: background-color 0.2s;
-            display: inline-block; /* Keep the song as a block that won't wrap */
+            display: inline-block;
             width: 100%;
         }
 
@@ -116,7 +470,6 @@ background-size: 100% 100%, cover; /* Ensure it covers the entire container */
             background-color: rgba(242, 203, 5, 0.1);
         }
 
-        /* Prevent unauthorized line breaks in paragraphs */
         .editor-song p {
             white-space: nowrap;
         }
@@ -146,25 +499,32 @@ background-size: 100% 100%, cover; /* Ensure it covers the entire container */
             position: fixed;
             bottom: 20px;
             left: 20px;
-            background-color: #333;
+            background-color: var(--color-grey-800);
             color: white;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 16px;
+            border-radius: 8px;
             z-index: 1000;
-            display: none; /* Hidden by default */
+            display: none;
             flex-direction: column;
-            gap: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            gap: 16px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            max-width: 300px;
         }
         
         #dev-controls h3 {
             margin: 0;
-            font-size: 14px;
+            font-size: 16px;
             text-align: center;
+            font-weight: 600;
+            border-bottom: 1px solid var(--color-grey-700);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
         }
         
-        #font-size-slider, #column-count-slider {
+        #font-size-slider, #column-count-slider, #column-gap-slider {
             width: 100%;
+            margin: 8px 0;
+            accent-color: var(--color-yellow);
         }
         
         .control-row {
@@ -176,47 +536,76 @@ background-size: 100% 100%, cover; /* Ensure it covers the entire container */
         .control-buttons {
             display: flex;
             justify-content: space-between;
-            gap: 5px;
+            gap: 8px;
+            margin-top: 4px;
         }
         
         .control-buttons button {
-            background-color: #f2cb05;
+            background-color: var(--color-grey-700);
             border: none;
-            color: black;
-            padding: 5px 10px;
+            color: var(--color-white);
+            padding: 6px 12px;
             cursor: pointer;
-            border-radius: 3px;
+            border-radius: 4px;
+            flex: 1;
+            transition: background-color 0.2s;
+        }
+        
+        .control-buttons button:hover {
+            background-color: var(--color-grey-600);
         }
         
         .control-display {
             text-align: center;
             font-weight: bold;
-            min-width: 40px;
+            min-width: 50px;
+            background-color: var(--color-grey-700);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        #add-page-btn {
+            background-color: var(--color-yellow);
+            color: var(--color-black);
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #add-page-btn:hover {
+            background-color: var(--color-yellow-dark);
         }
         
-        /* Layout for additional pages */
-        .page-container {
-            width: calc(8.5in * 0.8);
-            height: calc(11in * 0.8);
-            background: 
-    url('/assets/border-graphic.png') no-repeat center center,
-    url('/assets/sheetskin.png') no-repeat center center;
-background-size: 100% 100%, cover; /* Ensure it covers the entire container */
-            margin: 20px auto;
-            position: relative;
-            border-radius: 0; /* Remove border radius to match the graphic */
-            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+        /* Create a wrapper for the editor to maintain aspect ratio */
+        .editor-wrapper {
+            width: 100%;
+            height: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 0;
+            overflow: auto;
+        }
+        
+        /* Maintain aspect ratio with responsive sizing */
+        .editor-inner {
+            width: 95%;
+            height: 95%;
+            position: relative;
+            aspect-ratio: 8.5 / 11; /* Strict 8.5x11 paper aspect ratio */
+            max-width: calc(min(100%, (100vh - var(--header-height) - 70px) * 0.7727)); /* Letter size ratio */
+            max-height: 95%; /* Allow some small margin */
+            margin: auto; /* Center within container */
         }
         
         .page-editor {
             box-sizing: border-box;
             height: 100%;
             width: 100%;
-            padding: 0.8in; /* Increased padding to account for the double border */
+            padding: 0.8in;
             position: relative;
             color: black;
             direction: auto;
@@ -224,77 +613,297 @@ background-size: 100% 100%, cover; /* Ensure it covers the entire container */
             overflow: hidden;
         }
 
+        /* Footer styling */
         #footer {
-            background-color: #000000;
-            color: #ffffff;
-            padding: 10px;
+            background-color: var(--color-grey-900);
+            color: var(--color-white);
+            padding: 24px;
+            margin-top: auto;
+            border-top: 1px solid var(--color-grey-800);
             text-align: center;
         }
 
         #footer a {
-            color: #f2cb05;
-            margin: 0 10px;
+            display: inline-block;
+            background-color: var(--color-yellow);
+            color: var(--color-black);
+            padding: 10px 20px;
+            margin: 0 10px 10px 0;
+            border-radius: 8px;
             text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s;
         }
 
         #footer a:hover {
-            text-decoration: underline;
+            background-color: var(--color-yellow-dark);
         }
 
-        .drag-over {
-            border: 2px dashed #f2cb05;
-        }
-
-        /* Controls for scaling and sheet management */
-        #sheet-controls {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            width: 100%;
-        }
-
-        .scale-indicator {
-            background-color: #f2cb05;
-            color: #000;
-            font-size: 12px;
-            padding: 2px 8px;
-            border-radius: 12px;
-            display: inline-block;
-            margin-left: 10px;
-        }
-
-        /* Individual song controls */
-        .song-control {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 5px;
-        }
-
-        .song-control button {
-            background: none;
-            border: none;
-            color: #f2cb05;
-            cursor: pointer;
+        .footer-copyright {
+            color: var(--color-grey-400);
+            margin-top: 16px;
             font-size: 14px;
         }
 
-        .song-control button:hover {
-            text-decoration: underline;
+        .drag-over {
+            border: 2px dashed var(--color-yellow);
+        }
+
+        /* Song title */
+        .song-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+            padding-bottom: 3px;
+            white-space: nowrap;
+        }
+
+        /* Center-aligned text */
+        .editor-song[dir="auto"] p {
+            text-align: center !important;
+        }
+
+        .editor-song[dir="auto"] .song-title {
+            text-align: center !important;
+        }
+
+        /* RTL text */
+        .editor-song[dir="rtl"] p {
+            text-align: right !important;
+        }
+
+        .editor-song[dir="rtl"] .song-title {
+            text-align: right !important;
+        }
+
+        /* Update editor styles */
+        #editor[dir="auto"] {
+            text-align: center;
+        }
+
+        #editor[dir="rtl"] {
+            text-align: right;
+        }
+
+        /* Adjust page-editor for additional pages */
+        .page-editor[dir="auto"] {
+            text-align: center;
+        }
+
+        .page-editor[dir="rtl"] {
+            text-align: right;
         }
         
-        /* Toggle button for dev widgets */
-        #toggle-dev-widgets {
-            background-color: #333;
-            color: #f2cb05;
-            cursor: pointer;
+        /* Layout utilities */
+        .flex {
+            display: flex;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: var(--color-grey-100);
+            transition: all 0.15s;
+            text-decoration: none;
+            height: 40px;
+        }
+        
+        .nav-item:hover {
+            background-color: var(--color-grey-800);
+            color: var(--color-white);
+        }
+        
+        .nav-item.active {
+            background-color: var(--color-grey-600);
+            color: var(--color-white);
+        }
+        
+        .nav-item .icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Scrollbar styling for the songs container */
+        .songs-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .songs-container::-webkit-scrollbar-track {
+            background: var(--color-grey-800);
+            border-radius: 3px;
+        }
+        
+        .songs-container::-webkit-scrollbar-thumb {
+            background: var(--color-grey-600);
+            border-radius: 3px;
+        }
+        
+        .songs-container::-webkit-scrollbar-thumb:hover {
+            background: var(--color-grey-500);
+        }
+        
+        .flex-col {
+            flex-direction: column;
+        }
+        
+        .items-center {
+            align-items: center;
+        }
+        
+        .navigation-gap {
+            gap: 8px;
+        }
+        
+        .sidebar-grow {
+            flex-grow: 1;
+        }
+        
+        .song-content {
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+        }
+        
+        .hidden-upload {
+            display: none;
+        }
+        
+        /* Positioning */
+        .relative-position {
+            position: relative;
+        }
+        
+        .sticky-position {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+        
+        /* Transitions */
+        .transition-effect {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+
+        /* Sidebar navs and lists */
+        .nav-section {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
         }
 
         #toggle-dev-widgets.active {
-            background-color: #f2cb05;
-            color: #333;
+            background-color: var(--color-yellow);
+            color: var(--color-black);
+            border-color: var(--color-yellow);
+        }
+
+        /* Option buttons */
+        .option-button {
+            background-color: transparent;
+            color: var(--color-grey-300);
+            border: 1px solid var(--color-grey-700);
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.15s;
+        }
+
+        .option-button:hover {
+            background-color: var(--color-grey-800);
+            color: var(--color-white);
+        }
+
+        .option-button.active {
+            background-color: var(--color-yellow);
+            color: var(--color-black);
+            border-color: var(--color-yellow);
+        }
+
+        /* Toggle button for dev widgets */
+        #toggle-dev-widgets {
+            background-color: transparent;
+            color: var(--color-grey-300);
+            cursor: pointer;
+            border: 1px solid var(--color-grey-700);
+        }
+
+        /* Media queries for responsive design */
+        @media (max-width: 768px) {
+            #editor-container {
+                height: 100%; /* Full height on mobile */
+                width: 100%;  /* Full width on mobile */
+            }
+            
+            .editor-inner {
+                width: 95%;
+                height: auto;
+                aspect-ratio: 8.5/11; /* Maintain paper aspect ratio */
+                max-width: 95vw;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-button {
+                display: block;
+            }
+            
+            .header-container {
+                padding: 0 1rem;
+            }
+            
+            #song-list {
+                display: none; /* Hide sidebar on very small screens */
+            }
         }
         
+        /* Medium screens */
+        @media (min-width: 769px) and (max-width: 1200px) {
+            .editor-inner {
+                width: 90%;
+                height: auto;
+                aspect-ratio: 8.5/11;
+            }
+        }
+
+        /* Mobile menu */
+        #mobile-menu {
+            background-color: var(--color-grey-900);
+            padding: 1rem;
+            display: none;
+        }
+        
+        #mobile-menu a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--color-grey-300);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        #mobile-menu a:hover {
+            background-color: var(--color-grey-800);
+            color: var(--color-white);
+        }
+        
+        .show-menu {
+            display: block !important;
+        }
+
         /* Print-specific styles */
         @media print {
             @page {
@@ -338,168 +947,144 @@ background-size: 100% 100%, cover; /* Ensure it covers the entire container */
             .print-page:last-child {
                 page-break-after: avoid;
             }
-        }
-        
-        /* Media query for mobile responsiveness */
-        @media (max-width: 768px) {
-            #content {
-                flex-direction: column;
+            
+            /* Hide header and footer when printing */
+            header, #footer, #song-list, #dev-controls {
+                display: none !important;
             }
             
-            #song-list {
-                width: auto;
-                max-height: 300px;
-                margin: 1rem;
+            #content {
+                display: block;
             }
             
             #editor-container {
-                width: 90%;
-                height: auto;
-                aspect-ratio: 8.5/11;
+                margin: 0 auto;
+                box-shadow: none;
             }
-        }
-
-        /* New styles for option buttons */
-        .option-button {
-            background-color: #333;
-            color: #f2cb05;
-            border: 1px solid #f2cb05;
-            padding: 5px 10px;
-            cursor: pointer;
-            border-radius: 3px;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-
-        .option-button.active {
-            background-color: #f2cb05;
-            color: #333;
-        }
-
-        /* Style for song titles */
-        .song-title {
-            font-weight: bold;
-            font-size: 1.1em;
-            margin-bottom: 5px;
-            text-align: center;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-            padding-bottom: 3px;
-            white-space: nowrap;
-        }
-
-        /* Style for center-aligned text */
-        .editor-song[dir="auto"] p {
-            text-align: center !important;
-        }
-
-        .editor-song[dir="auto"] .song-title {
-            text-align: center !important;
-        }
-
-        /* Style for RTL text */
-        .editor-song[dir="rtl"] p {
-            text-align: right !important;
-        }
-
-        .editor-song[dir="rtl"] .song-title {
-            text-align: right !important;
-        }
-
-        /* Update editor styles to support both modes */
-        #editor[dir="auto"] {
-            text-align: center;
-        }
-
-        #editor[dir="rtl"] {
-            text-align: right;
-        }
-
-        /* Adjust page-editor for additional pages */
-        .page-editor[dir="auto"] {
-            text-align: center;
-        }
-
-        .page-editor[dir="rtl"] {
-            text-align: right;
         }
         
     </style>
 </head>
 
 <body>
-       <!-- Modern responsive header with your logo -->
-<!-- Modern responsive header with your logo repositioned -->
-<!-- Modern responsive header with updated color scheme -->
-<!-- Modern responsive header with logo at far left -->
-<header class="bg-gray-900 sticky top-0 z-50">
-    <div class="relative z-50 flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-      <!-- Logo positioned at far left -->
-      <div class="flex items-center">
-        <a href="/" class="mr-8">
-          <img src="/assets/Niggun_Sheet_Header_Logo.png" alt="Niggun Sheet" class="h-10" />
-        </a>
-      </div>
-      
-      <!-- Mobile menu button (only visible on mobile) -->
-      <div class="flex lg:hidden ml-auto">
-        <button type="button" class="block text-white" id="mobile-menu-button">
-          <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="bars" class="svg-inline--fa fa-bars" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="24" height="24">
-            <path fill="currentColor" d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"></path>
-          </svg>
-        </button>
-      </div>
-      
-      <!-- Desktop Navigation (now positioned after logo) -->
-      <div class="hidden lg:flex lg:items-center lg:flex-1 lg:justify-center">
-        <ul class="flex h-full items-center gap-8">
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/">Home</a>
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/songs.html">Song Directory</a>
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/sheet-builder.html">Sheet Builder
-            <span class="ml-2.5 rounded-sm bg-yellow-400 p-1 text-xs font-bold uppercase leading-none text-gray-900">new</span>
-          </a>
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/contact.html">Contact</a>
-        </ul>
-      </div>
-      
-      <!-- User Action Buttons -->
-      <div class="flex h-full min-h-8 shrink-0 items-center justify-end">
-        <button type="button" class="flex justify-center items-center font-bold rounded-full transition-colors bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-1.5 px-5 text-sm">
-          <span class="relative flex min-h-5 items-center justify-center">
-            <span class="whitespace-nowrap">Download Sheet</span>
-          </span>
-        </button>
-      </div>
-    </div>
-    
-    <!-- Mobile Menu (hidden by default) -->
-    <div id="mobile-menu" class="hidden lg:hidden">
-      <div class="space-y-1 px-4 pb-3 pt-2">
-        <a href="/" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Home</a>
-        <a href="/songs.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Song Directory</a>
-        <a href="/sheet-builder.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Sheet Builder <span class="ml-2 rounded-sm bg-yellow-400 p-1 text-xs font-bold uppercase leading-none text-gray-900">new</span></a>
-        <a href="/contact.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Contact</a>
-      </div>
-    </div>
-  </header>
-
+    <!-- Modern responsive header -->
+    <header>
+        <div class="header-container">
+            <div class="logo-container">
+                <a href="/" class="mr-8">
+                    <img src="/assets/Niggun_Sheet_Header_Logo.png" alt="Niggun Sheet" class="h-10" />
+                </a>
+                
+                <nav class="nav-links">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/songs.html" class="nav-link">Song Directory</a>
+                    <a href="/sheet-builder.html" class="nav-link active">Sheet Builder
+                        <span class="new-badge">new</span>
+                    </a>
+                    <a href="/contact.html" class="nav-link">Contact</a>
+                </nav>
+            </div>
+            
+            <!-- Mobile menu button -->
+            <button type="button" class="mobile-menu-button" id="mobile-menu-button">
+                <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="bars" class="svg-inline--fa fa-bars" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="24" height="24">
+                    <path fill="currentColor" d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"></path>
+                </svg>
+            </button>
+            
+            <!-- Download button -->
+            <button id="header-print-button" class="download-button">
+                Download Sheet
+            </button>
+        </div>
+        
+        <!-- Mobile Menu (hidden by default) -->
+        <div id="mobile-menu" class="hidden">
+            <a href="/" class="block">Home</a>
+            <a href="/songs.html" class="block">Song Directory</a>
+            <a href="/sheet-builder.html" class="block">Sheet Builder <span class="new-badge">new</span></a>
+            <a href="/contact.html" class="block">Contact</a>
+        </div>
+    </header>
 
     <div id="content">
         <div id="song-list">
-            <div id="sheet-controls">
-                <button id="clear-sheet" disabled>Clear Sheet</button>
-                <button id="print-button">Print</button>
-                <button id="toggle-titles" class="option-button">Include Titles</button>
-                <button id="toggle-alignment" class="option-button">Center Mode</button>
-                <button id="toggle-dev-widgets">Dev Tools</button>
-                <span id="scale-indicator" class="scale-indicator">Scale: 100%</span>
+            <div class="sidebar-left">
+                <div class="sidebar-header sticky-position flex items-center">
+                    <!-- Header content -->
+                </div>
+                
+                <div class="sheet-controls-section">
+                    <!-- Sheet controls content -->
+                </div>
+    
+                <nav class="sidebar-nav flex flex-col navigation-gap">
+                    <!-- Nav content -->
+                </nav>
             </div>
-            <input type="file" id="upload" accept=".txt" />
-            <h2>All Niggunim</h2>
-            <div id="songs"></div>
+            
+            <!-- Keep sidebar-section in the same parent but now it's next to sidebar-left -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">
+                    <div>All Niggunim</div>
+                </div>
+                <div id="songs" class="songs-container"></div>
+            </div>
+        </div>
+    
+        <div id="editor-container">
+            <!-- Editor content remains unchanged -->
+        </div>
+    </div>
+            <nav class="sidebar-nav flex flex-col navigation-gap">
+                <div class="nav-item-wrapper">
+                    <div class="nav-item active">
+                        <div class="icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4.5 19.9V10.7116C4.5 10.683 4.51221 10.6558 4.53356 10.6368L11.8007 4.17716C11.9144 4.07613 12.0856 4.07613 12.1993 4.17716L19.4664 10.6368C19.4878 10.6558 19.5 10.683 19.5 10.7116V19.9C19.5 19.9552 19.4552 20 19.4 20H14.2102C14.2078 20 14.2059 19.9981 14.2059 19.9957V15.9837C14.2059 14.7654 13.2183 13.7778 12 13.7778C10.7817 13.7778 9.79412 14.7654 9.79412 15.9837V19.9957C9.79412 19.9981 9.79217 20 9.78977 20H4.6C4.54477 20 4.5 19.9552 4.5 19.9Z" stroke="currentColor" stroke-width="1.4"></path>
+                            </svg>
+                        </div>
+                        <div class="song-content">Import Songs</div>
+                    </div>
+                </div>
+                <div class="nav-item-wrapper">
+                    <div class="nav-item">
+                        <div class="icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 18 18" fill="none">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M9.4842 9.56164C9.36072 9.83682 9.37691 10.0693 9.47318 10.2331C9.56945 10.3969 9.76725 10.5284 10.0738 10.5647C10.38 10.6009 10.7602 10.5335 11.1278 10.3293C11.4953 10.1251 11.748 9.84087 11.8713 9.56596C11.9948 9.29078 11.9786 9.0583 11.8824 8.89452C11.7861 8.73074 11.5883 8.59917 11.2818 8.56291C10.9755 8.52669 10.5953 8.59405 10.2278 8.79826C9.86025 9.00247 9.60756 9.28673 9.4842 9.56164ZM8.62008 9.1814C8.8319 8.70937 9.2318 8.28423 9.75483 7.99363C10.2779 7.70303 10.8576 7.58387 11.3834 7.64606C11.909 7.70822 12.4154 7.96002 12.6982 8.44122C12.9811 8.92243 12.9471 9.47444 12.7355 9.94619C12.5237 10.4182 12.1237 10.8434 11.6007 11.134C11.0777 11.4246 10.4979 11.5437 9.9721 11.4815C9.44658 11.4194 8.94017 11.1676 8.65732 10.6864C8.37447 10.2052 8.4084 9.65316 8.62008 9.1814Z" fill="currentColor"></path>
+                            </svg>
+                        </div>
+                        <div class="song-content">Add Song</div>
+                    </div>
+                </div>
+                <div class="nav-item-wrapper">
+                    <label for="upload" class="nav-item">
+                        <div class="icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 18 18" fill="none">
+                                <path d="M9 4.5V13.5M9 4.5L6 7.5M9 4.5L12 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M3.75 13.5V14.25C3.75 14.8467 4.06607 15.419 4.59099 15.841C5.1159 16.263 5.83755 16.5 6.6 16.5H11.4C12.1624 16.5 12.8841 16.263 13.409 15.841C13.9339 15.419 14.25 14.8467 14.25 14.25V13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="song-content">Upload TXT File</div>
+                    </label>
+                    <input type="file" id="upload" accept=".txt" class="hidden-upload"/>
+                </div>
+            </nav>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">
+                    <div>All Niggunim</div>
+                </div>
+                <div id="songs" class="songs-container"></div>
+            </div>
         </div>
 
         <div id="editor-container">
-            <div id="editor" dir="auto"></div>
+            <div class="editor-wrapper">
+                <div class="editor-inner">
+                    <div id="editor" dir="auto"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -547,7 +1132,7 @@ background-size: 100% 100%, cover; /* Ensure it covers the entire container */
         </div>
         
         <div style="margin-top: 10px;">
-            <button id="add-page-btn" style="width: 100%;">Add Page</button>
+            <button id="add-page-btn">Add Page</button>
         </div>
     </div>
     <script>
@@ -560,8 +1145,8 @@ background-size: 100% 100%, cover; /* Ensure it covers the entire container */
         // Base font size that will be scaled
         const baseFontSize = 18; // in pt - starting larger
         let currentScale = 1.0;
-        let currentColumns = 1; // Start with 1 column
-        let autoColumns = true; // Auto column management enabled by default
+        let currentColumns = 1; // Default to 1 column
+        let autoColumns = true; // Enable auto column management by default
         let pageCount = 1;
         let columnGap = 20; // Default column gap in px
         let devWidgetsVisible = false; // Dev widgets hidden by default
@@ -672,6 +1257,24 @@ background-size: 100% 100%, cover; /* Ensure it covers the entire container */
                     }
                 });
             }
+            
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('show-menu');
+                });
+            }
+            
+            // Header print button
+            const headerPrintButton = document.getElementById('header-print-button');
+            if (headerPrintButton) {
+                headerPrintButton.addEventListener('click', function() {
+                    document.getElementById('print-button').click();
+                });
+            }
         });
 
         function getSheetSongsFromLocalStorage() {
@@ -730,473 +1333,377 @@ background-size: 100% 100%, cover; /* Ensure it covers the entire container */
             );
         }
 
-        // Helper function to check for lines crossing between song boundaries
-        function checkForSongBoundaryCrossings() {
-            // Get all song elements
-            const songs = editor.querySelectorAll('.editor-song');
-            if (songs.length < 2) return false; // Need at least 2 songs to have crossings
+        // Enhanced content and layout management function that prioritizes columns before scaling
+        function checkContentAndManageLayout() {
+            // Start with optimal settings
+            let bestColumnCount = 1;
+            let bestScale = 1.0;
             
-            // Store song boundaries
-            const songBoundaries = [];
-            songs.forEach(song => {
-                const rect = song.getBoundingClientRect();
-                songBoundaries.push({
-                    song: song,
-                    left: rect.left,
-                    right: rect.right,
-                    top: rect.top,
-                    bottom: rect.bottom
-                });
-            });
+            // Try 1 column at 100% scale first (optimal)
+            editor.style.columnCount = 1;
+            editor.style.fontSize = baseFontSize + 'pt';
+            let isUnsafe = checkForSafeSpacing(true); // Be more lenient for 1 column
             
-            // For each song, check if its lines cross into another song's boundary
-            for (const songData of songBoundaries) {
-                const song = songData.song;
-                
-                // Get all line elements in the song (paragraphs and br tags create lines)
-                const paragraphs = song.querySelectorAll('p');
-                
-                for (const paragraph of paragraphs) {
-                    // Check each text node and <br> tag
-                    const textNodes = getTextNodes(paragraph);
-                    const brTags = paragraph.querySelectorAll('br');
+            // If safe with 1 column at 100%, we're done!
+            if (!isUnsafe) {
+                bestColumnCount = 1;
+                bestScale = 1.0;
+            } 
+            // If not safe, try to reduce scale with 1 column
+            // Being more aggressive about trying to stay in 1 column
+            else {
+                let foundSafeConfig = false;
+                // Try more scale steps, going smaller before giving up on 1 column
+                for (let scale = 0.95; scale >= 0.5 && !foundSafeConfig; scale -= 0.05) {
+                    editor.style.fontSize = (baseFontSize * scale) + 'pt';
+                    isUnsafe = checkForSafeSpacing(true); // More lenient check for 1 column
                     
-                    // Function to check if an element crosses song boundaries
-                    const checkElementCrossing = (element) => {
-                        // Create a range for this element
-                        const range = document.createRange();
-                        range.selectNode(element);
-                        
-                        // Get all text rectangles
-                        const rects = range.getClientRects();
-                        
-                        // Check if any rectangle crosses into another song's boundary
-                        for (const rect of rects) {
-                            // Skip tiny rectangles (might be whitespace)
-                            if (rect.width < 5 || rect.height < 5) continue;
+                    if (!isUnsafe) {
+                        bestColumnCount = 1;
+                        bestScale = scale;
+                        foundSafeConfig = true;
+                    }
+                }
+                
+                // If we couldn't make 1 column work, try 2 columns
+                if (!foundSafeConfig) {
+                    // Try 2 columns at 100% scale
+                    editor.style.columnCount = 2;
+                    editor.style.fontSize = baseFontSize + 'pt';
+                    isUnsafe = checkForSafeSpacing(false); // Regular strictness for 2+ columns
+                    
+                    // If safe with 2 columns at 100%, use that
+                    if (!isUnsafe) {
+                        bestColumnCount = 2;
+                        bestScale = 1.0;
+                    }
+                    // If not safe, try 3 columns at 100% scale
+                    else {
+                        // Try reducing scale with 2 columns
+                        foundSafeConfig = false;
+                        for (let scale = 0.95; scale >= 0.65 && !foundSafeConfig; scale -= 0.05) {
+                            editor.style.fontSize = (baseFontSize * scale) + 'pt';
+                            isUnsafe = checkForSafeSpacing(false);
                             
-                            // Check if this rect extends outside the song's boundary
-                            if (rect.left < songData.left || rect.right > songData.right ||
-                                rect.top < songData.top || rect.bottom > songData.bottom) {
-                                
-                                // Now check if it extends into another song's boundary
-                                for (const otherSong of songBoundaries) {
-                                    if (otherSong.song === song) continue; // Skip self
-                                    
-                                    // Check if the rect intersects with another song
-                                    const intersects = !(
-                                        rect.right < otherSong.left || 
-                                        rect.left > otherSong.right ||
-                                        rect.bottom < otherSong.top || 
-                                        rect.top > otherSong.bottom
-                                    );
-                                    
-                                    if (intersects) {
-                                        return true; // Found a boundary crossing
-                                    }
-                                }
+                            if (!isUnsafe) {
+                                bestColumnCount = 2;
+                                bestScale = scale;
+                                foundSafeConfig = true;
                             }
                         }
                         
-                        return false;
-                    };
-                    
-                    // Check text nodes for crossings
-                    for (const textNode of textNodes) {
-                        if (checkElementCrossing(textNode)) {
-                            return true; // Found a crossing
-                        }
-                    }
-                    
-                    // Check <br> tags for crossings
-                    for (const br of brTags) {
-                        if (checkElementCrossing(br)) {
-                            return true; // Found a crossing
-                        }
-                    }
-                }
-            }
-            
-            // No boundary crossings found
-            return false;
-        }
-
-        // Helper function to check if content approaches the border margins
-        function checkForBorderMarginViolations() {
-            // Get editor dimensions
-            const editorRect = editor.getBoundingClientRect();
-            
-            // Define the inner border margin (as a percentage of the editor size)
-            const borderMarginPercentage = 0.09; // Adjust this based on your graphic's inner border
-            
-            // Calculate the inner border rectangle
-            const innerBorderMargin = {
-                left: editorRect.left + (editorRect.width * borderMarginPercentage),
-                right: editorRect.right - (editorRect.width * borderMarginPercentage),
-                top: editorRect.top + (editorRect.height * borderMarginPercentage),
-                bottom: editorRect.bottom - (editorRect.height * borderMarginPercentage)
-            };
-            
-            // Get all song elements
-            const songs = editor.querySelectorAll('.editor-song');
-            
-            // Check each song for margin violations
-            for (const song of songs) {
-                // Get all elements in the song that might have content
-                const textElements = song.querySelectorAll('p, br');
-                
-                for (const element of textElements) {
-                    // Get client rects for this element
-                    const rects = element.getClientRects();
-                    
-                    // Check if any rectangle violates the inner border margin
-                    for (const rect of rects) {
-                        // Skip tiny rectangles (might be whitespace)
-                        if (rect.width < 5 || rect.height < 5) continue;
-                        
-                        // Check if this rect extends outside the inner border margin
-                        if (rect.left < innerBorderMargin.left || 
-                            rect.right > innerBorderMargin.right ||
-                            rect.top < innerBorderMargin.top || 
-                            rect.bottom > innerBorderMargin.bottom) {
-                            console.log("Border margin violation detected");
-                            return true; // Found a margin violation
+                        // If 2 columns didn't work, try 3 columns
+                        if (!foundSafeConfig) {
+                            editor.style.columnCount = 3;
+                            editor.style.fontSize = baseFontSize + 'pt';
+                            isUnsafe = checkForSafeSpacing(false);
+                            
+                            // If safe with 3 columns at 100%, use that
+                            if (!isUnsafe) {
+                                bestColumnCount = 3;
+                                bestScale = 1.0;
+                            }
+                            // If still unsafe, we need to scale down with 3 columns
+                            else {
+                                for (let scale = 0.95; scale >= 0.5 && !foundSafeConfig; scale -= 0.05) {
+                                    editor.style.fontSize = (baseFontSize * scale) + 'pt';
+                                    isUnsafe = checkForSafeSpacing(false);
+                                    
+                                    if (!isUnsafe) {
+                                        bestColumnCount = 3;
+                                        bestScale = scale;
+                                        foundSafeConfig = true;
+                                    }
+                                }
+                                
+                                // If we exhausted all options and still unsafe, use minimum values
+                                if (!foundSafeConfig) {
+                                    bestColumnCount = 3;
+                                    bestScale = 0.5;
+                                }
+                            }
                         }
                     }
                 }
             }
             
-            // No margin violations found
-            return false;
-        }
-
-        // Helper function to check for unauthorized line breaks within songs
-        function checkForUnauthorizedLineBreaks() {
-            // Get all song elements
-            const songs = editor.querySelectorAll('.editor-song');
-            
-            // Check each song for unauthorized line breaks
-            for (const song of songs) {
-                const paragraphs = song.querySelectorAll('p');
-                
-                for (const paragraph of paragraphs) {
-                    // Count authorized breaks (<br> tags)
-                    const authorizedBreaks = paragraph.querySelectorAll('br').length;
-                    
-                    // Get the text nodes and check for wrapping
-                    const textNodes = getTextNodes(paragraph);
-                    
-                    // For each text node, check if it occupies more than one line
-                    for (const textNode of textNodes) {
-                        // Skip empty text nodes
-                        if (!textNode.textContent.trim()) continue;
-                        
-                        // Get client rects for this text node
-                        const range = document.createRange();
-                        range.selectNodeContents(textNode);
-                        const rects = range.getClientRects();
-                        
-                        // If more than one rect, text is wrapping
-                        if (rects.length > 1) {
-                            // Found an unauthorized line break
-                            return true;
-                        }
-                    }
-                    
-                    // Another approach: check if the computed height of the paragraph is more than expected
-                    const lineHeight = parseFloat(window.getComputedStyle(paragraph).lineHeight);
-                    const expectedHeight = (authorizedBreaks + 1) * lineHeight;
-                    
-                    // Allow a small tolerance (10% extra height)
-                    if (paragraph.offsetHeight > expectedHeight * 1.1) {
-                        return true;
-                    }
-                }
-            }
-            
-            // No unauthorized line breaks found
-            return false;
-        }
-
-        // Helper function to get all text nodes in an element
-        function getTextNodes(element) {
-            const textNodes = [];
-            const walker = document.createTreeWalker(
-                element,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-            
-            let node;
-            while (node = walker.nextNode()) {
-                textNodes.push(node);
-            }
-            
-            return textNodes;
-        }
-
-        // Function to strictly enforce content boundaries and prevent unauthorized line breaks
-        // Replace the current checkContentAndManageLayout function with this improved version
-// that prioritizes font size over column count and ensures proper centering
-
-// This version prioritizes large text and fewer columns, especially in center mode with titles
-
-function checkContentAndManageLayout() {
-    // Always enable auto columns for this improved version
-    autoColumns = true;
-    
-    // STEP 1: Start with baseline settings - ONE column and full font size
-    currentColumns = 1;
-    currentScale = 1.0;
-    editor.style.fontSize = baseFontSize + 'pt';
-    editor.style.columnCount = currentColumns;
-    
-    // Add these properties to ensure columns are centered
-    editor.style.columnWidth = 'auto';
-    editor.style.margin = '0 auto';
-    
-    // For center mode, add specific centering properties
-    if (textAlignment === 'center') {
-        editor.style.textAlign = 'center';
-        editor.style.columnRuleWidth = '0';
-        editor.style.columnRuleStyle = 'none';
-    }
-    
-    // STEP 2: Initial overflow check - make overflow visible for accurate measurement
-    editor.style.overflow = "visible";
-    let isOverflowing = checkForOverflow();
-    
-    // STEP 3: FIRST try scaling down font more aggressively before adding columns
-    // Only move to 2 columns after reducing to 60% size, and 3 columns at 45% size
-    let hasUnauthorizedLineBreaks = checkForUnauthorizedLineBreaks();
-    let hasBoundaryCrossings = checkForSongBoundaryCrossings();
-    let hasBorderMarginViolations = checkForBorderMarginViolations();
-    
-    // If any issues exist, try reducing font size first - more aggressively
-    if (isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) {
-        let attempts = 0;
-        let scaleStep = 0.02; // Smaller steps for finer control
-        
-        // Reduce to 60% before trying 2 columns (more aggressive with titles)
-        const firstColumnThreshold = includeTitles ? 0.60 : 0.70;
-        
-        while ((isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) 
-               && currentScale > firstColumnThreshold && attempts < 25) {
-            currentScale -= scaleStep;
-            editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
-            isOverflowing = checkForOverflow();
-            hasUnauthorizedLineBreaks = checkForUnauthorizedLineBreaks();
-            hasBoundaryCrossings = checkForSongBoundaryCrossings();
-            hasBorderMarginViolations = checkForBorderMarginViolations();
-            attempts++;
-        }
-    }
-    
-    // STEP 4: Only NOW try 2 columns if we still have issues and font is reasonably small
-    if ((isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) 
-        && currentScale <= 0.70) {
-        // Try 2 columns
-        currentColumns = 2;
-        editor.style.columnCount = currentColumns;
-        
-        // Recheck issues
-        isOverflowing = checkForOverflow();
-        hasUnauthorizedLineBreaks = checkForUnauthorizedLineBreaks();
-        hasBoundaryCrossings = checkForSongBoundaryCrossings();
-        hasBorderMarginViolations = checkForBorderMarginViolations();
-        
-        // STEP 5: Try reducing font size again before going to 3 columns
-        // If still having issues with 2 columns, try decreasing font size further
-        if (isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) {
-            let attempts = 0;
-            let scaleStep = 0.02;
-            
-            // Only reduce to 45% before trying 3 columns (more aggressive with titles)
-            const secondColumnThreshold = includeTitles ? 0.45 : 0.55;
-            
-            while ((isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) 
-                   && currentScale > secondColumnThreshold && attempts < 20) {
-                currentScale -= scaleStep;
-                editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
-                isOverflowing = checkForOverflow();
-                hasUnauthorizedLineBreaks = checkForUnauthorizedLineBreaks();
-                hasBoundaryCrossings = checkForSongBoundaryCrossings();
-                hasBorderMarginViolations = checkForBorderMarginViolations();
-                attempts++;
-            }
-        }
-        
-        // STEP 6: Only try 3 columns as a last resort if font is very small
-        // If still having issues with 2 columns and we've already reduced font significantly
-        if ((isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) 
-            && currentScale <= 0.55) {
-            currentColumns = 3;
+            // Apply the best settings we found
+            currentColumns = bestColumnCount;
+            currentScale = bestScale;
             editor.style.columnCount = currentColumns;
-            
-            // Recheck issues again
-            isOverflowing = checkForOverflow();
-            hasUnauthorizedLineBreaks = checkForUnauthorizedLineBreaks();
-            hasBoundaryCrossings = checkForSongBoundaryCrossings();
-            hasBorderMarginViolations = checkForBorderMarginViolations();
-        }
-    }
-    
-    // STEP 7: If still having issues, continue reducing font size with current columns
-    if (isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) {
-        let attempts = 0;
-        let scaleStep = 0.02; // Smaller steps for finer control
-        
-        while ((isOverflowing || hasUnauthorizedLineBreaks || hasBoundaryCrossings || hasBorderMarginViolations) 
-               && currentScale > 0.35 && attempts < 35) {
-            currentScale -= scaleStep;
             editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
-            isOverflowing = checkForOverflow();
-            hasUnauthorizedLineBreaks = checkForUnauthorizedLineBreaks();
-            hasBoundaryCrossings = checkForSongBoundaryCrossings();
-            hasBorderMarginViolations = checkForBorderMarginViolations();
-            attempts++;
-        }
-    }
-    
-    // STEP 8: SAFETY CHECK - if STILL issues persist, take drastic measures
-    if (checkForOverflow() || checkForUnauthorizedLineBreaks() || 
-        checkForSongBoundaryCrossings() || checkForBorderMarginViolations()) {
-        console.warn("Strict enforcement activated - issues persist after normal adjustments");
-        
-        // Use more aggressive scaling if needed
-        while ((checkForOverflow() || checkForUnauthorizedLineBreaks() || 
-                checkForSongBoundaryCrossings() || checkForBorderMarginViolations()) && currentScale > 0.3) {
-            currentScale -= 0.05;
-            editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
-        }
-        
-        // Last resort - force no overflow
-        editor.style.overflow = "hidden";
-    } else {
-        // All good, maintain overflow as hidden
-        editor.style.overflow = "hidden";
-    }
-    
-    // Additional step: ensure column centering is maintained
-    ensureColumnCentering();
-    
-    // Update UI to reflect the changes
-    updateLayoutControls();
-    
-    // Log final state for debugging
-    console.log(`Final layout: ${currentColumns} columns, scale: ${Math.round(currentScale * 100)}%, 
-                  overflow: ${checkForOverflow() ? 'YES' : 'NO'}, 
-                  unauthorized breaks: ${checkForUnauthorizedLineBreaks() ? 'YES' : 'NO'},
-                  boundary crossings: ${checkForSongBoundaryCrossings() ? 'YES' : 'NO'},
-                  border margin violations: ${checkForBorderMarginViolations() ? 'YES' : 'NO'}`);
-}
-
-// New function to ensure columns are properly centered
-function ensureColumnCentering() {
-    // For center alignment, ensure columns are centered
-    if (textAlignment === 'center') {
-        // Set column properties to ensure centered layout
-        editor.style.margin = '0 auto';
-        editor.style.textAlign = 'center';
-        
-        // Get all song paragraphs and ensure they're center-aligned
-        const songParagraphs = editor.querySelectorAll('.editor-song p');
-        songParagraphs.forEach(paragraph => {
-            paragraph.style.textAlign = 'center';
-        });
-        
-        // Also center song titles if present
-        const songTitles = editor.querySelectorAll('.editor-song .song-title');
-        songTitles.forEach(title => {
-            title.style.textAlign = 'center';
-        });
-        
-        // For multi-column layouts, ensure spacing is even
-        if (currentColumns > 1) {
-            // Calculate available width after padding
-            const editorWidth = editor.clientWidth;
             
-            // Set column properties for even spacing
-            editor.style.columnGap = columnGap + 'px';
-            editor.style.columnRuleWidth = '0';
-            editor.style.columnRuleStyle = 'none';
+            // Update the scale indicator
+            scaleIndicator.textContent = `Scale: ${Math.round(currentScale * 100)}%`;
             
-            // Apply these properties to ensure content is centered within columns
-            const songElements = editor.querySelectorAll('.editor-song');
-            songElements.forEach(song => {
-                song.style.width = '100%';
-                song.style.boxSizing = 'border-box';
-                song.style.textAlign = 'center';
-            });
-        }
-    }
-    
-    // Apply similar centering to any additional pages
-    const pageEditors = document.querySelectorAll('.page-editor');
-    pageEditors.forEach(pageEditor => {
-        if (textAlignment === 'center') {
-            pageEditor.style.margin = '0 auto';
-            pageEditor.style.textAlign = 'center';
-            
-            // Get all song paragraphs and ensure they're center-aligned
-            const songParagraphs = pageEditor.querySelectorAll('.editor-song p');
-            songParagraphs.forEach(paragraph => {
-                paragraph.style.textAlign = 'center';
+            // Apply to any additional pages
+            const pageEditors = document.querySelectorAll('.page-editor');
+            pageEditors.forEach(pageEditor => {
+                pageEditor.style.columnCount = currentColumns;
+                pageEditor.style.fontSize = (baseFontSize * currentScale) + 'pt';
             });
             
-            // Also center song titles if present
-            const songTitles = pageEditor.querySelectorAll('.editor-song .song-title');
-            songTitles.forEach(title => {
-                title.style.textAlign = 'center';
-            });
+            // Update column slider and display if they exist
+            const columnSlider = document.getElementById('column-count-slider');
+            const columnDisplay = document.getElementById('column-display');
             
-            // For multi-column layouts, ensure spacing is even
-            if (currentColumns > 1) {
-                pageEditor.style.columnGap = columnGap + 'px';
-                pageEditor.style.columnRuleWidth = '0';
-                pageEditor.style.columnRuleStyle = 'none';
+            if (columnSlider && columnDisplay) {
+                columnSlider.value = currentColumns;
+                columnDisplay.textContent = currentColumns;
+            }
+            
+            // Ensure columns are properly centered
+            ensureColumnCentering();
+            
+            // Function to check for safe spacing between elements and borders
+            function checkForSafeSpacing() {
+                // Standard overflow check first
+                const hasOverflow = editor.scrollHeight > editor.clientHeight || 
+                                   editor.scrollWidth > editor.clientWidth;
+                
+                if (hasOverflow) return true;
+                
+                // Get editor dimensions and calculate safe border
+                const editorRect = editor.getBoundingClientRect();
+                const safeMargin = 15; // 15px safety margin from borders
+                
+                // Calculate safe inner border
+                const safeBorders = {
+                    left: editorRect.left + safeMargin,
+                    right: editorRect.right - safeMargin,
+                    top: editorRect.top + safeMargin,
+                    bottom: editorRect.bottom - safeMargin
+                };
+                
+                // Get all song elements
+                const songs = editor.querySelectorAll('.editor-song');
+                if (songs.length === 0) return false; // No songs to check
+                
+                // Create array of text nodes to check
+                const textElements = [];
+                songs.forEach(song => {
+                    // Get all text paragraphs
+                    const paragraphs = song.querySelectorAll('p');
+                    paragraphs.forEach(para => {
+                        // Create an array of all ranges
+                        const ranges = [];
+                        
+                        // For each line of text (indicated by <br> tags or start/end)
+                        const nodes = Array.from(para.childNodes);
+                        let currentLine = [];
+                        
+                        nodes.forEach(node => {
+                            if (node.nodeName === 'BR') {
+                                if (currentLine.length > 0) {
+                                    ranges.push(currentLine);
+                                    currentLine = [];
+                                }
+                            } else {
+                                currentLine.push(node);
+                            }
+                        });
+                        
+                        if (currentLine.length > 0) {
+                            ranges.push(currentLine);
+                        }
+                        
+                        // For each line, get its bounding rect
+                        ranges.forEach(line => {
+                            if (line.length > 0) {
+                                // Create a temporary range to get the line's rect
+                                const range = document.createRange();
+                                range.setStart(line[0], 0);
+                                range.setEnd(line[line.length - 1], line[line.length - 1].length || 0);
+                                
+                                // Get all text rectangles (there might be multiple if text wraps)
+                                const rects = range.getClientRects();
+                                for (let i = 0; i < rects.length; i++) {
+                                    textElements.push(rects[i]);
+                                }
+                            }
+                        });
+                    });
+                    
+                    // Also check song titles if present
+                    const titleElement = song.querySelector('.song-title');
+                    if (titleElement) {
+                        const range = document.createRange();
+                        range.selectNodeContents(titleElement);
+                        const rects = range.getClientRects();
+                        for (let i = 0; i < rects.length; i++) {
+                            textElements.push(rects[i]);
+                        }
+                    }
+                });
+                
+                // Now check each text element for:
+                // 1. Touching the safe border
+                // 2. Touching another text element
+                for (let i = 0; i < textElements.length; i++) {
+                    const rect = textElements[i];
+                    
+                    // Check if touching safe border
+                    if (rect.left < safeBorders.left || 
+                        rect.right > safeBorders.right || 
+                        rect.top < safeBorders.top || 
+                        rect.bottom > safeBorders.bottom) {
+                        return true; // Unsafe - touching border
+                    }
+                    
+                    // Check if touching another text element (with small margin)
+                    const touchMargin = 10; // 10px minimum space between elements
+                    for (let j = 0; j < textElements.length; j++) {
+                        if (i !== j) { // Don't compare with self
+                            const otherRect = textElements[j];
+                            
+                            // Check column separation - elements should be either well separated horizontally 
+                            // or well separated vertically
+                            const horizontalOverlap = !(rect.right + touchMargin < otherRect.left || 
+                                                       rect.left > otherRect.right + touchMargin);
+                            
+                            const verticalOverlap = !(rect.bottom + touchMargin < otherRect.top || 
+                                                     rect.top > otherRect.bottom + touchMargin);
+                            
+                            // If they overlap both horizontally AND vertically, it's unsafe
+                            if (horizontalOverlap && verticalOverlap) {
+                                return true; // Unsafe - elements too close
+                            }
+                        }
+                    }
+                }
+                
+                // Additional check for column breaking a song
+                for (const song of songs) {
+                    const songRect = song.getBoundingClientRect();
+                    
+                    // Check if song spans more than one column
+                    // Column width is approximately (editorRect.width - padding) / currentColumns
+                    const columnWidth = (editorRect.width - 40) / currentColumns; // 40px for padding
+                    
+                    // For multiple columns, check if song width is close to column width
+                    if (currentColumns > 1 && Math.abs(songRect.width - columnWidth) < 20) {
+                        // Find where this song should be (which column)
+                        const songLeft = songRect.left - editorRect.left;
+                        const expectedColumn = Math.floor(songLeft / columnWidth);
+                        const expectedLeft = expectedColumn * columnWidth + editorRect.left;
+                        
+                        // If it's not where it should be horizontally, it might be breaking across columns
+                        if (Math.abs(songRect.left - expectedLeft) > 10) {
+                            return true; // Unsafe - song might be breaking across columns
+                        }
+                    }
+                }
+                
+                return false; // Safe if we got here
             }
         }
-    });
-}
 
-// Also modify the updateAllSongsAlignment function to call ensureColumnCentering
-function updateAllSongsAlignment() {
-    const songElements = document.querySelectorAll('.editor-song');
-    songElements.forEach(song => {
-        updateSongAlignment(song);
-    });
-    
-    // Update the editor direction attribute
-    if (editor) {
-        if (textAlignment === 'rtl') {
-            editor.setAttribute('dir', 'rtl');
-            editor.style.textAlign = 'right';
-        } else {
-            editor.setAttribute('dir', 'auto');
-            editor.style.textAlign = 'center';
+        // New function to ensure columns are properly centered
+        function ensureColumnCentering() {
+            // For center alignment, ensure columns are centered
+            if (textAlignment === 'center') {
+                // Set column properties to ensure centered layout
+                editor.style.margin = '0 auto';
+                editor.style.textAlign = 'center';
+                
+                // Get all song paragraphs and ensure they're center-aligned
+                const songParagraphs = editor.querySelectorAll('.editor-song p');
+                songParagraphs.forEach(paragraph => {
+                    paragraph.style.textAlign = 'center';
+                });
+                
+                // Also center song titles if present
+                const songTitles = editor.querySelectorAll('.editor-song .song-title');
+                songTitles.forEach(title => {
+                    title.style.textAlign = 'center';
+                });
+                
+                // For multi-column layouts, ensure spacing is even
+                if (currentColumns > 1) {
+                    // Calculate available width after padding
+                    const editorWidth = editor.clientWidth;
+                    
+                    // Set column properties for even spacing
+                    editor.style.columnGap = columnGap + 'px';
+                    editor.style.columnRuleWidth = '0';
+                    editor.style.columnRuleStyle = 'none';
+                    
+                    // Apply these properties to ensure content is centered within columns
+                    const songElements = editor.querySelectorAll('.editor-song');
+                    songElements.forEach(song => {
+                        song.style.width = '100%';
+                        song.style.boxSizing = 'border-box';
+                        song.style.textAlign = 'center';
+                    });
+                }
+            }
+            
+            // Apply similar centering to any additional pages
+            const pageEditors = document.querySelectorAll('.page-editor');
+            pageEditors.forEach(pageEditor => {
+                if (textAlignment === 'center') {
+                    pageEditor.style.margin = '0 auto';
+                    pageEditor.style.textAlign = 'center';
+                    
+                    // Get all song paragraphs and ensure they're center-aligned
+                    const songParagraphs = pageEditor.querySelectorAll('.editor-song p');
+                    songParagraphs.forEach(paragraph => {
+                        paragraph.style.textAlign = 'center';
+                    });
+                    
+                    // Also center song titles if present
+                    const songTitles = pageEditor.querySelectorAll('.editor-song .song-title');
+                    songTitles.forEach(title => {
+                        title.style.textAlign = 'center';
+                    });
+                    
+                    // For multi-column layouts, ensure spacing is even
+                    if (currentColumns > 1) {
+                        pageEditor.style.columnGap = columnGap + 'px';
+                        pageEditor.style.columnRuleWidth = '0';
+                        pageEditor.style.columnRuleStyle = 'none';
+                    }
+                }
+            });
         }
-    }
-    
-    // Update any additional pages
-    const pageEditors = document.querySelectorAll('.page-editor');
-    pageEditors.forEach(pageEditor => {
-        if (textAlignment === 'rtl') {
-            pageEditor.setAttribute('dir', 'rtl');
-            pageEditor.style.textAlign = 'right';
-        } else {
-            pageEditor.setAttribute('dir', 'auto');
-            pageEditor.style.textAlign = 'center';
+
+        // Function to update all songs with the current alignment setting
+        function updateAllSongsAlignment() {
+            // Update all song elements
+            const songElements = document.querySelectorAll('.editor-song');
+            songElements.forEach(song => {
+                updateSongAlignment(song);
+            });
+            
+            // Update the editor direction attribute
+            if (editor) {
+                if (textAlignment === 'rtl') {
+                    editor.setAttribute('dir', 'rtl');
+                    editor.style.textAlign = 'right';
+                } else {
+                    editor.setAttribute('dir', 'auto');
+                    editor.style.textAlign = 'center';
+                }
+            }
+            
+            // Update any additional pages
+            const pageEditors = document.querySelectorAll('.page-editor');
+            pageEditors.forEach(pageEditor => {
+                if (textAlignment === 'rtl') {
+                    pageEditor.setAttribute('dir', 'rtl');
+                    pageEditor.style.textAlign = 'right';
+                } else {
+                    pageEditor.setAttribute('dir', 'auto');
+                    pageEditor.style.textAlign = 'center';
+                }
+            });
+            
+            // Ensure columns are properly centered
+            ensureColumnCentering();
+            
+            // Check layout after alignment change
+            checkContentAndManageLayout();
         }
-    });
-    
-    // Ensure columns are properly centered
-    ensureColumnCentering();
-    
-    // Check layout after alignment change
-    checkContentAndManageLayout();
-}
         
         // Function to update layout controls in the UI
         function updateLayoutControls() {
@@ -1230,7 +1737,7 @@ function updateAllSongsAlignment() {
             
             // Update scale indicator
             scaleIndicator.textContent = `Scale: ${Math.round(currentScale * 100)}%`;
-            scaleIndicator.style.backgroundColor = currentScale < 0.8 ? '#ff9900' : '#f2cb05';
+            scaleIndicator.style.backgroundColor = currentScale < 0.8 ? '#4d4d4d' : '#4d4d4d';
         }
         
         // Function to manually set column count
@@ -1278,40 +1785,6 @@ function updateAllSongsAlignment() {
             
             return pageEditor; // Return the new editor for adding content
         }
-        
-        // Function to check if content overflows and scale if needed
-        function checkOverflowAndScale() {
-            // First try to adjust columns automatically
-            if (autoColumns) {
-                checkContentAndManageLayout();
-                return;
-            }
-            
-            // If auto columns disabled, just scale the font
-            // Reset scale to check natural size
-            editor.style.fontSize = baseFontSize + 'pt';
-            currentScale = 1.0;
-            
-            // Check if content overflows
-            if (editor.scrollHeight > editor.clientHeight || editor.scrollWidth > editor.clientWidth) {
-                // Start scaling down until it fits
-                let scaleStep = 0.05;
-                while ((editor.scrollHeight > editor.clientHeight || editor.scrollWidth > editor.clientWidth) 
-                      && currentScale > 0.5) {
-                    currentScale -= scaleStep;
-                    editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
-                }
-                
-                // Update scale indicator
-                scaleIndicator.textContent = `Scale: ${Math.round(currentScale * 100)}%`;
-                scaleIndicator.style.backgroundColor = currentScale < 0.8 ? '#ff9900' : '#f2cb05';
-            } else {
-                scaleIndicator.textContent = 'Scale: 100%';
-                scaleIndicator.style.backgroundColor = '#f2cb05';
-            }
-            
-            updateLayoutControls();
-        }
 
         // Initialize sheet with songs from localStorage
         function initializeSheet() {
@@ -1333,7 +1806,7 @@ function updateAllSongsAlignment() {
                 appendSongToEditor(song, index);
             });
             
-            // Initialize with auto column management
+            // Initialize with auto column management - starting with 1 column
             const fontSizeSlider = document.getElementById('font-size-slider');
             const sizeDisplay = document.getElementById('size-display');
             const columnSlider = document.getElementById('column-count-slider');
@@ -1356,7 +1829,7 @@ function updateAllSongsAlignment() {
                 gapDisplay.textContent = columnGap + 'px';
             }
             
-            // Check and adjust columns and scaling
+            // Check and adjust columns and scaling with proper progression
             checkContentAndManageLayout();
         }
 
@@ -1425,27 +1898,8 @@ function updateAllSongsAlignment() {
             // Ensure proper layout after adding content
             // Use a timeout to ensure DOM has updated
             setTimeout(() => {
-                // Check for all types of layout issues
+                // Check for layout issues
                 checkContentAndManageLayout();
-                
-                // Double-check to ensure everything is correct
-                if (checkForOverflow() || checkForUnauthorizedLineBreaks() || 
-                    checkForSongBoundaryCrossings() || checkForBorderMarginViolations()) {
-                    console.warn("Post-add issues detected - applying stricter enforcement");
-                    
-                    // Force more drastic scaling if needed
-                    while ((checkForOverflow() || checkForUnauthorizedLineBreaks() || 
-                            checkForSongBoundaryCrossings() || checkForBorderMarginViolations()) && currentScale > 0.3) {
-                        currentScale -= 0.05;
-                        editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
-                    }
-                    
-                    // Last resort - ensure hidden overflow
-                    editor.style.overflow = "hidden";
-                    
-                    // Update UI
-                    updateLayoutControls();
-                }
             }, 20);
         }
 
@@ -1463,6 +1917,29 @@ function updateAllSongsAlignment() {
                 setTimeout(() => {
                     checkContentAndManageLayout();
                 }, 20);
+            }
+        }
+
+        // Function to update a single song's alignment
+        function updateSongAlignment(songElement) {
+            if (textAlignment === 'rtl') {
+                songElement.setAttribute('dir', 'rtl');
+                songElement.style.textAlign = 'right';
+            } else {
+                songElement.setAttribute('dir', 'auto');
+                songElement.style.textAlign = 'center';
+            }
+            
+            // Update paragraph alignment specifically
+            const paragraphs = songElement.querySelectorAll('p');
+            paragraphs.forEach(p => {
+                p.style.textAlign = textAlignment === 'rtl' ? 'right' : 'center';
+            });
+            
+            // Update song title alignment if it exists
+            const titleElement = songElement.querySelector('.song-title');
+            if (titleElement) {
+                titleElement.style.textAlign = textAlignment === 'rtl' ? 'right' : 'center';
             }
         }
 
@@ -1488,9 +1965,9 @@ function updateAllSongsAlignment() {
                 songDiv.setAttribute("data-lyrics", song.lyrics.replace(/\r\n|\r|\n/g, "\\n"));
                 
                 songDiv.innerHTML = `
-                <div>
-                    <strong>${song.title}</strong><br>
-                    <small>${song.artist || "Unknown"}</small>
+                <div class="song-content">
+                    <strong>${song.title}</strong> 
+                    <small>• ${song.artist || "Unknown"}</small>
                 </div>
                 `;
                 songsContainer.appendChild(songDiv);
@@ -1576,269 +2053,136 @@ function updateAllSongsAlignment() {
 
         uploadInput.addEventListener("change", handleFileUpload);
 
-        // SVG-based printing solution - captures EXACT layout
-        document.getElementById('print-button').addEventListener('click', function() {
-            // Show processing indicator
-            const processingIndicator = document.createElement('div');
-            processingIndicator.style.position = 'fixed';
-            processingIndicator.style.top = '50%';
-            processingIndicator.style.left = '50%';
-            processingIndicator.style.transform = 'translate(-50%, -50%)';
-            processingIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-            processingIndicator.style.color = 'white';
-            processingIndicator.style.padding = '20px';
-            processingIndicator.style.borderRadius = '5px';
-            processingIndicator.style.zIndex = '9999';
-            processingIndicator.textContent = 'Preparing print output...';
-            document.body.appendChild(processingIndicator);
-            
-            // Create a container for SVG snapshots
-            const printContainer = document.createElement('div');
-            printContainer.id = 'svg-print-container';
-            printContainer.style.position = 'fixed';
-            printContainer.style.left = '-9999px';
-            printContainer.style.top = '0';
-            document.body.appendChild(printContainer);
-            
-            // Get all pages to print
-            const mainEditor = document.getElementById('editor-container');
-            const additionalPages = document.querySelectorAll('.page-container');
-            const pagesToPrint = [mainEditor, ...Array.from(additionalPages)];
-            
-            // Set up promises for all captures
-            const capturePromises = pagesToPrint.map((page, index) => 
-                captureDOMtoSVG(page, index)
-            );
-            
-            // Process all captures
-            Promise.all(capturePromises)
-                .then(svgElements => {
-                    // Add all SVG elements to print container
-                    svgElements.forEach(svg => {
-                        if (svg) {
-                            const pageWrapper = document.createElement('div');
-                            pageWrapper.className = 'print-page-wrapper';
-                            pageWrapper.style.width = '8.5in';
-                            pageWrapper.style.height = '11in';
-                            pageWrapper.style.margin = '0 auto';
-                            pageWrapper.style.pageBreakAfter = 'always';
-                            pageWrapper.style.position = 'relative';
-                            
-                            pageWrapper.appendChild(svg);
-                            printContainer.appendChild(pageWrapper);
-                        }
-                    });
-                    
-                    // Inject print CSS
-                    const printStyle = document.createElement('style');
-                    printStyle.id = 'svg-print-styles';
-                    printStyle.innerHTML = `
-                        @media print {
-                            body * { visibility: hidden; }
-                            #svg-print-container, #svg-print-container * { visibility: visible; }
-                            #svg-print-container { position: absolute; top: 0; left: 0; width: 100%; }
-                            @page { size: 8.5in 11in; margin: 0; }
-                            .print-page-wrapper { page-break-after: always; }
-                            .print-page-wrapper:last-child { page-break-after: avoid; }
-                            svg { max-width: 100%; height: auto; }
-                        }
-                    `;
-                    document.head.appendChild(printStyle);
-                    
-                    // Hide indicator
-                    document.body.removeChild(processingIndicator);
-                    
-                    // Position print container and print
-                    setTimeout(() => {
-                        printContainer.style.left = '0';
-                        window.print();
-                        
-                        // Clean up after printing
-                        setTimeout(() => {
-                            document.head.removeChild(printStyle);
-                            document.body.removeChild(printContainer);
-                        }, 1000);
-                    }, 500);
-                })
-                .catch(error => {
-                    console.error('Error generating print output:', error);
-                    processingIndicator.textContent = 'Error preparing print. Please try again.';
-                    setTimeout(() => {
-                        document.body.removeChild(processingIndicator);
-                    }, 2000);
-                });
-        });
-
-        // Function to capture a DOM element to SVG
-        function captureDOMtoSVG(element, index) {
-            return new Promise((resolve, reject) => {
-                try {
-                    // Get dimensions
-                    const rect = element.getBoundingClientRect();
-                    const width = rect.width;
-                    const height = rect.height;
-                    
-                    // Create SVG element
-                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                    svg.setAttribute('width', '8.5in');
-                    svg.setAttribute('height', '11in');
-                    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-                    
-                    // Add a border background
-                    const backgroundGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                    
-                    // First, add the sheet background
-                    const sheetBackground = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                    sheetBackground.setAttribute('width', width);
-                    sheetBackground.setAttribute('height', height);
-                    sheetBackground.setAttribute('fill', '#f9f8f0'); // Light cream color
-                    backgroundGroup.appendChild(sheetBackground);
-                    
-                    // Add sheet texture as pattern
-                    const sheetPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-                    sheetPattern.setAttribute('id', `sheetPattern-${index}`);
-                    sheetPattern.setAttribute('patternUnits', 'userSpaceOnUse');
-                    sheetPattern.setAttribute('width', width);
-                    sheetPattern.setAttribute('height', height);
-                    
-                    const sheetImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-                    sheetImage.setAttribute('href', '/assets/sheetskin.png');
-                    sheetImage.setAttribute('width', width);
-                    sheetImage.setAttribute('height', height);
-                    sheetImage.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-                    
-                    sheetPattern.appendChild(sheetImage);
-                    
-                    // Add border pattern
-                    const borderPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-                    borderPattern.setAttribute('id', `borderPattern-${index}`);
-                    borderPattern.setAttribute('patternUnits', 'userSpaceOnUse');
-                    borderPattern.setAttribute('width', width);
-                    borderPattern.setAttribute('height', height);
-                    
-                    const borderImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-                    borderImage.setAttribute('href', '/assets/border-graphic.png');
-                    borderImage.setAttribute('width', width);
-                    borderImage.setAttribute('height', height);
-                    borderImage.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-                    
-                    borderPattern.appendChild(borderImage);
-                    
-                    // Add the patterns to the SVG
-                    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-                    defs.appendChild(sheetPattern);
-                    defs.appendChild(borderPattern);
-                    svg.appendChild(defs);
-                    
-                    // Add background with pattern
-                    const sheetRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                    sheetRect.setAttribute('width', width);
-                    sheetRect.setAttribute('height', height);
-                    sheetRect.setAttribute('fill', `url(#sheetPattern-${index})`);
-                    backgroundGroup.appendChild(sheetRect);
-                    
-                    // Add border with pattern
-                    const borderRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                    borderRect.setAttribute('width', width);
-                    borderRect.setAttribute('height', height);
-                    borderRect.setAttribute('fill', `url(#borderPattern-${index})`);
-                    backgroundGroup.appendChild(borderRect);
-                    
-                    // Add the background group to SVG
-                    svg.appendChild(backgroundGroup);
-                    
-                    // Find the editor content
-                    const contentElement = element.querySelector('#editor') || element.querySelector('.page-editor');
-                    
-                    if (!contentElement) {
-                        resolve(svg); // Return the svg with just the background if no content
+        // Print functionality with SVG-based exact layout capture
+        document.querySelectorAll('#print-button, #header-print-button').forEach(button => {
+            button.addEventListener('click', function() {
+                // Show processing indicator
+                const processingIndicator = document.createElement('div');
+                processingIndicator.style.position = 'fixed';
+                processingIndicator.style.top = '50%';
+                processingIndicator.style.left = '50%';
+                processingIndicator.style.transform = 'translate(-50%, -50%)';
+                processingIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                processingIndicator.style.color = 'white';
+                processingIndicator.style.padding = '20px';
+                processingIndicator.style.borderRadius = '5px';
+                processingIndicator.style.zIndex = '9999';
+                processingIndicator.textContent = 'Preparing print output...';
+                document.body.appendChild(processingIndicator);
+                
+                // Create a container for the print version with SVG capture
+                const printContainer = document.createElement('div');
+                printContainer.id = 'print-container';
+                printContainer.style.position = 'fixed';
+                printContainer.style.left = '0';
+                printContainer.style.top = '0';
+                printContainer.style.width = '100%';
+                printContainer.style.height = '100%';
+                printContainer.style.backgroundColor = 'white';
+                printContainer.style.zIndex = '9998';
+                printContainer.style.overflow = 'auto';
+                printContainer.style.display = 'none'; // Initially hidden
+                document.body.appendChild(printContainer);
+                
+                // Get all pages to print
+                const mainEditor = document.getElementById('editor-container');
+                const additionalPages = document.querySelectorAll('.page-container');
+                const pagesToPrint = [mainEditor, ...Array.from(additionalPages)];
+                
+                // Process each page with html2canvas for exact capture
+                let processedCount = 0;
+                const totalPages = pagesToPrint.length;
+                
+                // Update the indicator to show progress
+                processingIndicator.textContent = `Capturing page 1 of ${totalPages}...`;
+                
+                // Process pages one by one
+                processPage(0);
+                
+                function processPage(index) {
+                    if (index >= totalPages) {
+                        // All pages processed, trigger print
+                        printAndCleanup();
                         return;
                     }
                     
-                    // Create a foreign object for the content
-                    const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-                    foreignObject.setAttribute('width', width);
-                    foreignObject.setAttribute('height', height);
-                    foreignObject.setAttribute('x', 0);
-                    foreignObject.setAttribute('y', 0);
+                    const pageElement = pagesToPrint[index];
+                    processingIndicator.textContent = `Capturing page ${index + 1} of ${totalPages}...`;
                     
-                    // Clone the element
-                    const contentClone = contentElement.cloneNode(true);
+                    // Create a page wrapper for each captured page
+                    const pageWrapper = document.createElement('div');
+                    pageWrapper.className = 'print-page';
+                    pageWrapper.style.width = '8.5in';
+                    pageWrapper.style.height = '11in';
+                    pageWrapper.style.margin = '0 auto';
+                    pageWrapper.style.position = 'relative';
+                    pageWrapper.style.pageBreakAfter = 'always';
+                    pageWrapper.style.backgroundColor = 'white';
+                    pageWrapper.style.overflow = 'hidden';
                     
-                    // Remove any remove buttons
-                    const removeButtons = contentClone.querySelectorAll('.remove-button');
-                    removeButtons.forEach(btn => btn.parentNode.removeChild(btn));
+                    // Use html2canvas to capture the exact layout as an image
+                    html2canvas(pageElement, {
+                        scale: 2, // Higher scale for better quality
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: null,
+                        logging: false,
+                        onclone: function(clonedDoc) {
+                            // In the cloned document, hide controls and focus on content
+                            const clonedElement = clonedDoc.querySelector(`#${pageElement.id}`);
+                            if (clonedElement) {
+                                const removeButtons = clonedElement.querySelectorAll('.remove-button');
+                                removeButtons.forEach(button => {
+                                    button.style.display = 'none';
+                                });
+                            }
+                        }
+                    }).then(canvas => {
+                        // Convert canvas to an image for better printing
+                        const img = document.createElement('img');
+                        img.src = canvas.toDataURL('image/png');
+                        img.style.width = '100%';
+                        img.style.height = 'auto';
+                        img.style.display = 'block';
+                        
+                        // Add the captured image to the page wrapper
+                        pageWrapper.appendChild(img);
+                        printContainer.appendChild(pageWrapper);
+                        
+                        // Process the next page
+                        processedCount++;
+                        processPage(index + 1);
+                    }).catch(error => {
+                        console.error('Error capturing page:', error);
+                        processingIndicator.textContent = 'Error preparing print output. Please try again.';
+                        
+                        // Clean up after 3 seconds
+                        setTimeout(() => {
+                            document.body.removeChild(processingIndicator);
+                            document.body.removeChild(printContainer);
+                        }, 3000);
+                    });
+                }
+                
+                function printAndCleanup() {
+                    // All pages processed, update indicator
+                    processingIndicator.textContent = 'Opening print dialog...';
                     
-                    // Add the content to the foreign object
-                    foreignObject.appendChild(contentClone);
+                    // Show the print container
+                    printContainer.style.display = 'block';
                     
-                    // Add the foreign object to the SVG
-                    svg.appendChild(foreignObject);
-                    
-                    // Return the completed SVG
-                    resolve(svg);
-                    
-                } catch (error) {
-                    reject(error);
+                    // Give the browser a moment to render before printing
+                    setTimeout(() => {
+                        window.print();
+                        
+                        // Clean up after printing
+                        document.body.removeChild(processingIndicator);
+                        document.body.removeChild(printContainer);
+                    }, 500);
                 }
             });
-        }
-
-        // Function to update all songs with the current alignment setting
-        function updateAllSongsAlignment() {
-            // Update all song elements
-            const songElements = document.querySelectorAll('.editor-song');
-            songElements.forEach(song => {
-                updateSongAlignment(song);
-            });
-            
-            // Update the editor direction attribute
-            if (editor) {
-                if (textAlignment === 'rtl') {
-                    editor.setAttribute('dir', 'rtl');
-                    editor.style.textAlign = 'right';
-                } else {
-                    editor.setAttribute('dir', 'auto');
-                    editor.style.textAlign = 'center';
-                }
-            }
-            
-            // Update any additional pages
-            const pageEditors = document.querySelectorAll('.page-editor');
-            pageEditors.forEach(pageEditor => {
-                if (textAlignment === 'rtl') {
-                    pageEditor.setAttribute('dir', 'rtl');
-                    pageEditor.style.textAlign = 'right';
-                } else {
-                    pageEditor.setAttribute('dir', 'auto');
-                    pageEditor.style.textAlign = 'center';
-                }
-            });
-        }
-
-        // Function to update a single song's alignment
-        function updateSongAlignment(songElement) {
-            if (textAlignment === 'rtl') {
-                songElement.setAttribute('dir', 'rtl');
-                songElement.style.textAlign = 'right';
-            } else {
-                songElement.setAttribute('dir', 'auto');
-                songElement.style.textAlign = 'center';
-            }
-            
-            // Update paragraph alignment specifically
-            const paragraphs = songElement.querySelectorAll('p');
-            paragraphs.forEach(p => {
-                p.style.textAlign = textAlignment === 'rtl' ? 'right' : 'center';
-            });
-            
-            // Update song title alignment if it exists
-            const titleElement = songElement.querySelector('.song-title');
-            if (titleElement) {
-                titleElement.style.textAlign = textAlignment === 'rtl' ? 'right' : 'center';
-            }
-        }
-
+        });
+        
         function updateClearSheetButton() {
             const clearSheetButton = document.getElementById("clear-sheet");
             if (!clearSheetButton) return; // Guard against null reference
@@ -1910,63 +2254,89 @@ function updateAllSongsAlignment() {
         }
         
         // Event listeners for font size controls
-        fontSizeSlider.addEventListener('input', function() {
-            updateFontSizeFromDevControls(parseFloat(this.value));
-        });
+        if (fontSizeSlider) {
+            fontSizeSlider.addEventListener('input', function() {
+                updateFontSizeFromDevControls(parseFloat(this.value));
+            });
+        }
         
-        sizeDecreaseBtn.addEventListener('click', function() {
-            const newSize = Math.max(6, parseFloat(fontSizeSlider.value) - 0.5);
-            updateFontSizeFromDevControls(newSize);
-        });
+        if (sizeDecreaseBtn) {
+            sizeDecreaseBtn.addEventListener('click', function() {
+                const newSize = Math.max(6, parseFloat(fontSizeSlider.value) - 0.5);
+                updateFontSizeFromDevControls(newSize);
+            });
+        }
         
-        sizeIncreaseBtn.addEventListener('click', function() {
-            const newSize = Math.min(24, parseFloat(fontSizeSlider.value) + 0.5);
-            updateFontSizeFromDevControls(newSize);
-        });
+        if (sizeIncreaseBtn) {
+            sizeIncreaseBtn.addEventListener('click', function() {
+                const newSize = Math.min(24, parseFloat(fontSizeSlider.value) + 0.5);
+                updateFontSizeFromDevControls(newSize);
+            });
+        }
         
-        sizeResetBtn.addEventListener('click', function() {
-            updateFontSizeFromDevControls(baseFontSize);
-        });
+        if (sizeResetBtn) {
+            sizeResetBtn.addEventListener('click', function() {
+                updateFontSizeFromDevControls(baseFontSize);
+            });
+        }
         
         // Column count control event listeners
-        columnSlider.addEventListener('input', function() {
-            setColumnCount(parseInt(this.value));
-        });
+        if (columnSlider) {
+            columnSlider.addEventListener('input', function() {
+                setColumnCount(parseInt(this.value));
+            });
+        }
         
-        colDecreaseBtn.addEventListener('click', function() {
-            setColumnCount(Math.max(1, currentColumns - 1));
-        });
+        if (colDecreaseBtn) {
+            colDecreaseBtn.addEventListener('click', function() {
+                setColumnCount(Math.max(1, currentColumns - 1));
+            });
+        }
         
-        colIncreaseBtn.addEventListener('click', function() {
-            setColumnCount(Math.min(3, currentColumns + 1));
-        });
+        if (colIncreaseBtn) {
+            colIncreaseBtn.addEventListener('click', function() {
+                setColumnCount(Math.min(3, currentColumns + 1));
+            });
+        }
         
-        colAutoBtn.addEventListener('click', function() {
-            autoColumns = true;
-            checkContentAndManageLayout();
-        });
+        if (colAutoBtn) {
+            colAutoBtn.addEventListener('click', function() {
+                autoColumns = true;
+                checkContentAndManageLayout(); // Only use this when explicitly asked
+            });
+        }
         
         // Column gap control event listeners
-        columnGapSlider.addEventListener('input', function() {
-            updateColumnGap(parseInt(this.value));
-        });
+        if (columnGapSlider) {
+            columnGapSlider.addEventListener('input', function() {
+                updateColumnGap(parseInt(this.value));
+            });
+        }
         
-        gapDecreaseBtn.addEventListener('click', function() {
-            updateColumnGap(Math.max(5, columnGap - 5));
-        });
+        if (gapDecreaseBtn) {
+            gapDecreaseBtn.addEventListener('click', function() {
+                updateColumnGap(Math.max(5, columnGap - 5));
+            });
+        }
         
-        gapIncreaseBtn.addEventListener('click', function() {
-            updateColumnGap(Math.min(50, columnGap + 5));
-        });
+        if (gapIncreaseBtn) {
+            gapIncreaseBtn.addEventListener('click', function() {
+                updateColumnGap(Math.min(50, columnGap + 5));
+            });
+        }
         
-        gapResetBtn.addEventListener('click', function() {
-            updateColumnGap(20);
-        });
+        if (gapResetBtn) {
+            gapResetBtn.addEventListener('click', function() {
+                updateColumnGap(20);
+            });
+        }
         
         // Add page button event listener
-        addPageBtn.addEventListener('click', function() {
-            addNewPage();
-        });
+        if (addPageBtn) {
+            addPageBtn.addEventListener('click', function() {
+                addNewPage();
+            });
+        }
         
         // Make functions available to HTML onclick events
         window.removeSongFromEditor = removeSongFromEditor;
@@ -2021,7 +2391,7 @@ function updateAllSongsAlignment() {
                 
                 // Display a message about using demo data
                 songsContainer.innerHTML = `
-                    <div style="background-color: #fffacc; color: #333; padding: 10px; margin-bottom: 15px; border-left: 4px solid #f2cb05; border-radius: 4px;">
+                    <div style="background-color: #1c1c1c; color: #e0e0e0; padding: 16px; margin-bottom: 16px; border-left: 4px solid #FFDA2A; border-radius: 4px;">
                         <strong>Using demo songs.</strong> The API is currently unavailable.
                     </div>
                 `;
@@ -2031,5 +2401,45 @@ function updateAllSongsAlignment() {
                 updateClearSheetButton();
             });
     </script>
+</body>
+</html>
+            {
+                title: "אנא בכח",
+                artist: "Kabbalistic",
+                lyrics: "אנא בכח גדולת ימינך תתיר צרורה\nקבל רינת עמך שגבנו טהרנו נורא\nנא גיבור דורשי יחודך כבבת שמרם\nברכם טהרם רחמם צדקתך תמיד גמלם"
+            }
+        ];
+        
+        // Try to fetch songs with fallback
+        fetch(songsEndpoint)
+            .then(response => response.json())
+            .then(data => {
+                songs = data;
+                renderSongs(songs);
+                initializeSheet();
+                updateClearSheetButton();
+            })
+            .catch(error => {
+                console.error('Error loading songs:', error);
+                console.log('Using mock song data instead');
+                
+                // Use mock data as fallback
+                songs = mockSongs;
+                
+                // Display a message about using demo data
+                songsContainer.innerHTML = `
+                    <div style="background-color: #1c1c1c; color: #e0e0e0; padding: 16px; margin-bottom: 16px; border-left: 4px solid #FFDA2A; border-radius: 4px;">
+                        <strong>Using demo songs.</strong> The API is currently unavailable.
+                    </div>
+                `;
+                
+                renderSongs(songs);
+                initializeSheet();
+                updateClearSheetButton();
+            });
+    </script>
+    <script>
+       
+        </script>
 </body>
 </html>

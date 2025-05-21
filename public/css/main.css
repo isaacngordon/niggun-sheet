@@ -1297,3 +1297,22 @@ body.song-directory {
     white-space: nowrap;
   }
   /* ...other classes from previous examples... */
+  html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+#content, .container, main {
+    flex: 1 0 auto; /* This makes the content area take up all available space */
+}
+
+#footer {
+    flex-shrink: 0; /* Prevents the footer from shrinking */
+    /* Your existing footer styles here */
+}

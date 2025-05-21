@@ -1408,7 +1408,7 @@
         
         // Icons for play/pause
         const playIcon = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="160" height="160" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M5 3L19 12L5 21V3Z" fill="currentColor"/>
             </svg>
         `;
@@ -1440,7 +1440,7 @@
                 let song_lyrics = button.getAttribute("data-lyrics");
                 sheetSongs.push({title: song_title, artist: song_artist, lyrics: decodeURIComponent(song_lyrics)});
                 localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
-                alert(`${song_title} added to the sheet.`);
+                //alert(`${song_title} added to the sheet.`);
                 button.textContent = "Remove from Sheet";
                 button.classList.add("remove-button"); // Add class for styling
                 button.onclick = () => removeFromSheet(song_title, song_artist, button);
@@ -1457,7 +1457,7 @@
             let sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
             sheetSongs = sheetSongs.filter(s => !(s.title === song_title && s.artist === song_artist));
             localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
-            alert(`${song_title} removed from the sheet.`);
+            // from the sheet.`);
             button.textContent = "Add to Sheet";
             button.classList.remove("remove-button"); // Remove class for styling
             button.onclick = () => addToSheet(song_title, song_artist, button);
@@ -1651,3 +1651,9 @@
     </script>
 </body>
 </html>
+
+
+
+
+
+
