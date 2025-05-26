@@ -1,187 +1,1084 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Growth Plan</title>
-    <link rel="stylesheet" href="css/main.css">
+    <title>Sheet Builder</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        body {
+        /* Reset and base styles */
+        * {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
+            box-sizing: border-box;
         }
 
-        #navbar, #footer {
-            background-color: #0d0d0d;
-            color: #ffffff;
-            padding: 10px;
-            text-align: center;
+        /* Modern dark theme color scheme */
+        :root {
+            --color-dark-grey: #1a1a1a;
+            --color-grey-900: #212121;
+            --color-grey-850: #1c1c1c;
+            --color-grey-800: #2d2d2d;
+            --color-grey-700: #3d3d3d;
+            --color-grey-600: #4d4d4d;
+            --color-grey-500: #666666;
+            --color-grey-400: #808080;
+            --color-grey-300: #999999;
+            --color-grey-200: #b3b3b3;
+            --color-grey-100: #e0e0e0;
+            --color-yellow: #FFDA2A;
+            --color-yellow-dark: #e6c200;
+            --color-yellow-light: #fff5c7;
+            --color-white: #ffffff;
+            --color-black: #000000;
+            --sidebar-width: 300px;
+            --header-height: 64px;
         }
 
-        #navbar a, #footer a {
-            color: rgb(255, 218, 42);
-            margin: 0 10px;
+        /* Songs list container */
+        .songs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        /* Typography styles */
+        .sidebar-header h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        
+        .sidebar-section-title div {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-grey-500);
+            margin-bottom: 0.75rem;
+        }
+        
+        .new-badge {
+            margin-left: 0.625rem;
+        }
+        
+        /* Layout styles for sidebar */
+        .sidebar-header {
+            padding-top: 1.5rem;
+            background-color: transparent;
+        }
+        
+        /* Toggle button visibility */
+        #sidebar-toggle {
+            display: block;
+        }
+        
+        @media (min-width: 1280px) {
+            #sidebar-toggle {
+                display: none;
+            }
+            
+            .sidebar-header {
+                padding-top: 2.25rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar-header {
+                padding-top: 1rem;
+            }
+        }
+
+        /* Base body styling */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--color-dark-grey);
+            color: var(--color-white);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Modern Header */
+        header {
+            background-color: #000000;
+            color: var(--color-white);
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 50;
+            position: sticky;
+            top: 0;
+        }
+
+        .header-container {
+            display: flex;
+            height: var(--header-height);
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            height: 100%;
+            font-size: 1rem;
+            font-weight: 400;
+            color: #9ca3af;
             text-decoration: none;
+            white-space: nowrap;
+            transition: color 0.2s;
         }
 
-        #navbar a:hover, #footer a:hover {
-            text-decoration: underline;
+        .nav-link:hover {
+            color: var(--color-white);
         }
 
-        .hero {
-            background-color: #0d0d0d;
-            color: white;
-            text-align: center;
-            padding: 80px 20px;
+        .nav-link.active {
+            color: var(--color-yellow);
+        }
+
+        .new-badge {
+            margin-left: 0.625rem;
+            border-radius: 0.125rem;
+            background-color: var(--color-yellow);
+            padding: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            line-height: 1;
+            color: #111827;
+        }
+
+        .download-button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 700;
+            border-radius: 9999px;
+            background-color: var(--color-yellow);
+            color: #111827;
+            padding: 0.375rem 1.25rem;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .download-button:hover {
+            background-color: var(--color-yellow-dark);
+        }
+
+        .mobile-menu-button {
+            display: none;
+            color: var(--color-white);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Main content layout - full height container */
+        #content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            height: calc(100vh - var(--header-height) - 70px); /* Exact space between header and footer */
             position: relative;
         }
 
-        .hero h1 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
+        /* Song list sidebar */
+        #song-list {
+            width: var(--sidebar-width);
+            background-color: var(--color-dark-grey);
+            color: var(--color-white);
+            border-right: 1px solid var(--color-grey-800);
+            flex-shrink: 0;
+            padding: 0;
+            position: sticky;
+            top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Sidebar sections */
+        .sidebar-section {
+            margin-bottom: 0;
+            padding: 16px;
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Songs container - scrollable area */
+        .songs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 4px; /* Add some padding for the scrollbar */
+        }
+        
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--color-grey-800);
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+        
+        .sheet-controls-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--color-grey-800);
+            flex-shrink: 0;
+        }
+        
+        .sidebar-section-title {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            flex-shrink: 0;
+        }
+        
+        /* Sidebar navigation */
+        .sidebar-nav {
+            padding: 16px;
+            border-bottom: 1px solid var(--color-grey-800);
+            flex-shrink: 0;
+        }
+        
+        .nav-item-wrapper {
+            position: relative;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            transition: all 0.15s;
+            cursor: pointer;
+            color: var(--color-grey-300);
+        }
+        
+        .nav-item:hover {
+            background-color: var(--color-grey-850);
+            color: var(--color-white);
+        }
+        
+        .nav-item.active {
+            background-color: var(--color-grey-850);
+            color: var(--color-yellow);
+            border-left: 3px solid var(--color-yellow);
+            padding-left: 13px;
+        }
+        
+        .nav-item .icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: currentColor;
         }
 
-        .hero-accent {
-            background-color: rgb(255, 218, 42);
-            height: 5px;
-            width: 100px;
-            margin: 0 auto 30px;
+        /* Sheet controls */
+        #sheet-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 1rem;
         }
 
-        .content {
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            background-color: white;
-            border-radius: 4px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        #sheet-controls button {
+            background-color: transparent;
+            color: var(--color-grey-300);
+            border: 1px solid var(--color-grey-700);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.15s;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .content p {
-            font-size: 1.1rem;
-            line-height: 1.6;
-            color: #333;
-            margin-bottom: 30px;
+        #sheet-controls button:hover:not(:disabled) {
+            background-color: var(--color-grey-800);
+            color: var(--color-white);
         }
 
-        .contact-button {
+        #sheet-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #print-button, #sheet-controls .option-button.active {
+            background-color: var(--color-yellow);
+            color: var(--color-black);
+            border-color: var(--color-yellow);
+        }
+
+        #print-button:hover, #sheet-controls .option-button.active:hover {
+            background-color: var(--color-yellow-dark);
+            border-color: var(--color-yellow-dark);
+        }
+
+        .scale-indicator {
+            background-color: transparent;
+            color: var(--color-grey-300);
+            font-size: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            height: 40px;
+            border: 1px solid var(--color-grey-700);
+        }
+
+        /* File upload */
+        #upload {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 16px;
+            background-color: var(--color-grey-800);
+            color: var(--color-white);
+            border: 1px solid var(--color-grey-700);
+            border-radius: 6px;
+            transition: border-color 0.2s;
+            cursor: pointer;
+        }
+        
+        #upload:hover {
+            border-color: var(--color-yellow);
+        }
+
+        /* Fix song height for clean appearance in scrollable container */
+        .song-item {
+            padding: 10px 16px;
+            background-color: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: grab;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            color: var(--color-grey-300);
+            margin-bottom: 0;
+        }
+
+        .song-item:hover {
+            background-color: var(--color-grey-850);
+            border-color: transparent;
+            box-shadow: none;
+            color: var(--color-white);
+        }
+
+        .song-item-used {
+            border-left: 3px solid var(--color-yellow);
+            color: var(--color-yellow);
+            padding-left: 13px;
+        }
+
+        .song-item strong {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .song-item small {
+            color: var(--color-grey-400);
+            font-size: 0.85rem;
+        }
+        
+        /* Song content wrapper */
+        .song-content {
+            flex-grow: 1;
+        }
+       /* Editor container */
+       #editor-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--color-white);
+            border-radius: 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            margin: 30px auto;
+            overflow: hidden;
+            width: calc(8.5in * 0.8);
+            height: calc(11in * 0.8);
+            background: 
+                url('/assets/border-graphic.png') no-repeat center center,
+                url('/assets/sheetskin.png') no-repeat center center;
+            background-size: 100% 100%, cover;
+        }
+
+
+        /* Adjusted editor for paper-like appearance */
+        #editor {
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+            padding: 0.8in;
+            position: relative;
+            color: black;
+            overflow: hidden;
+            column-gap: 20px;
+            column-fill: auto;
+            font-size: 12pt;
+            direction: auto;
+            text-align: center;
+            margin: 0;
+            border-radius: 0;
+            
+        }
+        
+        .editor-song {
+            break-inside: avoid-column;
+            page-break-inside: avoid;
+            margin-bottom: 0.15in;
+            line-height: 1.2;
+            position: relative;
+            padding: 0.05in;
+            border-radius: 3px;
+            transition: background-color 0.2s;
             display: inline-block;
-            background-color: #0d0d0d;
-            color: rgb(255, 218, 42);
+            width: 100%;
+        }
+
+        .editor-song:hover {
+            background-color: rgba(242, 203, 5, 0.1);
+        }
+
+        .editor-song p {
+            white-space: nowrap;
+        }
+
+        .remove-button {
+            position: absolute;
+            top: 0.05in;
+            left: 0.05in;
+            color: rgba(255, 0, 0, 0.7);
+            font-size: 1em;
             font-weight: bold;
-            padding: 12px 30px;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            line-height: 20px;
+            display: none;
+            z-index: 100;
+        }
+
+        .editor-song:hover .remove-button {
+            display: block;
+        }
+
+        /* Dev control widget */
+        #dev-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: var(--color-grey-800);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            max-width: 300px;
+        }
+        
+        #dev-controls h3 {
+            margin: 0;
+            font-size: 16px;
+            text-align: center;
+            font-weight: 600;
+            border-bottom: 1px solid var(--color-grey-700);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        
+        #font-size-slider, #column-count-slider, #column-gap-slider {
+            width: 100%;
+            margin: 8px 0;
+            accent-color: var(--color-yellow);
+        }
+        
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .control-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        
+        .control-buttons button {
+            background-color: var(--color-grey-700);
+            border: none;
+            color: var(--color-white);
+            padding: 6px 12px;
+            cursor: pointer;
             border-radius: 4px;
+            flex: 1;
+            transition: background-color 0.2s;
+        }
+        
+        .control-buttons button:hover {
+            background-color: var(--color-grey-600);
+        }
+        
+        .control-display {
+            text-align: center;
+            font-weight: bold;
+            min-width: 50px;
+            background-color: var(--color-grey-700);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        #add-page-btn {
+            background-color: var(--color-yellow);
+            color: var(--color-black);
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #add-page-btn:hover {
+            background-color: var(--color-yellow-dark);
+        }
+        
+        /* Create a wrapper for the editor to maintain aspect ratio */
+        .editor-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            overflow: auto;
+        }
+        
+        /* Maintain aspect ratio with responsive sizing */
+        .editor-inner {
+            width: 95%;
+            height: 95%;
+            position: relative;
+            aspect-ratio: 8.5 / 11; /* Strict 8.5x11 paper aspect ratio */
+            max-width: calc(min(100%, (100vh - var(--header-height) - 70px) * 0.7727)); /* Letter size ratio */
+            max-height: 95%; /* Allow some small margin */
+            margin: auto; /* Center within container */
+        }
+        
+        .page-editor {
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+            padding: 0.8in;
+            position: relative;
+            color: black;
+            direction: auto;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        /* Footer styling */
+        #footer {
+            background-color: var(--color-grey-900);
+            color: var(--color-white);
+            padding: 24px;
+            margin-top: auto;
+            border-top: 1px solid var(--color-grey-800);
+            text-align: center;
+        }
+
+        #footer a {
+            display: inline-block;
+            background-color: var(--color-yellow);
+            color: var(--color-black);
+            padding: 10px 20px;
+            margin: 0 10px 10px 0;
+            border-radius: 8px;
             text-decoration: none;
-            transition: all 0.3s ease;
+            font-weight: 500;
+            transition: background-color 0.2s;
         }
 
-        .contact-button:hover {
-            background-color: rgb(255, 218, 42);
-            color: #0d0d0d;
+        #footer a:hover {
+            background-color: var(--color-yellow-dark);
         }
 
+        .footer-copyright {
+            color: var(--color-grey-400);
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        .drag-over {
+            border: 2px dashed var(--color-yellow);
+        }
+
+        /* Song title */
+        .song-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+            padding-bottom: 3px;
+            white-space: nowrap;
+        }
+
+        /* Center-aligned text */
+        .editor-song[dir="auto"] p {
+            text-align: center !important;
+        }
+
+        .editor-song[dir="auto"] .song-title {
+            text-align: center !important;
+        }
+
+        /* RTL text */
+        .editor-song[dir="rtl"] p {
+            text-align: right !important;
+        }
+
+        .editor-song[dir="rtl"] .song-title {
+            text-align: right !important;
+        }
+
+        /* Update editor styles */
+        #editor[dir="auto"] {
+            text-align: center;
+        }
+
+        #editor[dir="rtl"] {
+            text-align: right;
+        }
+
+        /* Adjust page-editor for additional pages */
+        .page-editor[dir="auto"] {
+            text-align: center;
+        }
+
+        .page-editor[dir="rtl"] {
+            text-align: right;
+        }
+        
+        /* Layout utilities */
+        .flex {
+            display: flex;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: var(--color-grey-100);
+            transition: all 0.15s;
+            text-decoration: none;
+            height: 40px;
+        }
+        
+        .nav-item:hover {
+            background-color: var(--color-grey-800);
+            color: var(--color-white);
+        }
+        
+        .nav-item.active {
+            background-color: var(--color-grey-600);
+            color: var(--color-white);
+        }
+        
+        .nav-item .icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Scrollbar styling for the songs container */
+        .songs-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .songs-container::-webkit-scrollbar-track {
+            background: var(--color-grey-800);
+            border-radius: 3px;
+        }
+        
+        .songs-container::-webkit-scrollbar-thumb {
+            background: var(--color-grey-600);
+            border-radius: 3px;
+        }
+        
+        .songs-container::-webkit-scrollbar-thumb:hover {
+            background: var(--color-grey-500);
+        }
+        
+        .flex-col {
+            flex-direction: column;
+        }
+        
+        .items-center {
+            align-items: center;
+        }
+        
+        .navigation-gap {
+            gap: 8px;
+        }
+        
+        .sidebar-grow {
+            flex-grow: 1;
+        }
+        
+        .song-content {
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+        }
+        
+        .hidden-upload {
+            display: none;
+        }
+        
+        /* Positioning */
+        .relative-position {
+            position: relative;
+        }
+        
+        .sticky-position {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+        
+        /* Transitions */
+        .transition-effect {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+
+        /* Sidebar navs and lists */
+        .nav-section {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+
+        #toggle-dev-widgets.active {
+            background-color: var(--color-yellow);
+            color: var(--color-black);
+            border-color: var(--color-yellow);
+        }
+
+        /* Option buttons */
+        .option-button {
+            background-color: transparent;
+            color: var(--color-grey-300);
+            border: 1px solid var(--color-grey-700);
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.15s;
+        }
+
+        .option-button:hover {
+            background-color: var(--color-grey-800);
+            color: var(--color-white);
+        }
+
+        .option-button.active {
+            background-color: var(--color-yellow);
+            color: var(--color-black);
+            border-color: var(--color-yellow);
+        }
+
+        /* Toggle button for dev widgets */
+        #toggle-dev-widgets {
+            background-color: transparent;
+            color: var(--color-grey-300);
+            cursor: pointer;
+            border: 1px solid var(--color-grey-700);
+        }
+
+        /* Media queries for responsive design */
         @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2rem;
+            #editor-container {
+                height: 100%; /* Full height on mobile */
+                width: 100%;  /* Full width on mobile */
             }
             
-            .content {
-                margin: 20px;
+            .editor-inner {
+                width: 95%;
+                height: auto;
+                aspect-ratio: 8.5/11; /* Maintain paper aspect ratio */
+                max-width: 95vw;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-button {
+                display: block;
+            }
+            
+            .header-container {
+                padding: 0 1rem;
+            }
+            
+            #song-list {
+                display: none; /* Hide sidebar on very small screens */
             }
         }
-        html, body {
-    height: 100%;
-    margin: 0;
-}
+        
+        /* Medium screens */
+        @media (min-width: 769px) and (max-width: 1200px) {
+            .editor-inner {
+                width: 90%;
+                height: auto;
+                aspect-ratio: 8.5/11;
+            }
+        }
 
-body {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-}
+        /* Mobile menu */
+        #mobile-menu {
+            background-color: var(--color-grey-900);
+            padding: 1rem;
+            display: none;
+        }
+        
+        #mobile-menu a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--color-grey-300);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        #mobile-menu a:hover {
+            background-color: var(--color-grey-800);
+            color: var(--color-white);
+        }
+        
+        .show-menu {
+            display: block !important;
+        }
 
-#content, .container, main {
-    flex: 1 0 auto; /* This makes the content area take up all available space */
-}
-
-#footer {
-    flex-shrink: 0; /* Prevents the footer from shrinking */
-    /* Your existing footer styles here */
-}
+        /* Print-specific styles */
+        @media print {
+            @page {
+                size: 8.5in 11in;
+                margin: 0;
+            }
+            
+            body {
+                margin: 0;
+                padding: 0;
+                background: none;
+            }
+            
+            /* Hide everything by default */
+            body * {
+                visibility: hidden;
+            }
+            
+            /* Only show the editor container and its contents */
+            #print-container, #print-container * {
+                visibility: visible;
+            }
+            
+            /* Hide controls during print */
+            .remove-button, .song-control {
+                display: none !important;
+            }
+            
+            /* Force background images to print */
+            .print-page {
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Handle page breaks */
+            .print-page {
+                page-break-after: always;
+            }
+            
+            .print-page:last-child {
+                page-break-after: avoid;
+            }
+            
+            /* Hide header and footer when printing */
+            header, #footer, #song-list, #dev-controls {
+                display: none !important;
+            }
+            
+            #content {
+                display: block;
+            }
+            
+            #editor-container {
+                margin: 0 auto;
+                box-shadow: none;
+            }
+        }
     </style>
 </head>
+
 <body>
-
-    <!-- header.html -->
-<header class="bg-gray-900 sticky top-0 z-50">
-    <div class="relative z-50 flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-      <!-- Logo positioned at far left -->
-      <div class="flex items-center">
-        <a href="/" class="mr-8">
-          <img src="/assets/Niggun_Sheet_Header_Logo.png" alt="Niggun Sheet" class="h-10" />
-        </a>
-      </div>
-      
-      <!-- Mobile menu button (only visible on mobile) -->
-      <div class="flex lg:hidden ml-auto">
-        <button type="button" class="block text-white" id="mobile-menu-button">
-          <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="bars" class="svg-inline--fa fa-bars" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="24" height="24">
-            <path fill="currentColor" d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"></path>
-          </svg>
-        </button>
-      </div>
-      
-      <!-- Desktop Navigation (now positioned after logo) -->
-      <div class="hidden lg:flex lg:items-center lg:flex-1 lg:justify-center">
-        <ul class="flex h-full items-center gap-8">
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/">Home</a>
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/songs.html">Song Directory</a>
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/sheet-builder.html">Sheet Builder
-            <span class="ml-2.5 rounded-sm bg-yellow-400 p-1 text-xs font-bold uppercase leading-none text-gray-900">new</span>
-          </a>
-          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/contact.html">Contact</a>
-        </ul>
-      </div>
-      
-      <!-- User Action Buttons -->
-      <div class="flex h-full min-h-8 shrink-0 items-center justify-end">
-        <button type="button" class="flex justify-center items-center font-bold rounded-full transition-colors bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-1.5 px-5 text-sm">
-          <span class="relative flex min-h-5 items-center justify-center">
-            <span class="whitespace-nowrap">Download Sheet</span>
-          </span>
-        </button>
-      </div>
-    </div>
-    
-    <!-- Mobile Menu (hidden by default) -->
-    <div id="mobile-menu" class="hidden lg:hidden">
-      <div class="space-y-1 px-4 pb-3 pt-2">
-        <a href="/" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Home</a>
-        <a href="/songs.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Song Directory</a>
-        <a href="/sheet-builder.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Sheet Builder <span class="ml-2 rounded-sm bg-yellow-400 p-1 text-xs font-bold uppercase leading-none text-gray-900">new</span></a>
-        <a href="/contact.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Contact</a>
-      </div>
-    </div>
-  </header>
-
-    <div class="hero">
-        <h1>Growing Our Project</h1>
-        <div class="hero-accent"></div>
-        <p>Building the future of collaborative sheet music</p>
-    </div>
-
-    <div class="content">
-        <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam in dui mauris. Vivamus hendrerit arcu sed erat molestie vehicula. Sed auctor neque eu tellus rhoncus ut eleifend nibh porttitor. Ut in nulla enim. Phasellus molestie magna non est bibendum non venenatis nisl tempor. Suspendisse dictum feugiat nisl ut dapibus.
-        </p>
+    <!-- Modern responsive header -->
+    <header>
+        <div class="header-container">
+            <div class="logo-container">
+                <a href="/" class="mr-8">
+                    <img src="/assets/Niggun_Sheet_Header_Logo.png" alt="Niggun Sheet" class="h-10" />
+                </a>
+                
+                <nav class="nav-links">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/songs.html" class="nav-link">Song Directory</a>
+                    <a href="/sheet-builder.html" class="nav-link active">Sheet Builder
+                        <span class="new-badge">new</span>
+                    </a>
+                    <a href="/contact.html" class="nav-link">Contact</a>
+                </nav>
+            </div>
+            
+            <!-- Mobile menu button -->
+            <button type="button" class="mobile-menu-button" id="mobile-menu-button">
+                <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="bars" class="svg-inline--fa fa-bars" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="24" height="24">
+                    <path fill="currentColor" d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"></path>
+                </svg>
+            </button>
+            
+            <!-- Download button -->
+            <button id="header-print-button" class="download-button">
+                Download Sheet
+            </button>
+        </div>
         
-        <p>
-            Sed auctor neque eu tellus rhoncus ut eleifend nibh porttitor. Ut in nulla enim. Phasellus molestie magna non est bibendum non venenatis nisl tempor. Suspendisse dictum feugiat nisl ut dapibus. Cras mollis, ante a rutrum feugiat, tellus velit pulvinar purus, eget fermentum arcu orci quis mauris.
-        </p>
-        
-        <a href="/contact.html" class="contact-button">Contact Us</a>
+        <!-- Mobile Menu (hidden by default) -->
+        <div id="mobile-menu" class="hidden">
+            <a href="/" class="block">Home</a>
+            <a href="/songs.html" class="block">Song Directory</a>
+            <a href="/sheet-builder.html" class="block">Sheet Builder <span class="new-badge">new</span></a>
+            <a href="/contact.html" class="block">Contact</a>
+        </div>
+    </header>
+
+    <div id="content">
+        <div id="song-list">
+            <div class="sidebar-header sticky-position flex items-center">
+                <h2>Sheet Builder</h2>
+                <div class="sidebar-grow"></div>
+                <button type="button" id="sidebar-toggle">
+                    <svg aria-hidden="true" focusable="false" data-prefix="far" data-icon="xmark" class="svg-inline--fa fa-xmark" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="20" height="20">
+                        <path fill="currentColor" d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73 103c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l119 119L39 375c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l119-119L311 409c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-119-119L345 137z"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="sheet-controls-section">
+                <div id="sheet-controls">
+                    <button id="clear-sheet" disabled>Clear Sheet</button>
+                    <button id="print-button">Print</button>
+                    <button id="toggle-titles" class="option-button">Include Titles</button>
+                    <button id="toggle-alignment" class="option-button">Center Mode</button>
+                    <button id="toggle-dev-widgets">Dev Tools</button>
+                    <span id="scale-indicator" class="scale-indicator">Scale: 100%</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav flex flex-col navigation-gap">
+                <div class="nav-item-wrapper">
+                    <div class="nav-item active">
+                        <div class="icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4.5 19.9V10.7116C4.5 10.683 4.51221 10.6558 4.53356 10.6368L11.8007 4.17716C11.9144 4.07613 12.0856 4.07613 12.1993 4.17716L19.4664 10.6368C19.4878 10.6558 19.5 10.683 19.5 10.7116V19.9C19.5 19.9552 19.4552 20 19.4 20H14.2102C14.2078 20 14.2059 19.9981 14.2059 19.9957V15.9837C14.2059 14.7654 13.2183 13.7778 12 13.7778C10.7817 13.7778 9.79412 14.7654 9.79412 15.9837V19.9957C9.79412 19.9981 9.79217 20 9.78977 20H4.6C4.54477 20 4.5 19.9552 4.5 19.9Z" stroke="currentColor" stroke-width="1.4"></path>
+                            </svg>
+                        </div>
+                        <div class="song-content">Import Songs</div>
+                    </div>
+                </div>
+                <div class="nav-item-wrapper">
+                    <div class="nav-item">
+                        <div class="icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 18 18" fill="none">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M9.4842 9.56164C9.36072 9.83682 9.37691 10.0693 9.47318 10.2331C9.56945 10.3969 9.76725 10.5284 10.0738 10.5647C10.38 10.6009 10.7602 10.5335 11.1278 10.3293C11.4953 10.1251 11.748 9.84087 11.8713 9.56596C11.9948 9.29078 11.9786 9.0583 11.8824 8.89452C11.7861 8.73074 11.5883 8.59917 11.2818 8.56291C10.9755 8.52669 10.5953 8.59405 10.2278 8.79826C9.86025 9.00247 9.60756 9.28673 9.4842 9.56164ZM8.62008 9.1814C8.8319 8.70937 9.2318 8.28423 9.75483 7.99363C10.2779 7.70303 10.8576 7.58387 11.3834 7.64606C11.909 7.70822 12.4154 7.96002 12.6982 8.44122C12.9811 8.92243 12.9471 9.47444 12.7355 9.94619C12.5237 10.4182 12.1237 10.8434 11.6007 11.134C11.0777 11.4246 10.4979 11.5437 9.9721 11.4815C9.44658 11.4194 8.94017 11.1676 8.65732 10.6864C8.37447 10.2052 8.4084 9.65316 8.62008 9.1814Z" fill="currentColor"></path>
+                            </svg>
+                        </div>
+                        <div class="song-content">Add Song</div>
+                    </div>
+                </div>
+                <div class="nav-item-wrapper">
+                    <label for="upload" class="nav-item">
+                        <div class="icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 18 18" fill="none">
+                                <path d="M9 4.5V13.5M9 4.5L6 7.5M9 4.5L12 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M3.75 13.5V14.25C3.75 14.8467 4.06607 15.419 4.59099 15.841C5.1159 16.263 5.83755 16.5 6.6 16.5H11.4C12.1624 16.5 12.8841 16.263 13.409 15.841C13.9339 15.419 14.25 14.8467 14.25 14.25V13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="song-content">Upload TXT File</div>
+                    </label>
+                    <input type="file" id="upload" accept=".txt" class="hidden-upload"/>
+                </div>
+            </nav>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">
+                    <div>All Niggunim</div>
+                </div>
+                <div id="songs" class="songs-container"></div>
+            </div>
+        </div>
+
+        <div id="editor-container">
+            <div class="editor-wrapper">
+                <div class="editor-inner">
+                    <div id="editor" dir="auto"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="footer">
@@ -189,5 +1086,1353 @@ body {
         <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
         <div class="footer-copyright">© 2025 Yehudah Jacobs - The Niggun Sheet</div>
     </div>
+    
+    <!-- Dev controls for font size and column adjustment -->
+    <div id="dev-controls">
+        <h3>Sheet Controls</h3>
+        
+        <div class="control-row">
+            <label for="font-size-slider">Font Size:</label>
+            <input type="range" id="font-size-slider" min="6" max="24" value="12" step="0.5">
+            <div id="size-display" class="control-display">12pt</div>
+        </div>
+        <div class="control-buttons">
+            <button id="size-decrease">-</button>
+            <button id="size-reset">Reset</button>
+            <button id="size-increase">+</button>
+        </div>
+        
+        <div class="control-row" style="margin-top: 10px;">
+            <label for="column-count-slider">Columns:</label>
+            <input type="range" id="column-count-slider" min="1" max="3" value="1" step="1">
+            <div id="column-display" class="control-display">1</div>
+        </div>
+        <div class="control-buttons">
+            <button id="col-decrease">-</button>
+            <button id="col-auto">Auto</button>
+            <button id="col-increase">+</button>
+        </div>
+        
+        <div class="control-row" style="margin-top: 10px;">
+            <label for="column-gap-slider">Column Spacing:</label>
+            <input type="range" id="column-gap-slider" min="5" max="50" value="20" step="1">
+            <div id="gap-display" class="control-display">20px</div>
+        </div>
+        <div class="control-buttons">
+            <button id="gap-decrease">-</button>
+            <button id="gap-reset">Reset</button>
+            <button id="gap-increase">+</button>
+        </div>
+        
+        <div style="margin-top: 10px;">
+            <button id="add-page-btn">Add Page</button>
+        </div>
+    </div>
+    <script>
+        const songsEndpoint = "/api/songs";
+        const songsContainer = document.getElementById("songs");
+        const uploadInput = document.getElementById("upload");
+        const editor = document.getElementById("editor");
+        const scaleIndicator = document.getElementById("scale-indicator");
+        
+        // Base font size that will be scaled
+        const baseFontSize = 18; // in pt - starting larger
+        let currentScale = 1.0;
+        let currentColumns = 1; // Default to 1 column
+        let autoColumns = true; // Enable auto column management by default
+        let pageCount = 1;
+        let columnGap = 20; // Default column gap in px
+        let devWidgetsVisible = false; // Dev widgets hidden by default
+        let includeTitles = false; // Default: do not include titles
+        let textAlignment = 'center'; // Default: center alignment (alternatives: 'rtl')
+        
+        // Initialize with base settings
+        editor.style.fontSize = baseFontSize + 'pt';
+        editor.style.columnCount = currentColumns;
+        editor.style.columnGap = columnGap + 'px';
+
+        // Reset state when page loads
+        window.addEventListener('load', function() {
+            // Only necessary if the page might be reloaded without clearing session
+            initializeSheet();
+            updateClearSheetButton();
+            
+            // Initialize dev widgets visibility
+            devWidgetsVisible = localStorage.getItem('devWidgetsVisible') === 'true';
+            if (devWidgetsVisible) {
+                document.getElementById('dev-controls').style.display = 'flex';
+                document.getElementById('toggle-dev-widgets').classList.add('active');
+            } else {
+                document.getElementById('dev-controls').style.display = 'none';
+            }
+            
+            // Add event listener for the toggle button
+            document.getElementById('toggle-dev-widgets').addEventListener('click', toggleDevWidgets);
+        });
+
+        // Initialize toggle buttons when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listener for the title toggle button
+            const toggleTitlesBtn = document.getElementById('toggle-titles');
+            if (toggleTitlesBtn) {
+                toggleTitlesBtn.addEventListener('click', function() {
+                    includeTitles = !includeTitles;
+                    toggleTitlesBtn.classList.toggle('active');
+                    
+                    // Update the button text
+                    toggleTitlesBtn.textContent = includeTitles ? 'Titles: On' : 'Include Titles';
+                    
+                    // Save preference to localStorage
+                    localStorage.setItem('includeTitles', includeTitles);
+                    
+                    // Re-initialize the sheet to apply changes
+                    initializeSheet();
+                });
+                
+                // Check if we have a saved preference
+                const savedPreference = localStorage.getItem('includeTitles');
+                if (savedPreference !== null) {
+                    includeTitles = savedPreference === 'true';
+                    toggleTitlesBtn.classList.toggle('active', includeTitles);
+                    toggleTitlesBtn.textContent = includeTitles ? 'Titles: On' : 'Include Titles';
+                }
+            }
+            
+            // Add event listener for the alignment toggle button
+            const toggleAlignmentBtn = document.getElementById('toggle-alignment');
+            if (toggleAlignmentBtn) {
+                toggleAlignmentBtn.addEventListener('click', function() {
+                    // Toggle between center and RTL
+                    textAlignment = textAlignment === 'center' ? 'rtl' : 'center';
+                    toggleAlignmentBtn.classList.toggle('active', textAlignment === 'rtl');
+                    
+                    // Update the button text
+                    toggleAlignmentBtn.textContent = textAlignment === 'rtl' ? 'RTL Mode' : 'Center Mode';
+                    
+                    // Save preference to localStorage
+                    localStorage.setItem('textAlignment', textAlignment);
+                    
+                    // Update all existing songs
+                    updateAllSongsAlignment();
+                });
+                
+                // Check if we have a saved preference
+                const savedAlignment = localStorage.getItem('textAlignment');
+                if (savedAlignment) {
+                    textAlignment = savedAlignment;
+                    toggleAlignmentBtn.classList.toggle('active', textAlignment === 'rtl');
+                    toggleAlignmentBtn.textContent = textAlignment === 'rtl' ? 'RTL Mode' : 'Center Mode';
+                    
+                    // Update all existing songs with the saved alignment
+                    updateAllSongsAlignment();
+                }
+            }
+            
+            // Clear sheet button functionality
+            const clearSheetButton = document.getElementById('clear-sheet');
+            if (clearSheetButton) {
+                clearSheetButton.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to clear the sheet? This will remove all songs.')) {
+                        // Clear localStorage
+                        localStorage.removeItem('sheetSongs');
+                        
+                        // Clear the editor
+                        editor.innerHTML = '';
+                        
+                        // Reset any songs in the song list to appear unused
+                        const songItems = document.querySelectorAll('.song-item');
+                        songItems.forEach(item => {
+                            item.classList.remove('song-item-used');
+                        });
+                        
+                        // Update button state
+                        updateClearSheetButton();
+                    }
+                });
+            }
+            
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('show-menu');
+                });
+            }
+            
+            // Header print button
+            const headerPrintButton = document.getElementById('header-print-button');
+            if (headerPrintButton) {
+                headerPrintButton.addEventListener('click', function() {
+                    document.getElementById('print-button').click();
+                });
+            }
+        });
+
+        function getSheetSongsFromLocalStorage() {
+            return JSON.parse(localStorage.getItem('sheetSongs')) || [];
+        }
+
+        function addSongToLocalStorageSheet(song) {
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            if (!sheetSongs.some(s => s.title === song.title && s.artist === song.artist)) {
+                sheetSongs.push(song);
+                localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
+                updateClearSheetButton();
+                return true;
+            }
+            return false;
+        }
+
+        function removeSongFromSheet(title, artist) {
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            const updatedSongs = sheetSongs.filter(song => 
+                !(song.title === title && song.artist === artist)
+            );
+            localStorage.setItem('sheetSongs', JSON.stringify(updatedSongs));
+            
+            // Update song list UI to reflect changes
+            const songItem = document.querySelector(`.song-item[data-title="${title}"]`);
+            if (songItem) {
+                songItem.classList.remove("song-item-used");
+            }
+            
+            updateClearSheetButton();
+        }
+
+        // Function to toggle dev widgets visibility
+        function toggleDevWidgets() {
+            devWidgetsVisible = !devWidgetsVisible;
+            const devControls = document.getElementById('dev-controls');
+            
+            if (devWidgetsVisible) {
+                devControls.style.display = 'flex';
+                document.getElementById('toggle-dev-widgets').classList.add('active');
+            } else {
+                devControls.style.display = 'none';
+                document.getElementById('toggle-dev-widgets').classList.remove('active');
+            }
+            
+            // Save preference to localStorage
+            localStorage.setItem('devWidgetsVisible', devWidgetsVisible);
+        }
+
+        // Helper function to check if the editor content is overflowing
+        function checkForOverflow() {
+            return (
+                editor.scrollHeight > editor.clientHeight || 
+                editor.scrollWidth > editor.clientWidth
+            );
+        }
+
+        // Enhanced content and layout management function that prioritizes columns before scaling
+        function checkContentAndManageLayout() {
+            // Start with optimal settings
+            let bestColumnCount = 1;
+            let bestScale = 1.0;
+            
+            // Try 1 column at 100% scale first (optimal)
+            editor.style.columnCount = 1;
+            editor.style.fontSize = baseFontSize + 'pt';
+            let isUnsafe = checkForSafeSpacing(true); // Be more lenient for 1 column
+            
+            // If safe with 1 column at 100%, we're done!
+            if (!isUnsafe) {
+                bestColumnCount = 1;
+                bestScale = 1.0;
+            } 
+            // If not safe, try to reduce scale with 1 column
+            // Being more aggressive about trying to stay in 1 column
+            else {
+                let foundSafeConfig = false;
+                // Try more scale steps, going smaller before giving up on 1 column
+                for (let scale = 0.95; scale >= 0.5 && !foundSafeConfig; scale -= 0.05) {
+                    editor.style.fontSize = (baseFontSize * scale) + 'pt';
+                    isUnsafe = checkForSafeSpacing(true); // More lenient check for 1 column
+                    
+                    if (!isUnsafe) {
+                        bestColumnCount = 1;
+                        bestScale = scale;
+                        foundSafeConfig = true;
+                    }
+                }
+                
+                // If we couldn't make 1 column work, try 2 columns
+                if (!foundSafeConfig) {
+                    // Try 2 columns at 100% scale
+                    editor.style.columnCount = 2;
+                    editor.style.fontSize = baseFontSize + 'pt';
+                    isUnsafe = checkForSafeSpacing(false); // Regular strictness for 2+ columns
+                    
+                    // If safe with 2 columns at 100%, use that
+                    if (!isUnsafe) {
+                        bestColumnCount = 2;
+                        bestScale = 1.0;
+                    }
+                    // If not safe, try 3 columns at 100% scale
+                    else {
+                        // Try reducing scale with 2 columns
+                        foundSafeConfig = false;
+                        for (let scale = 0.95; scale >= 0.65 && !foundSafeConfig; scale -= 0.05) {
+                            editor.style.fontSize = (baseFontSize * scale) + 'pt';
+                            isUnsafe = checkForSafeSpacing(false);
+                            
+                            if (!isUnsafe) {
+                                bestColumnCount = 2;
+                                bestScale = scale;
+                                foundSafeConfig = true;
+                            }
+                        }
+                        
+                        // If 2 columns didn't work, try 3 columns
+                        if (!foundSafeConfig) {
+                            editor.style.columnCount = 3;
+                            editor.style.fontSize = baseFontSize + 'pt';
+                            isUnsafe = checkForSafeSpacing(false);
+                            
+                            // If safe with 3 columns at 100%, use that
+                            if (!isUnsafe) {
+                                bestColumnCount = 3;
+                                bestScale = 1.0;
+                            }
+                            // If still unsafe, we need to scale down with 3 columns
+                            else {
+                                for (let scale = 0.95; scale >= 0.5 && !foundSafeConfig; scale -= 0.05) {
+                                    editor.style.fontSize = (baseFontSize * scale) + 'pt';
+                                    isUnsafe = checkForSafeSpacing(false);
+                                    
+                                    if (!isUnsafe) {
+                                        bestColumnCount = 3;
+                                        bestScale = scale;
+                                        foundSafeConfig = true;
+                                    }
+                                }
+                                
+                                // If we exhausted all options and still unsafe, use minimum values
+                                if (!foundSafeConfig) {
+                                    bestColumnCount = 3;
+                                    bestScale = 0.5;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Apply the best settings we found
+            currentColumns = bestColumnCount;
+            currentScale = bestScale;
+            editor.style.columnCount = currentColumns;
+            editor.style.fontSize = (baseFontSize * currentScale) + 'pt';
+            
+            // Update the scale indicator
+            scaleIndicator.textContent = `Scale: ${Math.round(currentScale * 100)}%`;
+            
+            // Apply to any additional pages
+            const pageEditors = document.querySelectorAll('.page-editor');
+            pageEditors.forEach(pageEditor => {
+                pageEditor.style.columnCount = currentColumns;
+                pageEditor.style.fontSize = (baseFontSize * currentScale) + 'pt';
+            });
+            
+            // Update column slider and display if they exist
+            const columnSlider = document.getElementById('column-count-slider');
+            const columnDisplay = document.getElementById('column-display');
+            
+            if (columnSlider && columnDisplay) {
+                columnSlider.value = currentColumns;
+                columnDisplay.textContent = currentColumns;
+            }
+            
+            // Ensure columns are properly centered
+            ensureColumnCentering();
+            
+            // Function to check for safe spacing between elements and borders
+            function checkForSafeSpacing() {
+                // Standard overflow check first
+                const hasOverflow = editor.scrollHeight > editor.clientHeight || 
+                                   editor.scrollWidth > editor.clientWidth;
+                
+                if (hasOverflow) return true;
+                
+                // Get editor dimensions and calculate safe border
+                const editorRect = editor.getBoundingClientRect();
+                const safeMargin = 15; // 15px safety margin from borders
+                
+                // Calculate safe inner border
+                const safeBorders = {
+                    left: editorRect.left + safeMargin,
+                    right: editorRect.right - safeMargin,
+                    top: editorRect.top + safeMargin,
+                    bottom: editorRect.bottom - safeMargin
+                };
+                
+                // Get all song elements
+                const songs = editor.querySelectorAll('.editor-song');
+                if (songs.length === 0) return false; // No songs to check
+                
+                // Create array of text nodes to check
+                const textElements = [];
+                songs.forEach(song => {
+                    // Get all text paragraphs
+                    const paragraphs = song.querySelectorAll('p');
+                    paragraphs.forEach(para => {
+                        // Create an array of all ranges
+                        const ranges = [];
+                        
+                        // For each line of text (indicated by <br> tags or start/end)
+                        const nodes = Array.from(para.childNodes);
+                        let currentLine = [];
+                        
+                        nodes.forEach(node => {
+                            if (node.nodeName === 'BR') {
+                                if (currentLine.length > 0) {
+                                    ranges.push(currentLine);
+                                    currentLine = [];
+                                }
+                            } else {
+                                currentLine.push(node);
+                            }
+                        });
+                        
+                        if (currentLine.length > 0) {
+                            ranges.push(currentLine);
+                        }
+                        
+                        // For each line, get its bounding rect
+                        ranges.forEach(line => {
+                            if (line.length > 0) {
+                                // Create a temporary range to get the line's rect
+                                const range = document.createRange();
+                                range.setStart(line[0], 0);
+                                range.setEnd(line[line.length - 1], line[line.length - 1].length || 0);
+                                
+                                // Get all text rectangles (there might be multiple if text wraps)
+                                const rects = range.getClientRects();
+                                for (let i = 0; i < rects.length; i++) {
+                                    textElements.push(rects[i]);
+                                }
+                            }
+                        });
+                    });
+                    
+                    // Also check song titles if present
+                    const titleElement = song.querySelector('.song-title');
+                    if (titleElement) {
+                        const range = document.createRange();
+                        range.selectNodeContents(titleElement);
+                        const rects = range.getClientRects();
+                        for (let i = 0; i < rects.length; i++) {
+                            textElements.push(rects[i]);
+                        }
+                    }
+                });
+                
+                // Now check each text element for:
+                // 1. Touching the safe border
+                // 2. Touching another text element
+                for (let i = 0; i < textElements.length; i++) {
+                    const rect = textElements[i];
+                    
+                    // Check if touching safe border
+                    if (rect.left < safeBorders.left || 
+                        rect.right > safeBorders.right || 
+                        rect.top < safeBorders.top || 
+                        rect.bottom > safeBorders.bottom) {
+                        return true; // Unsafe - touching border
+                    }
+                    
+                    // Check if touching another text element (with small margin)
+                    const touchMargin = 10; // 10px minimum space between elements
+                    for (let j = 0; j < textElements.length; j++) {
+                        if (i !== j) { // Don't compare with self
+                            const otherRect = textElements[j];
+                            
+                            // Check column separation - elements should be either well separated horizontally 
+                            // or well separated vertically
+                            const horizontalOverlap = !(rect.right + touchMargin < otherRect.left || 
+                                                       rect.left > otherRect.right + touchMargin);
+                            
+                            const verticalOverlap = !(rect.bottom + touchMargin < otherRect.top || 
+                                                     rect.top > otherRect.bottom + touchMargin);
+                            
+                            // If they overlap both horizontally AND vertically, it's unsafe
+                            if (horizontalOverlap && verticalOverlap) {
+                                return true; // Unsafe - elements too close
+                            }
+                        }
+                    }
+                }
+                
+                // Additional check for column breaking a song
+                for (const song of songs) {
+                    const songRect = song.getBoundingClientRect();
+                    
+                    // Check if song spans more than one column
+                    // Column width is approximately (editorRect.width - padding) / currentColumns
+                    const columnWidth = (editorRect.width - 40) / currentColumns; // 40px for padding
+                    
+                    // For multiple columns, check if song width is close to column width
+                    if (currentColumns > 1 && Math.abs(songRect.width - columnWidth) < 20) {
+                        // Find where this song should be (which column)
+                        const songLeft = songRect.left - editorRect.left;
+                        const expectedColumn = Math.floor(songLeft / columnWidth);
+                        const expectedLeft = expectedColumn * columnWidth + editorRect.left;
+                        
+                        // If it's not where it should be horizontally, it might be breaking across columns
+                        if (Math.abs(songRect.left - expectedLeft) > 10) {
+                            return true; // Unsafe - song might be breaking across columns
+                        }
+                    }
+                }
+                
+                return false; // Safe if we got here
+            }
+        }
+
+        // New function to ensure columns are properly centered
+        function ensureColumnCentering() {
+            // For center alignment, ensure columns are centered
+            if (textAlignment === 'center') {
+                // Set column properties to ensure centered layout
+                editor.style.margin = '0 auto';
+                editor.style.textAlign = 'center';
+                
+                // Get all song paragraphs and ensure they're center-aligned
+                const songParagraphs = editor.querySelectorAll('.editor-song p');
+                songParagraphs.forEach(paragraph => {
+                    paragraph.style.textAlign = 'center';
+                });
+                
+                // Also center song titles if present
+                const songTitles = editor.querySelectorAll('.editor-song .song-title');
+                songTitles.forEach(title => {
+                    title.style.textAlign = 'center';
+                });
+                
+                // For multi-column layouts, ensure spacing is even
+                if (currentColumns > 1) {
+                    // Calculate available width after padding
+                    const editorWidth = editor.clientWidth;
+                    
+                    // Set column properties for even spacing
+                    editor.style.columnGap = columnGap + 'px';
+                    editor.style.columnRuleWidth = '0';
+                    editor.style.columnRuleStyle = 'none';
+                    
+                    // Apply these properties to ensure content is centered within columns
+                    const songElements = editor.querySelectorAll('.editor-song');
+                    songElements.forEach(song => {
+                        song.style.width = '100%';
+                        song.style.boxSizing = 'border-box';
+                        song.style.textAlign = 'center';
+                    });
+                }
+            }
+            
+            // Apply similar centering to any additional pages
+            const pageEditors = document.querySelectorAll('.page-editor');
+            pageEditors.forEach(pageEditor => {
+                if (textAlignment === 'center') {
+                    pageEditor.style.margin = '0 auto';
+                    pageEditor.style.textAlign = 'center';
+                    
+                    // Get all song paragraphs and ensure they're center-aligned
+                    const songParagraphs = pageEditor.querySelectorAll('.editor-song p');
+                    songParagraphs.forEach(paragraph => {
+                        paragraph.style.textAlign = 'center';
+                    });
+                    
+                    // Also center song titles if present
+                    const songTitles = pageEditor.querySelectorAll('.editor-song .song-title');
+                    songTitles.forEach(title => {
+                        title.style.textAlign = 'center';
+                    });
+                    
+                    // For multi-column layouts, ensure spacing is even
+                    if (currentColumns > 1) {
+                        pageEditor.style.columnGap = columnGap + 'px';
+                        pageEditor.style.columnRuleWidth = '0';
+                        pageEditor.style.columnRuleStyle = 'none';
+                    }
+                }
+            });
+        }
+
+        // Function to update all songs with the current alignment setting
+        function updateAllSongsAlignment() {
+            // Update all song elements
+            const songElements = document.querySelectorAll('.editor-song');
+            songElements.forEach(song => {
+                updateSongAlignment(song);
+            });
+            
+            // Update the editor direction attribute
+            if (editor) {
+                if (textAlignment === 'rtl') {
+                    editor.setAttribute('dir', 'rtl');
+                    editor.style.textAlign = 'right';
+                } else {
+                    editor.setAttribute('dir', 'auto');
+                    editor.style.textAlign = 'center';
+                }
+            }
+            
+            // Update any additional pages
+            const pageEditors = document.querySelectorAll('.page-editor');
+            pageEditors.forEach(pageEditor => {
+                if (textAlignment === 'rtl') {
+                    pageEditor.setAttribute('dir', 'rtl');
+                    pageEditor.style.textAlign = 'right';
+                } else {
+                    pageEditor.setAttribute('dir', 'auto');
+                    pageEditor.style.textAlign = 'center';
+                }
+            });
+            
+            // Ensure columns are properly centered
+            ensureColumnCentering();
+            
+            // Check layout after alignment change
+            checkContentAndManageLayout();
+        }
+        
+        // Function to update layout controls in the UI
+        function updateLayoutControls() {
+            // Update column slider and display
+            const columnSlider = document.getElementById('column-count-slider');
+            const columnDisplay = document.getElementById('column-display');
+            
+            if (columnSlider && columnDisplay) {
+                columnSlider.value = currentColumns;
+                columnDisplay.textContent = currentColumns;
+            }
+            
+            // Update font size display
+            const fontSizeSlider = document.getElementById('font-size-slider');
+            const sizeDisplay = document.getElementById('size-display');
+            
+            if (fontSizeSlider && sizeDisplay) {
+                const currentSize = baseFontSize * currentScale;
+                fontSizeSlider.value = currentSize;
+                sizeDisplay.textContent = Math.round(currentSize * 10) / 10 + 'pt';
+            }
+            
+            // Update column gap display
+            const columnGapSlider = document.getElementById('column-gap-slider');
+            const gapDisplay = document.getElementById('gap-display');
+            
+            if (columnGapSlider && gapDisplay) {
+                columnGapSlider.value = columnGap;
+                gapDisplay.textContent = columnGap + 'px';
+            }
+            
+            // Update scale indicator
+            scaleIndicator.textContent = `Scale: ${Math.round(currentScale * 100)}%`;
+            scaleIndicator.style.backgroundColor = currentScale < 0.8 ? '#4d4d4d' : '#4d4d4d';
+        }
+        
+        // Function to manually set column count
+        function setColumnCount(count) {
+            autoColumns = false; // Disable auto management when manually set
+            currentColumns = count;
+            editor.style.columnCount = currentColumns;
+            
+            const columnSlider = document.getElementById('column-count-slider');
+            const columnDisplay = document.getElementById('column-display');
+            
+            if (columnSlider && columnDisplay) {
+                columnSlider.value = currentColumns;
+                columnDisplay.textContent = currentColumns;
+            }
+        }
+        
+        // Function to add a new page
+        function addNewPage() {
+            // Create a new page container
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'page-container';
+            pageContainer.id = 'page-' + (++pageCount);
+            
+            // Create a new editor for this page
+            const pageEditor = document.createElement('div');
+            pageEditor.className = 'page-editor';
+            pageEditor.style.columnCount = currentColumns;
+            pageEditor.style.fontSize = editor.style.fontSize;
+            pageEditor.style.columnGap = columnGap + 'px';
+            pageEditor.style.overflow = "hidden"; // Ensure overflow is hidden
+            
+            // Set direction and alignment based on current setting
+            if (textAlignment === 'rtl') {
+                pageEditor.setAttribute('dir', 'rtl');
+                pageEditor.style.textAlign = 'right';
+            } else {
+                pageEditor.setAttribute('dir', 'auto');
+                pageEditor.style.textAlign = 'center';
+            }
+            
+            // Append to page container and insert before footer
+            pageContainer.appendChild(pageEditor);
+            document.getElementById('footer').before(pageContainer);
+            
+            return pageEditor; // Return the new editor for adding content
+        }
+
+        // Initialize sheet with songs from localStorage
+        function initializeSheet() {
+            editor.innerHTML = ''; // Clear editor
+            
+            // Set editor direction and alignment based on saved preference
+            const savedAlignment = localStorage.getItem('textAlignment') || 'center';
+            if (savedAlignment === 'rtl') {
+                editor.setAttribute('dir', 'rtl');
+                editor.style.textAlign = 'right';
+            } else {
+                editor.setAttribute('dir', 'auto');
+                editor.style.textAlign = 'center';
+            }
+            
+            // Load songs from localStorage
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            sheetSongs.forEach((song, index) => {
+                appendSongToEditor(song, index);
+            });
+            
+            // Initialize with auto column management - starting with 1 column
+            const fontSizeSlider = document.getElementById('font-size-slider');
+            const sizeDisplay = document.getElementById('size-display');
+            const columnSlider = document.getElementById('column-count-slider');
+            const columnDisplay = document.getElementById('column-display');
+            const columnGapSlider = document.getElementById('column-gap-slider');
+            const gapDisplay = document.getElementById('gap-display');
+            
+            if (fontSizeSlider && sizeDisplay) {
+                fontSizeSlider.value = baseFontSize;
+                sizeDisplay.textContent = baseFontSize + 'pt';
+            }
+            
+            if (columnSlider && columnDisplay) {
+                columnSlider.value = 1;
+                columnDisplay.textContent = 1;
+            }
+            
+            if (columnGapSlider && gapDisplay) {
+                columnGapSlider.value = columnGap;
+                gapDisplay.textContent = columnGap + 'px';
+            }
+            
+            // Check and adjust columns and scaling with proper progression
+            checkContentAndManageLayout();
+        }
+
+        // Append a song to the editor
+        function appendSongToEditor(song, index) {
+            const songDiv = document.createElement('div');
+            songDiv.className = 'editor-song';
+            songDiv.setAttribute('data-title', song.title);
+            songDiv.setAttribute('data-artist', song.artist);
+            songDiv.setAttribute('data-index', index);
+            
+            // Set initial direction and alignment based on current setting
+            if (textAlignment === 'rtl') {
+                songDiv.setAttribute('dir', 'rtl');
+                songDiv.style.textAlign = 'right';
+            } else {
+                songDiv.setAttribute('dir', 'auto');
+                songDiv.style.textAlign = 'center';
+            }
+            
+            // Format lyrics properly - preserve all line breaks but only use explicit ones
+            // Replace all forms of line breaks with consistent \n for processing
+            let cleanLyrics = song.lyrics
+                .replace(/\\n/g, '\n')
+                .replace(/<br>/g, '\n')
+                .replace(/<br\/>/g, '\n')
+                .replace(/<br \/>/g, '\n');
+                
+            // Make sure line breaks are preserved by using innerHTML with <br> tags
+            cleanLyrics = cleanLyrics.split('\n').join('<br>');
+            
+            // Create remove button
+            const removeButton = document.createElement('div');
+            removeButton.className = 'remove-button';
+            removeButton.textContent = '×';
+            removeButton.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent event from bubbling up
+                removeSongFromEditor(song.title, song.artist);
+            });
+            
+            // Append the remove button
+            songDiv.appendChild(removeButton);
+            
+            // Add the song title if the option is enabled
+            if (includeTitles) {
+                const titleElement = document.createElement('div');
+                titleElement.className = 'song-title';
+                titleElement.textContent = song.title;
+                titleElement.style.textAlign = textAlignment === 'rtl' ? 'right' : 'center';
+                songDiv.appendChild(titleElement);
+            }
+            
+            // Create lyrics paragraph - using innerHTML with <br> tags to ensure breaks display
+            const lyricsPara = document.createElement('p');
+            lyricsPara.innerHTML = cleanLyrics;
+            // Add CSS to prevent text wrapping within lines (only break at <br> tags)
+            lyricsPara.style.whiteSpace = "nowrap";
+            lyricsPara.style.textAlign = textAlignment === 'rtl' ? 'right' : 'center';
+            
+            // Add the lyrics paragraph
+            songDiv.appendChild(lyricsPara);
+            
+            // Add to editor
+            editor.appendChild(songDiv);
+            
+            // Ensure proper layout after adding content
+            // Use a timeout to ensure DOM has updated
+            setTimeout(() => {
+                // Check for layout issues
+                checkContentAndManageLayout();
+            }, 20);
+        }
+
+        // Function to remove a song from the editor
+        function removeSongFromEditor(title, artist) {
+            // Remove from localStorage
+            removeSongFromSheet(title, artist);
+            
+            // Remove from editor
+            const songElement = editor.querySelector(`[data-title="${title}"][data-artist="${artist}"]`);
+            if (songElement) {
+                editor.removeChild(songElement);
+                
+                // Recalculate columns and scaling after removal
+                setTimeout(() => {
+                    checkContentAndManageLayout();
+                }, 20);
+            }
+        }
+
+        // Function to update a single song's alignment
+        function updateSongAlignment(songElement) {
+            if (textAlignment === 'rtl') {
+                songElement.setAttribute('dir', 'rtl');
+                songElement.style.textAlign = 'right';
+            } else {
+                songElement.setAttribute('dir', 'auto');
+                songElement.style.textAlign = 'center';
+            }
+            
+            // Update paragraph alignment specifically
+            const paragraphs = songElement.querySelectorAll('p');
+            paragraphs.forEach(p => {
+                p.style.textAlign = textAlignment === 'rtl' ? 'right' : 'center';
+            });
+            
+            // Update song title alignment if it exists
+            const titleElement = songElement.querySelector('.song-title');
+            if (titleElement) {
+                titleElement.style.textAlign = textAlignment === 'rtl' ? 'right' : 'center';
+            }
+        }
+
+        // Populate the song list with song titles and artists
+        function renderSongs(songs) {
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            songsContainer.innerHTML = "";
+            
+            songs.forEach(song => {
+                const songDiv = document.createElement("div");
+                songDiv.setAttribute("draggable", "true");
+                songDiv.classList.add("song-item");
+
+                // Check if the song is already used in the sheet
+                const isUsed = sheetSongs.some(sheetSong => sheetSong.title === song.title);
+                if (isUsed) {
+                    songDiv.classList.add("song-item-used");
+                }
+
+                // Add song data as attributes for drag and drop
+                songDiv.setAttribute("data-title", song.title);
+                songDiv.setAttribute("data-artist", song.artist || "Unknown");
+                songDiv.setAttribute("data-lyrics", song.lyrics.replace(/\r\n|\r|\n/g, "\\n"));
+                
+                songDiv.innerHTML = `
+                <div class="song-content">
+                    <strong>${song.title}</strong> 
+                    <small>• ${song.artist || "Unknown"}</small>
+                </div>
+                `;
+                songsContainer.appendChild(songDiv);
+            });
+
+            addDragAndDropListeners();
+        }
+
+        // Add drag and drop event listeners
+        function addDragAndDropListeners() {
+            const songItems = document.querySelectorAll('.song-item');
+            songItems.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+
+            const editorContainer = document.querySelector('#editor-container');
+            editorContainer.addEventListener('dragover', handleDragOver);
+            editorContainer.addEventListener('drop', handleDrop);
+        }
+
+        function handleDragStart(event) {
+            event.dataTransfer.setData('text/plain', JSON.stringify({
+                title: event.target.getAttribute('data-title'),
+                artist: event.target.getAttribute('data-artist'),
+                lyrics: event.target.getAttribute('data-lyrics')
+            }));
+            setTimeout(() => {
+                event.target.classList.add('hide');
+            }, 0);
+        }
+
+        function handleDragEnd(event) {
+            event.target.classList.remove('hide');
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+            
+            const data = event.dataTransfer.getData('text/plain');
+            const song = JSON.parse(data);
+
+            // Add song to localStorage sheet
+            if (addSongToLocalStorageSheet(song)) {
+                // Update the editor with the new song
+                const sheetSongs = getSheetSongsFromLocalStorage();
+                appendSongToEditor(song, sheetSongs.length - 1);
+                
+                // Update the song list to mark the song as used
+                let songItem = document.querySelector(`.song-item[data-title="${song.title}"]`);
+                if (songItem) songItem.classList.add("song-item-used");
+            } else {
+                alert(`${song.title} is already in the sheet.`);
+            }
+        }
+
+        // Handle file upload
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                const title = lines[0].trim();
+                const artist = lines[1].trim();
+                const lyrics = lines.slice(2).join('\\n').trim();
+
+                const newSong = { title, artist, lyrics };
+                // Add the new song to the songs array
+                songs.push(newSong);
+                renderSongs(songs);
+            };
+            reader.readAsText(file);
+        }
+
+        uploadInput.addEventListener("change", handleFileUpload);
+
+        // Print functionality with SVG-based exact layout capture
+        document.querySelectorAll('#print-button, #header-print-button').forEach(button => {
+            button.addEventListener('click', function() {
+                // Show processing indicator
+                const processingIndicator = document.createElement('div');
+                processingIndicator.style.position = 'fixed';
+                processingIndicator.style.top = '50%';
+                processingIndicator.style.left = '50%';
+                processingIndicator.style.transform = 'translate(-50%, -50%)';
+                processingIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                processingIndicator.style.color = 'white';
+                processingIndicator.style.padding = '20px';
+                processingIndicator.style.borderRadius = '5px';
+                processingIndicator.style.zIndex = '9999';
+                processingIndicator.textContent = 'Preparing print output...';
+                document.body.appendChild(processingIndicator);
+                
+                // Create a container for the print version with SVG capture
+                const printContainer = document.createElement('div');
+                printContainer.id = 'print-container';
+                printContainer.style.position = 'fixed';
+                printContainer.style.left = '0';
+                printContainer.style.top = '0';
+                printContainer.style.width = '100%';
+                printContainer.style.height = '100%';
+                printContainer.style.backgroundColor = 'white';
+                printContainer.style.zIndex = '9998';
+                printContainer.style.overflow = 'auto';
+                printContainer.style.display = 'none'; // Initially hidden
+                document.body.appendChild(printContainer);
+                
+                // Get all pages to print
+                const mainEditor = document.getElementById('editor-container');
+                const additionalPages = document.querySelectorAll('.page-container');
+                const pagesToPrint = [mainEditor, ...Array.from(additionalPages)];
+                
+                // Process each page with html2canvas for exact capture
+                let processedCount = 0;
+                const totalPages = pagesToPrint.length;
+                
+                // Update the indicator to show progress
+                processingIndicator.textContent = `Capturing page 1 of ${totalPages}...`;
+                
+                // Process pages one by one
+                processPage(0);
+                
+                function processPage(index) {
+                    if (index >= totalPages) {
+                        // All pages processed, trigger print
+                        printAndCleanup();
+                        return;
+                    }
+                    
+                    const pageElement = pagesToPrint[index];
+                    processingIndicator.textContent = `Capturing page ${index + 1} of ${totalPages}...`;
+                    
+                    // Create a page wrapper for each captured page
+                    const pageWrapper = document.createElement('div');
+                    pageWrapper.className = 'print-page';
+                    pageWrapper.style.width = '8.5in';
+                    pageWrapper.style.height = '11in';
+                    pageWrapper.style.margin = '0 auto';
+                    pageWrapper.style.position = 'relative';
+                    pageWrapper.style.pageBreakAfter = 'always';
+                    pageWrapper.style.backgroundColor = 'white';
+                    pageWrapper.style.overflow = 'hidden';
+                    
+                    // Use html2canvas to capture the exact layout as an image
+                    html2canvas(pageElement, {
+                        scale: 2, // Higher scale for better quality
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: null,
+                        logging: false,
+                        onclone: function(clonedDoc) {
+                            // In the cloned document, hide controls and focus on content
+                            const clonedElement = clonedDoc.querySelector(`#${pageElement.id}`);
+                            if (clonedElement) {
+                                const removeButtons = clonedElement.querySelectorAll('.remove-button');
+                                removeButtons.forEach(button => {
+                                    button.style.display = 'none';
+                                });
+                            }
+                        }
+                    }).then(canvas => {
+                        // Convert canvas to an image for better printing
+                        const img = document.createElement('img');
+                        img.src = canvas.toDataURL('image/png');
+                        img.style.width = '100%';
+                        img.style.height = 'auto';
+                        img.style.display = 'block';
+                        
+                        // Add the captured image to the page wrapper
+                        pageWrapper.appendChild(img);
+                        printContainer.appendChild(pageWrapper);
+                        
+                        // Process the next page
+                        processedCount++;
+                        processPage(index + 1);
+                    }).catch(error => {
+                        console.error('Error capturing page:', error);
+                        processingIndicator.textContent = 'Error preparing print output. Please try again.';
+                        
+                        // Clean up after 3 seconds
+                        setTimeout(() => {
+                            document.body.removeChild(processingIndicator);
+                            document.body.removeChild(printContainer);
+                        }, 3000);
+                    });
+                }
+                
+                function printAndCleanup() {
+                    // All pages processed, update indicator
+                    processingIndicator.textContent = 'Opening print dialog...';
+                    
+                    // Show the print container
+                    printContainer.style.display = 'block';
+                    
+                    // Give the browser a moment to render before printing
+                    setTimeout(() => {
+                        window.print();
+                        
+                        // Clean up after printing
+                        document.body.removeChild(processingIndicator);
+                        document.body.removeChild(printContainer);
+                    }, 500);
+                }
+            });
+        });
+        
+        function updateClearSheetButton() {
+            const clearSheetButton = document.getElementById("clear-sheet");
+            if (!clearSheetButton) return; // Guard against null reference
+            
+            const sheetSongs = getSheetSongsFromLocalStorage();
+            clearSheetButton.disabled = sheetSongs.length === 0;
+        }
+
+        // Text size, column count, and column gap controls
+        const fontSizeSlider = document.getElementById('font-size-slider');
+        const sizeDisplay = document.getElementById('size-display');
+        const sizeDecreaseBtn = document.getElementById('size-decrease');
+        const sizeIncreaseBtn = document.getElementById('size-increase');
+        const sizeResetBtn = document.getElementById('size-reset');
+        
+        const columnSlider = document.getElementById('column-count-slider');
+        const columnDisplay = document.getElementById('column-display');
+        const colDecreaseBtn = document.getElementById('col-decrease');
+        const colIncreaseBtn = document.getElementById('col-increase');
+        const colAutoBtn = document.getElementById('col-auto');
+        
+        const columnGapSlider = document.getElementById('column-gap-slider');
+        const gapDisplay = document.getElementById('gap-display');
+        const gapDecreaseBtn = document.getElementById('gap-decrease');
+        const gapIncreaseBtn = document.getElementById('gap-increase');
+        const gapResetBtn = document.getElementById('gap-reset');
+        
+        const addPageBtn = document.getElementById('add-page-btn');
+        
+        // Function to update font size from dev controls (bypasses auto-scaling)
+        function updateFontSizeFromDevControls(size) {
+            // Update the UI elements
+            fontSizeSlider.value = size;
+            sizeDisplay.textContent = size + 'pt';
+            
+            // Apply the font size to the editor
+            editor.style.fontSize = size + 'pt';
+            
+            // Update current scale
+            currentScale = size / baseFontSize;
+            
+            // Apply to any additional pages
+            const pageEditors = document.querySelectorAll('.page-editor');
+            pageEditors.forEach(pageEditor => {
+                pageEditor.style.fontSize = size + 'pt';
+            });
+            
+            // Update scale indicator
+            updateLayoutControls();
+        }
+        
+        // Function to update column gap spacing
+        function updateColumnGap(gap) {
+            // Update value
+            columnGap = gap;
+            
+            // Update UI
+            columnGapSlider.value = gap;
+            gapDisplay.textContent = gap + 'px';
+            
+            // Apply to editor
+            editor.style.columnGap = gap + 'px';
+            
+            // Apply to any additional pages
+            const pageEditors = document.querySelectorAll('.page-editor');
+            pageEditors.forEach(pageEditor => {
+                pageEditor.style.columnGap = gap + 'px';
+            });
+        }
+        
+        // Event listeners for font size controls
+        if (fontSizeSlider) {
+            fontSizeSlider.addEventListener('input', function() {
+                updateFontSizeFromDevControls(parseFloat(this.value));
+            });
+        }
+        
+        if (sizeDecreaseBtn) {
+            sizeDecreaseBtn.addEventListener('click', function() {
+                const newSize = Math.max(6, parseFloat(fontSizeSlider.value) - 0.5);
+                updateFontSizeFromDevControls(newSize);
+            });
+        }
+        
+        if (sizeIncreaseBtn) {
+            sizeIncreaseBtn.addEventListener('click', function() {
+                const newSize = Math.min(24, parseFloat(fontSizeSlider.value) + 0.5);
+                updateFontSizeFromDevControls(newSize);
+            });
+        }
+        
+        if (sizeResetBtn) {
+            sizeResetBtn.addEventListener('click', function() {
+                updateFontSizeFromDevControls(baseFontSize);
+            });
+        }
+        
+        // Column count control event listeners
+        if (columnSlider) {
+            columnSlider.addEventListener('input', function() {
+                setColumnCount(parseInt(this.value));
+            });
+        }
+        
+        if (colDecreaseBtn) {
+            colDecreaseBtn.addEventListener('click', function() {
+                setColumnCount(Math.max(1, currentColumns - 1));
+            });
+        }
+        
+        if (colIncreaseBtn) {
+            colIncreaseBtn.addEventListener('click', function() {
+                setColumnCount(Math.min(3, currentColumns + 1));
+            });
+        }
+        
+        if (colAutoBtn) {
+            colAutoBtn.addEventListener('click', function() {
+                autoColumns = true;
+                checkContentAndManageLayout(); // Only use this when explicitly asked
+            });
+        }
+        
+        // Column gap control event listeners
+        if (columnGapSlider) {
+            columnGapSlider.addEventListener('input', function() {
+                updateColumnGap(parseInt(this.value));
+            });
+        }
+        
+        if (gapDecreaseBtn) {
+            gapDecreaseBtn.addEventListener('click', function() {
+                updateColumnGap(Math.max(5, columnGap - 5));
+            });
+        }
+        
+        if (gapIncreaseBtn) {
+            gapIncreaseBtn.addEventListener('click', function() {
+                updateColumnGap(Math.min(50, columnGap + 5));
+            });
+        }
+        
+        if (gapResetBtn) {
+            gapResetBtn.addEventListener('click', function() {
+                updateColumnGap(20);
+            });
+        }
+        
+        // Add page button event listener
+        if (addPageBtn) {
+            addPageBtn.addEventListener('click', function() {
+                addNewPage();
+            });
+        }
+        
+        // Make functions available to HTML onclick events
+        window.removeSongFromEditor = removeSongFromEditor;
+        
+        // Global variable to store songs data
+        let songs = [];
+        
+        // Mock data for songs
+        const mockSongs = [
+            {
+                title: "אדיר הוא",
+                artist: "Traditional",
+                lyrics: "אדיר הוא, יבנה ביתו בקרוב\nבמהרה בימינו בקרוב\nא-ל בנה, א-ל בנה, בנה ביתך בקרוב"
+            },
+            {
+                title: "עוד ישמע",
+                artist: "Traditional",
+                lyrics: "עוד ישמע בערי יהודה ובחוצות ירושלים\nקול ששון וקול שמחה\nקול חתן וקול כלה"
+            },
+            {
+                title: "ושמחת",
+                artist: "Traditional",
+                lyrics: "ושמחת בחגך\nוהיית אך שמח\nושמחת בחגך\nוהיית אך שמח"
+            },
+            {
+                title: "ידיד נפש",
+                artist: "Rabbi Elazar Azikri",
+                lyrics: "ידיד נפש אב הרחמן\nמשוך עבדך אל רצונך\nירוץ עבדך כמו איל\nישתחווה אל מול הדרך"
+            },
+            {
+                title: "אנא בכח",
+                artist: "Kabbalistic",
+                lyrics: "אנא בכח גדולת ימינך תתיר צרורה\nקבל רינת עמך שגבנו טהרנו נורא\nנא גיבור דורשי יחודך כבבת שמרם\nברכם טהרם רחמם צדקתך תמיד גמלם"
+            }
+        ];
+        
+        // Try to fetch songs with fallback
+        fetch(songsEndpoint)
+            .then(response => response.json())
+            .then(data => {
+                songs = data;
+                renderSongs(songs);
+                initializeSheet();
+                updateClearSheetButton();
+            })
+            .catch(error => {
+                console.error('Error loading songs:', error);
+                console.log('Using mock song data instead');
+                
+                // Use mock data as fallback
+                songs = mockSongs;
+                
+                // Display a message about using demo data
+                songsContainer.innerHTML = `
+                    <div style="background-color: #1c1c1c; color: #e0e0e0; padding: 16px; margin-bottom: 16px; border-left: 4px solid #FFDA2A; border-radius: 4px;">
+                        <strong>Using demo songs.</strong> The API is currently unavailable.
+                    </div>
+                `;
+                
+                renderSongs(songs);
+                initializeSheet();
+                updateClearSheetButton();
+            });
+    </script>
+</body>
+</html>
+            {
+                title: "אנא בכח",
+                artist: "Kabbalistic",
+                lyrics: "אנא בכח גדולת ימינך תתיר צרורה\nקבל רינת עמך שגבנו טהרנו נורא\nנא גיבור דורשי יחודך כבבת שמרם\nברכם טהרם רחמם צדקתך תמיד גמלם"
+            }
+        ];
+        
+        // Try to fetch songs with fallback
+        fetch(songsEndpoint)
+            .then(response => response.json())
+            .then(data => {
+                songs = data;
+                renderSongs(songs);
+                initializeSheet();
+                updateClearSheetButton();
+            })
+            .catch(error => {
+                console.error('Error loading songs:', error);
+                console.log('Using mock song data instead');
+                
+                // Use mock data as fallback
+                songs = mockSongs;
+                
+                // Display a message about using demo data
+                songsContainer.innerHTML = `
+                    <div style="background-color: #1c1c1c; color: #e0e0e0; padding: 16px; margin-bottom: 16px; border-left: 4px solid #FFDA2A; border-radius: 4px;">
+                        <strong>Using demo songs.</strong> The API is currently unavailable.
+                    </div>
+                `;
+                
+                renderSongs(songs);
+                initializeSheet();
+                updateClearSheetButton();
+            });
+    </script>
+    <script>
+       
+        </script>
 </body>
 </html>
