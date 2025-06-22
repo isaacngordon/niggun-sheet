@@ -1429,7 +1429,7 @@
         // Set smartboard mode from localStorage
         document.getElementById("smartboard-mode").checked = localStorage.getItem("smartboardMode") === "true";
         
-        const songsEndpoint = "/data/songs";
+        const songsEndpoint = "/api/songs";
         const songsTableBody = document.getElementById("songs-table-body");
         let sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
         const smartboardModeSwitch = document.getElementById("smartboard-mode");
