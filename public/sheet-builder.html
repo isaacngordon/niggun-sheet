@@ -1,402 +1,3358 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sheet Builder</title>
-    <!-- Include Quill from CDNJS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.6/quill.snow.css">
-    <link rel="stylesheet" href="css/main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Modern color scheme with artlist yellow */
+        :root {
+            --color-background: #0a0a0a;
+            --color-surface: #141414;
+            --color-surface-hover: #1a1a1a;
+            --color-surface-active: #242424;
+            --color-border: #2a2a2a;
+            --color-border-hover: #3a3a3a;
+            --color-text-primary: #ffffff;
+            --color-text-secondary: #a0a0a0;
+            --color-text-tertiary: #707070;
+            --color-accent: #ffcb05;
+            --color-accent-hover: #e6b700;
+            --color-accent-light: rgba(255, 203, 5, 0.1);
+            --color-success: #00e676;
+            --color-warning: #ffd600;
+            --color-danger: #ff5252;
+            --sidebar-width: 320px;
+            --header-height: 72px;
+            --border-radius: 12px;
+            --border-radius-sm: 8px;
+            --transition-speed: 0.2s;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Base body styling */
         body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Modern Header */
+        header {
+            background-color: var(--color-surface);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--color-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: all var(--transition-speed);
+        }
+
+        .header-container {
+            display: flex;
+            height: var(--header-height);
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            max-width: 100%;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+        }
+
+        .logo {
+            height: 36px;
+            filter: brightness(0) invert(1);
+            opacity: 0.9;
+            transition: opacity var(--transition-speed);
+        }
+
+        .logo:hover {
+            opacity: 1;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            border-radius: var(--border-radius-sm);
+            transition: all var(--transition-speed);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover {
+            color: var(--color-text-primary);
+            background-color: var(--color-surface-hover);
+        }
+
+        .nav-link.active {
+            color: var(--color-accent);
+            background-color: var(--color-accent-light);
+        }
+
+        .new-badge {
+            margin-left: 0.5rem;
+            padding: 0.125rem 0.5rem;
+            background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+            color: var(--color-background);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-radius: 100px;
+            letter-spacing: 0.05em;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.5rem;
+            background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+            color: var(--color-background);
+            border: none;
+            border-radius: var(--border-radius-sm);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            box-shadow: 0 2px 8px rgba(255, 203, 5, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(255, 203, 5, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* Main layout */
+        .main-container {
+            display: flex;
+            height: calc(100vh - var(--header-height));
+            position: relative;
+        }
+
+        /* Modern Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--color-surface);
+            border-right: 1px solid var(--color-border);
             display: flex;
             flex-direction: column;
-            height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
+            overflow: hidden;
+            transition: all var(--transition-speed);
         }
 
-        #navbar {
-            background-color: #000000;
-            color: #ffffff;
-            padding: 10px;
-            text-align: center;
-            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        #navbar a {
-            color: #f2cb05;
-            margin: 0 10px;
-            text-decoration: none;
-        }
-
-        #navbar a:hover {
-            text-decoration: underline;
-        }
-
-        #content {
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--color-border);
             display: flex;
-            flex: 1;
-            overflow: auto; /* Allow scrolling when content overflows */
+            align-items: center;
+            justify-content: space-between;
         }
 
-        #song-list {
-            width: 300px;
-            margin: 2rem;
-            padding: 20px;
-            background-color: #000000;
-            color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        .sidebar-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+
+        .sidebar-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--color-text-tertiary);
+            margin-bottom: 1rem;
+        }
+
+        /* Control buttons */
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .control-btn {
+            padding: 0.75rem;
+            background-color: var(--color-surface-hover);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            text-align: center;
+        }
+
+        .control-btn:hover {
+            background-color: var(--color-surface-active);
+            border-color: var(--color-border-hover);
+            color: var(--color-text-primary);
+        }
+
+        .control-btn.active {
+            background-color: var(--color-accent-light);
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Modern navigation items */
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            margin-bottom: 0.25rem;
+            border-radius: var(--border-radius-sm);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background-color: var(--color-surface-hover);
+            color: var(--color-text-primary);
+        }
+
+        .nav-item.active {
+            background-color: var(--color-accent-light);
+            color: var(--color-accent);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.8;
+        }
+
+        /* Songs list with search */
+        .songs-search-container {
+            padding: 0 1rem 1rem 1rem;
+        }
+        
+        .songs-search {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background-color: var(--color-surface-hover);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            color: var(--color-text-primary);
+            font-size: 0.9rem;
+            transition: all var(--transition-speed);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23707070' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cpath d='m21 21-4.35-4.35'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 0.75rem center;
+            background-size: 18px 18px;
+        }
+        
+        .songs-search:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            background-color: var(--color-surface-active);
+            box-shadow: 0 0 0 3px var(--color-accent-light);
+        }
+        
+        .songs-search::placeholder {
+            color: var(--color-text-tertiary);
+        }
+
+        .songs-container {
+            flex: 1;
             overflow-y: auto;
-            overflow-x: hidden; /* Ensure scroll bar appears when content overflows */
-            flex-shrink: 0;
+            padding: 0 1rem 1rem 1rem;
         }
 
         .song-item {
-            margin-bottom: 10px;
-            padding: 10px;
-            border: 1px solid #ffffff;
-            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--color-surface-hover);
+            border: 1px solid transparent;
+            border-radius: var(--border-radius-sm);
             cursor: grab;
-        }
-
-        .song-item-used {
-            color: #f2cb05;
-        }
-
-        #editor-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            transition: all var(--transition-speed);
             position: relative;
-            width: 100%;
-            height: auto;
-            margin: 0 auto;
-            overflow: auto; /* Allow scrolling when content overflows */
-            min-height: 500px; /* Minimum height for the sheet builder */
-            background: url('/assets/sheetskin.png') no-repeat center center;
-            background-size: cover;
+            overflow: hidden;
+            user-select: none;
         }
 
-        #editor {
-            box-sizing: border-box;
+        .song-item:hover {
+            background-color: var(--color-surface-active);
+            border-color: var(--color-border-hover);
+            transform: translateX(4px);
+        }
+
+        .song-item:active {
+            cursor: grabbing;
+        }
+
+        .song-item.song-item-used {
+            border-left: 3px solid var(--color-accent);
+            background-color: var(--color-accent-light);
+        }
+
+        .song-item.song-item-used::after {
+            content: 'In use';
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            font-size: 0.7rem;
+            color: var(--color-accent);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.7;
+        }
+
+        .song-title {
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .song-artist {
+            font-size: 0.875rem;
+            color: var(--color-text-tertiary);
+        }
+
+        /* Advanced controls */
+        .control-slider {
+            margin-bottom: 1.5rem;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .slider-label {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+
+        .slider-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--color-accent);
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: var(--color-surface-active);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--color-accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            box-shadow: 0 2px 8px rgba(255, 203, 5, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 2px 12px rgba(255, 203, 5, 0.5);
+        }
+
+        .slider-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .slider-btn {
+            flex: 1;
+            padding: 0.5rem;
+            background-color: var(--color-surface-hover);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            color: var(--color-text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .slider-btn:hover {
+            background-color: var(--color-surface-active);
+            color: var(--color-text-primary);
+        }
+        
+        .slider-btn.active {
+            background-color: var(--color-accent-light);
+            color: var(--color-accent);
+            border-color: var(--color-accent);
+        }
+
+        /* Editor area */
+        .editor-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            background-color: var(--color-background);
+            overflow: auto;
+            gap: 2rem;
+        }
+
+        .sheet-page {
+            width: calc(8.5in * 0.8);
+            height: calc(11in * 0.8);
+            background-color: white;
+            background-image: url('/assets/sheetskin.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-speed);
+            flex-shrink: 0;
+        }
+
+        .sheet-editor {
             height: 100%;
             width: 100%;
-            padding: 60px;
-            position: relative;
+            padding: 0.8in;
             color: black;
-            overflow-y: hidden;
-            columns: 3;
+            overflow: hidden;
             column-gap: 40px;
+            column-fill: auto;
+            font-size: 18pt;
+            text-align: center;
+            position: relative;
+            transition: background-color var(--transition-speed);
+            word-break: keep-all;
+        }
+        
+        .sheet-editor.drag-active {
+            background-color: rgba(255, 203, 5, 0.05);
         }
 
-        .editor-song {
-            break-inside: avoid-column;  
-            font-size: 1.2vh; /* Responsive font size */
+        .sheet-song {
+            break-inside: avoid-column;
+            margin-bottom: 0.15in;
+            padding: 0.05in;
+            border-radius: 4px;
+            transition: all var(--transition-speed);
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            cursor: move;
+            user-select: none;
+            page-break-inside: avoid;
+        }
+        
+        .sheet-song p,
+        .song-lyrics {
+            white-space: pre-wrap;
+            word-break: keep-all;
+            overflow-wrap: normal;
         }
 
-        #footer {
-            background-color: #000000;
-            color: #ffffff;
-            padding: 10px;
+        .sheet-song:hover {
+            background-color: rgba(255, 203, 5, 0.1);
+        }
+
+        .sheet-song.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .sheet-song.drag-over {
+            border-top: 3px solid var(--color-accent);
+        }
+
+        .song-content {
+            pointer-events: none;
+        }
+
+        .song-title-in-sheet {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+            padding-bottom: 3px;
+            white-space: nowrap;
+        }
+
+        .song-lyrics {
+            white-space: pre-wrap;
+            text-align: center;
+            line-height: 1.4;
+            word-break: keep-all;
+            overflow-wrap: normal;
+        }
+
+        .remove-button {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 24px;
+            height: 24px;
+            background-color: var(--color-danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0;
+            transition: all var(--transition-speed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: all;
+        }
+
+        .sheet-song:hover .remove-button {
+            opacity: 1;
+        }
+
+        .remove-button:hover {
+            background-color: #ff3333;
+            transform: scale(1.1);
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-speed);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background-color: var(--color-surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+            transform: scale(0.9) translateY(20px);
+            transition: all var(--transition-speed);
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            background-color: var(--color-surface-hover);
+            border: 1px solid var(--color-border);
+            border-radius: 50%;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed);
+        }
+
+        .modal-close:hover {
+            background-color: var(--color-surface-active);
+            color: var(--color-text-primary);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+        }
+
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: var(--color-surface-hover);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            color: var(--color-text-primary);
+            font-size: 0.95rem;
+            transition: all var(--transition-speed);
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            background-color: var(--color-surface-active);
+            box-shadow: 0 0 0 3px var(--color-accent-light);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 150px;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .btn-secondary {
+            padding: 0.625rem 1.5rem;
+            background-color: var(--color-surface-hover);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--color-surface-active);
+            color: var(--color-text-primary);
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--color-surface);
+            border-top: 1px solid var(--color-border);
+            padding: 2rem;
             text-align: center;
         }
 
-        #footer a {
-            color: #f2cb05;
-            margin: 0 10px;
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-link {
+            padding: 0.75rem 1.5rem;
+            background-color: var(--color-surface-hover);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            color: var(--color-text-secondary);
             text-decoration: none;
+            font-weight: 500;
+            transition: all var(--transition-speed);
         }
 
-        #footer a:hover {
-            text-decoration: underline;
+        .footer-link:hover {
+            background-color: var(--color-surface-active);
+            color: var(--color-text-primary);
+            transform: translateY(-2px);
         }
 
+        .footer-copyright {
+            color: var(--color-text-tertiary);
+            font-size: 0.875rem;
+        }
+
+        /* Scale indicator */
+        .scale-indicator {
+            background-color: var(--color-surface-hover);
+            color: var(--color-text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all var(--transition-speed);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--color-surface);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-surface-active);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-border-hover);
+        }
+
+        /* Song selector panel - enhanced visibility */
+        .song-selector-panel {
+            position: fixed;
+            right: 2rem;
+            top: calc(var(--header-height) + 2rem);
+            width: 300px;
+            max-height: calc(100vh - var(--header-height) - 4rem);
+            background-color: var(--color-surface);
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 203, 5, 0.2);
+            border: 2px solid var(--color-accent);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            transition: all var(--transition-speed);
+            animation: slideInRight 0.5s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @media (max-width: 1400px) {
+            .song-selector-panel {
+                right: 1rem;
+                width: 280px;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            .song-selector-panel {
+                width: 260px;
+                max-height: calc(100vh - var(--header-height) - 4rem);
+                right: 1rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .song-selector-panel {
+                display: none;
+            }
+        }
+        
+        .song-selector-panel.collapsed {
+            width: 60px;
+        }
+        
+        .song-selector-header {
+            padding: 1.5rem 1rem 1rem;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: move;
+            background-color: var(--color-surface-hover);
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            user-select: none;
+            position: relative;
+        }
+        
+        .song-selector-header::before {
+            content: '⋮⋮';
+            position: absolute;
+            top: 0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--color-border);
+            font-size: 0.75rem;
+            letter-spacing: 0.25rem;
+            opacity: 0.6;
+        }
+        
+        .song-selector-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .song-selector-panel.collapsed .song-selector-title span {
+            display: none;
+        }
+        
+        .song-selector-panel.collapsed .song-selector-title svg {
+            margin: 0;
+        }
+        
+        .song-selector-panel.collapsed .collapse-btn svg {
+            transform: rotate(180deg);
+        }
+        
+        .collapse-btn svg {
+            transition: transform var(--transition-speed);
+        }
+        
+        .collapse-btn {
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            padding: 0.25rem;
+            transition: all var(--transition-speed);
+        }
+        
+        .collapse-btn:hover {
+            color: var(--color-text-primary);
+        }
+        
+        .song-selector-search {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .song-selector-panel.collapsed .song-selector-search {
+            display: none;
+        }
+        
+        .song-selector-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+            padding-bottom: 2rem;
+        }
+        
+        .song-selector-panel.collapsed .song-selector-list {
+            display: none;
+        }
+        
+        .song-selector-item {
+            padding: 0.75rem;
+            margin-bottom: 0.25rem;
+            background-color: var(--color-surface-hover);
+            border-radius: var(--border-radius-sm);
+            cursor: grab;
+            transition: all var(--transition-speed);
+            border: 1px solid transparent;
+            position: relative;
+        }
+        
+        .song-selector-item:hover::after {
+            content: 'Double-click or drag to add';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--color-surface-active);
+            color: var(--color-text-secondary);
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--border-radius-sm);
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity var(--transition-speed);
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .song-selector-item:hover {
+            background-color: var(--color-surface-active);
+            border-color: var(--color-accent);
+            transform: scale(1.02);
+            position: relative;
+        }
+        
+        .song-selector-item:hover::after {
+            opacity: 1;
+        }
+        
+        .song-selector-item:active {
+            cursor: grabbing;
+            transform: scale(0.98);
+        }
+        
+        .song-selector-item.used {
+            opacity: 0.6;
+            border-left: 3px solid var(--color-accent);
+        }
+        
+        .song-selector-item .title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--color-text-primary);
+            margin-bottom: 0.25rem;
+        }
+        
+        .song-selector-item .artist {
+            font-size: 0.8rem;
+            color: var(--color-text-tertiary);
+        }
+        
+        /* Drag ghost */
+        .drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            background-color: var(--color-surface);
+            border: 2px solid var(--color-accent);
+            border-radius: var(--border-radius-sm);
+            padding: 0.75rem;
+            box-shadow: var(--shadow-lg);
+            opacity: 0.9;
+            transform: rotate(-2deg);
+        }
+        
+        /* Drag and drop states */
         .drag-over {
-            border: 2px dashed #f2cb05;
+            border: 2px dashed var(--color-accent) !important;
+            background-color: var(--color-accent-light) !important;
+            box-shadow: 0 0 20px rgba(255, 203, 5, 0.3) !important;
+        }
+
+        .dragging {
+            opacity: 0.5;
+        }
+        
+        .sheet-page.drag-over::before {
+            content: 'Drop song here';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--color-accent);
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* Empty sheet hint */
+        .sheet-editor:empty::after {
+            content: 'Drag songs here to build your sheet';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(0, 0, 0, 0.3);
+            font-size: 1.2rem;
+            font-weight: 500;
+            text-align: center;
+            pointer-events: none;
+        }
+        
+        /* Help text */
+        .drag-hint {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--color-surface-active);
+            color: var(--color-text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius-sm);
+            font-size: 0.875rem;
+            opacity: 0;
+            transition: opacity var(--transition-speed);
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .song-selector-panel:hover .drag-hint {
+            opacity: 1;
+        }
+        
+        /* Instructions panel */
+        .instructions-panel {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            padding: 1rem;
+            box-shadow: var(--shadow-md);
+            z-index: 40;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+            max-width: 600px;
+            transition: all var(--transition-speed);
+        }
+        
+        .instructions-panel.hidden {
+            opacity: 0;
+            transform: translateX(-50%) translateY(100%);
+            pointer-events: none;
+        }
+        
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .instruction-icon {
+            width: 20px;
+            height: 20px;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-background);
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+        
+        .close-instructions {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--color-text-tertiary);
+            cursor: pointer;
+            padding: 0.25rem;
+            transition: color var(--transition-speed);
+        }
+        
+        .close-instructions:hover {
+            color: var(--color-text-primary);
+        }
+        
+        /* Loading and empty states */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--color-surface-active);
+            border-top-color: var(--color-accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        .songs-empty-state {
+            padding: 2rem;
+            text-align: center;
+            color: var(--color-text-tertiary);
+        }
+        
+        .songs-empty-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .songs-empty-state p {
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .songs-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--color-text-tertiary);
+        }
+        
+        .songs-loading .loading {
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes dropPulse {
+            to {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        @keyframes attentionPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6); }
+            25% { transform: scale(1.02); box-shadow: 0 8px 32px rgba(255, 203, 5, 0.6); }
+            50% { transform: scale(1); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6); }
+            75% { transform: scale(1.02); box-shadow: 0 8px 32px rgba(255, 203, 5, 0.6); }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .sheet-song.optimized {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .scale-indicator.success {
+            animation: successPulse 0.5s ease;
+        }
+
+        /* Responsive design */
+        @media (max-width: 1024px) {
+            :root {
+                --sidebar-width: 280px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -100%;
+                top: var(--header-height);
+                height: calc(100vh - var(--header-height));
+                z-index: 99;
+                transition: left var(--transition-speed);
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .editor-section {
+                padding: 1rem;
+            }
+
+            .sheet-page {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 8.5 / 11;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            @page {
+                size: 8.5in 11in;
+                margin: 0;
+            }
+            
+            body * {
+                visibility: hidden;
+            }
+            
+            #print-container, #print-container * {
+                visibility: visible;
+            }
+            
+            .remove-button {
+                display: none !important;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div id="navbar">
-        <a href="/">Home Page</a>
-        <a href="/songs.html">Song Directory</a>
-        <a href="/sheet-builder.html">Sheet Builder</a>
-    </div>
-
-    <div id="content">
-        <div id="song-list">
-            <div style="display: flex; flex-direction: row; justify-content: space-between; margin-bottom: 4px;">
-                <button id="clear-sheet" disabled>Clear Sheet</button>
-                <button id="print-button">Print</button>
+    <!-- Modern Header -->
+    <header>
+        <div class="header-container">
+            <div class="logo-container">
+                <a href="/">
+                    <img src="/assets/Niggun_Sheet_Header_Logo.png" alt="Niggun Sheet" class="logo" />
+                </a>
+                
+                <nav class="nav-links">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/songs.html" class="nav-link">Song Directory</a>
+                    <a href="/sheet-builder.html" class="nav-link active">
+                        Sheet Builder
+                        <span class="new-badge">new</span>
+                    </a>
+                    <a href="/contact.html" class="nav-link">Contact</a>
+                </nav>
             </div>
-            <input type="file" id="upload" accept=".txt" />
-            <h2>All Niggunim</h2>
-            <div id="songs"></div>
+            
+            <div class="header-actions">
+                <button id="header-print-button" class="btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>
+                    </svg>
+                    Download Sheet
+                </button>
+            </div>
         </div>
+    </header>
 
-        <div id="editor-container">
-            <div id="editor"></div>
-        </div>
-    </div>
-
-    <div id="footer">
-        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
-            target="_blank">Download Niggun Sheet</a>
-        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
-            target="_blank">Download Simcha Sheet</a>
-    </div>
-
-    <script>
-        const songsEndpoint = "/api/songs";
-        const songsContainer = document.getElementById("songs");
-        const uploadInput = document.getElementById("upload");
-
-        function songContainerStyling() {
-            return `
-                padding: 20px;
-                background-color: green;
-                color: red;
-                border-radius: 10px;
-                box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-                margin: 10px;
-            `;
-        }
-
-        function getSheetSongsFromLocalStorage() {
-            return JSON.parse(localStorage.getItem('sheetSongs')) || [];
-        }
-
-        function addSongToLocalStorageSheet(song) {
-            const sheetSongs = getSheetSongsFromLocalStorage();
-            sheetSongs.push(song);
-            localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
-        }
-
-
-        // Load the sheet songs from local storage into the editor
-        getSheetSongsFromLocalStorage().forEach(song => {
-            const newContent = `<div class="editor-song"><h2>${song.title}</h2><p>${song.lyrics}</p></div>`;
-            document.getElementById("editor").innerHTML += newContent;
-        });
-
-
-
-        // populate the song list with the songs titles and artists
-        function renderSongs(songs) {
-            console.log("rendering songs");
-            const sheetSongs = getSheetSongsFromLocalStorage();
-            songsContainer.innerHTML = "";
-            songs.forEach(song => {
-                const songDiv = document.createElement("div");
-                songDiv.setAttribute("draggable", "true");
-                songDiv.classList.add("song-item");
-
-                // Check if the song is already used in the sheet
-                const isUsed = sheetSongs.some(sheetSong => sheetSong.title === song.title);
-                if (isUsed) {
-                    songDiv.classList.add("song-item-used");
-                }
-
-                // Add the song data as attributes to the song item that will be used when dragging and dropping
-                songDiv.setAttribute("data-title", song.title);
-                songDiv.setAttribute("data-artist", song.artist);
-                songDiv.setAttribute("data-lyrics", song.lyrics.replace(/\r\n|\r|\n/g, ""));
-                songDiv.innerHTML = `
-                <div>
-                    <strong>${song.title}</strong><br>
-                    <small>${song.artist}</small>
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">Sheet Builder</h2>
+            </div>
+            
+            <!-- Basic Controls -->
+            <div class="sidebar-section">
+                <div class="section-title">Controls</div>
+                <div class="control-grid">
+                    <button id="clear-sheet" class="control-btn" disabled>Clear Sheet</button>
+                    <button id="print-button" class="control-btn">Print</button>
+                    <button id="toggle-titles" class="control-btn">Include Titles</button>
+                    <button id="toggle-alignment" class="control-btn">Center Mode</button>
                 </div>
+                <div style="margin-top: 0.75rem;">
+                    <span id="scale-indicator" class="scale-indicator">Scale: 100%</span>
+                </div>
+            </div>
+
+            <!-- Import Options -->
+            <div class="sidebar-section">
+                <div class="section-title">Import Options</div>
+                <div class="nav-item active">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <line x1="9" y1="9" x2="15" y2="9"/>
+                        <line x1="9" y1="12" x2="15" y2="12"/>
+                        <line x1="9" y1="15" x2="15" y2="15"/>
+                    </svg>
+                    <span>Import Songs</span>
+                </div>
+                <div class="nav-item" id="add-song-nav">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="16"/>
+                        <line x1="8" y1="12" x2="16" y2="12"/>
+                    </svg>
+                    <span>Add Song</span>
+                </div>
+                <label for="upload" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="12" y1="18" x2="12" y2="12"/>
+                        <line x1="9" y1="15" x2="12" y2="12"/>
+                        <line x1="15" y1="15" x2="12" y2="12"/>
+                    </svg>
+                    <span>Upload TXT File</span>
+                </label>
+                <input type="file" id="upload" accept=".txt" style="display: none;"/>
+            </div>
+
+            <!-- Advanced Controls -->
+            <div class="sidebar-section">
+                <div class="section-title">Layout Settings</div>
+                
+                <!-- Font Size -->
+                <div class="control-slider">
+                    <div class="slider-header">
+                        <label class="slider-label">Font Size</label>
+                        <span id="size-display" class="slider-value">18pt</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <input type="range" id="font-size-slider" min="8" max="27" value="18" step="0.5">
+                    </div>
+                    <div class="slider-controls">
+                        <button id="size-decrease" class="slider-btn">−</button>
+                        <button id="size-reset" class="slider-btn">Reset</button>
+                        <button id="size-increase" class="slider-btn">+</button>
+                    </div>
+                </div>
+                
+                <!-- Columns -->
+                <div class="control-slider">
+                    <div class="slider-header">
+                        <label class="slider-label">Columns</label>
+                        <span id="column-display" class="slider-value">Auto</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <input type="range" id="column-count-slider" min="1" max="3" value="1" step="1" disabled>
+                    </div>
+                    <div class="slider-controls">
+                        <button id="col-decrease" class="slider-btn">−</button>
+                        <button id="col-auto" class="slider-btn active">Auto</button>
+                        <button id="col-increase" class="slider-btn">+</button>
+                    </div>
+                </div>
+                
+                <!-- Column Gap -->
+                <div class="control-slider">
+                    <div class="slider-header">
+                        <label class="slider-label">Column Spacing</label>
+                        <span id="gap-display" class="slider-value">40px</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <input type="range" id="column-gap-slider" min="20" max="80" value="40" step="10">
+                    </div>
+                    <div class="slider-controls">
+                        <button id="gap-decrease" class="slider-btn">−</button>
+                        <button id="gap-reset" class="slider-btn">Reset</button>
+                        <button id="gap-increase" class="slider-btn">+</button>
+                    </div>
+                </div>
+                
+                <button id="add-page-btn" class="btn-primary" style="width: 100%; margin-top: 1rem;">
+                    Add Page
+                </button>
+            </div>
+            
+            <!-- Songs List -->
+            <div class="sidebar-section" style="flex: 1; display: flex; flex-direction: column; padding-bottom: 0;">
+                <div class="section-title">Available Songs</div>
+                <div class="songs-search-container">
+                    <input type="text" id="songs-search" class="songs-search" placeholder="Search songs...">
+                </div>
+                <div id="songs" class="songs-container">
+                    <!-- Songs will be populated here -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Editor Area -->
+        <main class="editor-section" id="editor-section">
+            <div class="sheet-page" id="page-1">
+                <div class="sheet-editor" id="editor" data-page="1" style="column-gap: 40px;"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Song Modal -->
+    <div id="add-song-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Song</h3>
+                <button class="modal-close" onclick="sheetBuilder.closeAddSongModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="add-song-form">
+                    <div class="form-group">
+                        <label class="form-label" for="song-title-input">Song Title *</label>
+                        <input type="text" id="song-title-input" class="form-input" placeholder="Enter song title" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="song-artist-input">Artist</label>
+                        <input type="text" id="song-artist-input" class="form-input" placeholder="Enter artist name (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="song-lyrics-input">Lyrics *</label>
+                        <textarea id="song-lyrics-input" class="form-textarea" placeholder="Enter song lyrics (one line per row)" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="sheetBuilder.closeAddSongModal()">Cancel</button>
+                <button class="btn-primary" onclick="sheetBuilder.submitNewSong()">Add Song</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Song Selector Panel -->
+    <div id="song-selector-panel" class="song-selector-panel">
+        <div class="song-selector-header">
+            <div class="song-selector-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18V5l12-2v13M9 9l12-2M9 15l12-2M9 18c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3zM21 16c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3z"/>
+                </svg>
+                <span>Song Library</span>
+            </div>
+            <button class="collapse-btn" onclick="sheetBuilder.toggleSongPanel()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="11 17 7 12 11 7"></polyline>
+                    <polyline points="18 17 14 12 18 7"></polyline>
+                </svg>
+            </button>
+        </div>
+        <div class="song-selector-search">
+            <input type="text" id="panel-search" class="songs-search" placeholder="Search songs...">
+        </div>
+        <div class="song-selector-list" id="song-selector-list">
+            <!-- Songs will be populated here -->
+        </div>
+        <div class="drag-hint">Drag or double-click songs to add them</div>
+    </div>
+    
+    <!-- Instructions Panel -->
+    <div id="instructions-panel" class="instructions-panel hidden">
+        <div class="instruction-item">
+            <div class="instruction-icon">1</div>
+            <span>Drag songs from the panel to your sheet</span>
+        </div>
+        <div class="instruction-item">
+            <div class="instruction-icon">2</div>
+            <span>Double-click to quickly add songs</span>
+        </div>
+        <div class="instruction-item">
+            <div class="instruction-icon">3</div>
+            <span>Reorder by dragging within the sheet</span>
+        </div>
+        <button class="close-instructions" onclick="sheetBuilder.hideInstructions()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+    </div>
+
+    <footer>
+        <div class="footer-links">
+            <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank" class="footer-link">
+                Download Niggun Sheet
+            </a>
+            <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank" class="footer-link">
+                Download Simcha Sheet
+            </a>
+        </div>
+        <div class="footer-copyright">
+            © 2025 Yehudah Jacobs - The Niggun Sheet
+        </div>
+    </footer>
+    
+    <script>
+        // SheetBuilder - Complete reimagined canvas assembly
+        class SheetBuilder {
+            constructor() {
+                this.songs = [];
+                this.pages = [];
+                this.currentPageIndex = 0;
+                this.settings = {
+                    baseFontSize: 18,
+                    currentFontSize: 18,
+                    currentScale: 1.0,
+                    columnGap: 40,
+                    autoColumns: true,
+                    includeTitles: false,
+                    textAlignment: 'center'
+                };
+                this.layoutState = {
+                    columns: 1,
+                    pageHeight: 0,
+                    contentHeight: 0
+                };
+                this.draggedSong = null;
+                this.draggedElement = null;
+                this.dragOverElement = null;
+                
+                this.initializeElements();
+                this.initializeEventListeners();
+                this.loadPreferences();
+                this.initializePage();
+                this.showInstructionsIfNeeded();
+                this.loadSongs().then(() => {
+                    // Load sheet songs after songs list is ready
+                    this.loadSheetSongs();
+                });
+            }
+            
+            showInstructionsIfNeeded() {
+                const hasSeenInstructions = localStorage.getItem('hasSeenInstructions');
+                if (!hasSeenInstructions) {
+                    const panel = document.getElementById('instructions-panel');
+                    if (panel) {
+                        panel.classList.remove('hidden');
+                    }
+                    
+                    // Add attention pulse to song panel
+                    setTimeout(() => {
+                        this.elements.songPanel.style.animation = 'attentionPulse 2s ease-out';
+                        setTimeout(() => {
+                            this.elements.songPanel.style.animation = '';
+                        }, 2000);
+                    }, 1000);
+                }
+            }
+            
+            hideInstructions() {
+                const panel = document.getElementById('instructions-panel');
+                if (panel) {
+                    panel.classList.add('hidden');
+                    localStorage.setItem('hasSeenInstructions', 'true');
+                }
+            }
+            
+            initializeElements() {
+                this.elements = {
+                    songsContainer: document.getElementById('songs'),
+                    songsSearch: document.getElementById('songs-search'),
+                    editorSection: document.getElementById('editor-section'),
+                    uploadInput: document.getElementById('upload'),
+                    scaleIndicator: document.getElementById('scale-indicator'),
+                    clearSheetBtn: document.getElementById('clear-sheet'),
+                    printBtn: document.getElementById('print-button'),
+                    headerPrintBtn: document.getElementById('header-print-button'),
+                    toggleTitlesBtn: document.getElementById('toggle-titles'),
+                    toggleAlignmentBtn: document.getElementById('toggle-alignment'),
+                    addSongNav: document.getElementById('add-song-nav'),
+                    addPageBtn: document.getElementById('add-page-btn'),
+                    // Sliders
+                    fontSizeSlider: document.getElementById('font-size-slider'),
+                    sizeDisplay: document.getElementById('size-display'),
+                    columnSlider: document.getElementById('column-count-slider'),
+                    columnDisplay: document.getElementById('column-display'),
+                    gapSlider: document.getElementById('column-gap-slider'),
+                    gapDisplay: document.getElementById('gap-display'),
+                    // Modal
+                    addSongModal: document.getElementById('add-song-modal'),
+                    songTitleInput: document.getElementById('song-title-input'),
+                    songArtistInput: document.getElementById('song-artist-input'),
+                    songLyricsInput: document.getElementById('song-lyrics-input'),
+                    // Song panel
+                    songPanel: document.getElementById('song-selector-panel'),
+                    songPanelList: document.getElementById('song-selector-list'),
+                    panelSearch: document.getElementById('panel-search')
+                };
+            }
+            
+            initializeEventListeners() {
+                // Basic controls
+                this.elements.clearSheetBtn.addEventListener('click', () => this.clearSheet());
+                this.elements.printBtn.addEventListener('click', () => this.handlePrint());
+                this.elements.headerPrintBtn.addEventListener('click', () => this.handlePrint());
+                this.elements.toggleTitlesBtn.addEventListener('click', () => this.toggleTitles());
+                this.elements.toggleAlignmentBtn.addEventListener('click', () => this.toggleAlignment());
+                this.elements.addSongNav.addEventListener('click', () => this.openAddSongModal());
+                this.elements.addPageBtn.addEventListener('click', () => this.addNewPage());
+                this.elements.uploadInput.addEventListener('change', (e) => this.handleFileUpload(e));
+                
+                // Search functionality
+                this.elements.songsSearch.addEventListener('input', (e) => this.filterSongs(e.target.value));
+                this.elements.panelSearch.addEventListener('input', (e) => this.filterPanelSongs(e.target.value));
+                
+                // Font size controls
+                this.elements.fontSizeSlider.addEventListener('input', (e) => {
+                    this.updateFontSize(parseFloat(e.target.value));
+                });
+                
+                document.getElementById('size-decrease').addEventListener('click', () => {
+                    const newSize = Math.max(8, this.settings.currentFontSize - 0.5);
+                    this.updateFontSize(newSize);
+                });
+                
+                document.getElementById('size-increase').addEventListener('click', () => {
+                    const newSize = Math.min(27, this.settings.currentFontSize + 0.5);
+                    this.updateFontSize(newSize);
+                });
+                
+                document.getElementById('size-reset').addEventListener('click', () => {
+                    this.updateFontSize(this.settings.baseFontSize);
+                });
+                
+                // Column controls
+                this.elements.columnSlider.addEventListener('input', (e) => {
+                    if (!this.settings.autoColumns) {
+                        const newColumns = parseInt(e.target.value);
+                        this.elements.columnDisplay.textContent = newColumns;
+                        this.setColumns(newColumns);
+                    }
+                });
+                
+                document.getElementById('col-decrease').addEventListener('click', () => {
+                    if (this.settings.autoColumns) {
+                        this.settings.autoColumns = false;
+                        this.updateColumnControls();
+                    }
+                    this.setColumns(Math.max(1, this.layoutState.columns - 1));
+                });
+                
+                document.getElementById('col-increase').addEventListener('click', () => {
+                    if (this.settings.autoColumns) {
+                        this.settings.autoColumns = false;
+                        this.updateColumnControls();
+                    }
+                    this.setColumns(Math.min(3, this.layoutState.columns + 1));
+                });
+                
+                document.getElementById('col-auto').addEventListener('click', () => {
+                    this.settings.autoColumns = true;
+                    this.updateColumnControls();
+                    this.optimizeLayout();
+                });
+                
+                // Gap controls
+                this.elements.gapSlider.addEventListener('input', (e) => {
+                    this.updateColumnGap(parseInt(e.target.value));
+                });
+                
+                document.getElementById('gap-decrease').addEventListener('click', () => {
+                    this.updateColumnGap(Math.max(20, this.settings.columnGap - 10));
+                });
+                
+                document.getElementById('gap-increase').addEventListener('click', () => {
+                    this.updateColumnGap(Math.min(80, this.settings.columnGap + 10));
+                });
+                
+                document.getElementById('gap-reset').addEventListener('click', () => {
+                    this.updateColumnGap(40);
+                });
+            }
+            
+            initializePage() {
+                const firstPage = document.getElementById('page-1');
+                const editor = firstPage.querySelector('.sheet-editor');
+                
+                this.pages.push({
+                    element: firstPage,
+                    editor: editor,
+                    songs: []
+                });
+                
+                // Set initial styles
+                editor.style.columnCount = 1;
+                editor.style.fontSize = this.settings.currentFontSize + 'pt';
+                editor.style.columnGap = this.settings.columnGap + 'px';
+                
+                // Calculate page height for layout calculations
+                this.layoutState.pageHeight = editor.clientHeight - (0.8 * 96 * 2); // Subtract padding
+            }
+            
+            loadPreferences() {
+                const savedTitles = localStorage.getItem('includeTitles');
+                if (savedTitles !== null) {
+                    this.settings.includeTitles = savedTitles === 'true';
+                    this.elements.toggleTitlesBtn.classList.toggle('active', this.settings.includeTitles);
+                    this.elements.toggleTitlesBtn.textContent = this.settings.includeTitles ? 'Titles: On' : 'Include Titles';
+                }
+                
+                const savedAlignment = localStorage.getItem('textAlignment');
+                if (savedAlignment) {
+                    this.settings.textAlignment = savedAlignment;
+                    this.elements.toggleAlignmentBtn.classList.toggle('active', this.settings.textAlignment === 'rtl');
+                    this.elements.toggleAlignmentBtn.textContent = this.settings.textAlignment === 'rtl' ? 'RTL Mode' : 'Center Mode';
+                }
+                
+                // Load panel collapsed state
+                const panelCollapsed = localStorage.getItem('songPanelCollapsed');
+                if (panelCollapsed === 'true') {
+                    this.elements.songPanel.classList.add('collapsed');
+                }
+            }
+            
+            loadSheetSongs() {
+                // Load sheet songs from localStorage
+                const sheetSongs = this.getSheetSongsFromLocalStorage();
+                sheetSongs.forEach(song => {
+                    this.addSongToSheet(song, false);
+                });
+                
+                // Update panel to show used songs
+                const panelItems = this.elements.songPanelList.querySelectorAll('.song-selector-item');
+                panelItems.forEach(item => {
+                    const songData = JSON.parse(item.dataset.song);
+                    const isUsed = sheetSongs.some(s => s.title === songData.title && s.artist === songData.artist);
+                    if (isUsed) {
+                        item.classList.add('used');
+                    }
+                });
+            }
+            
+            async loadSongs() {
+                // Show loading state
+                this.showLoadingState();
+                
+                try {
+                    console.log('Attempting to load songs from API...');
+                    const response = await fetch('/api/songs');
+                    if (!response.ok) {
+                        throw new Error(`API responded with status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    console.log('Songs loaded from API:', data.length);
+                    this.songs = data;
+                } catch (error) {
+                    console.error('Error loading songs from API:', error);
+                    console.log('Using mock songs instead');
+                    this.songs = this.getMockSongs();
+                    
+                    // Show a notification that we're using demo data
+                    setTimeout(() => {
+                        this.showNotification('Using demo songs. API is currently unavailable.', 'warning');
+                    }, 500);
+                }
+                
+                // Render songs after a short delay to show loading state
+                setTimeout(() => {
+                    this.renderSongsList();
+                }, 300);
+            }
+            
+            getMockSongs() {
+                return [
+                    {
+                        title: "אדיר הוא",
+                        artist: "Traditional",
+                        lyrics: "אדיר הוא, יבנה ביתו בקרוב\nבמהרה בימינו בקרוב\nא-ל בנה, א-ל בנה\nבנה ביתך בקרוב"
+                    },
+                    {
+                        title: "עוד ישמע",
+                        artist: "Traditional",
+                        lyrics: "עוד ישמע בערי יהודה\nובחוצות ירושלים\nקול ששון וקול שמחה\nקול חתן וקול כלה"
+                    },
+                    {
+                        title: "ושמחת",
+                        artist: "Traditional",  
+                        lyrics: "ושמחת בחגך\nוהיית אך שמח\nושמחת בחגך\nוהיית אך שמח"
+                    },
+                    {
+                        title: "ידיד נפש",
+                        artist: "Rabbi Elazar Azikri",
+                        lyrics: "ידיד נפש אב הרחמן\nמשוך עבדך אל רצונך\nירוץ עבדך כמו איל\nישתחווה אל מול הדרך"
+                    }
+                ];
+            }
+            
+            renderSongsList() {
+                const sheetSongs = this.getSheetSongsFromLocalStorage();
+                this.elements.songsContainer.innerHTML = '';
+                
+                if (this.songs.length === 0) {
+                    // Show empty state
+                    this.elements.songsContainer.innerHTML = `
+                        <div class="songs-empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 9V2h6v7m-6 0h6m-6 0l-5.5 5.5A2.12 2.12 0 012 16v0c0-.6.24-1.17.66-1.59L9 8m6 1l5.5 5.5c.42.42.66.99.66 1.59v0a2.12 2.12 0 01-3.18 1.84L12 14"/>
+                            </svg>
+                            <p>No songs available</p>
+                            <button class="btn-primary" onclick="sheetBuilder.openAddSongModal()">Add First Song</button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                this.songs.forEach(song => {
+                    const songDiv = document.createElement('div');
+                    songDiv.className = 'song-item';
+                    songDiv.draggable = true;
+                    
+                    const isUsed = sheetSongs.some(s => s.title === song.title && s.artist === song.artist);
+                    if (isUsed) songDiv.classList.add('song-item-used');
+                    
+                    songDiv.dataset.song = JSON.stringify(song);
+                    
+                    songDiv.innerHTML = `
+                        <div class="song-title">${song.title}</div>
+                        <div class="song-artist">${song.artist || 'Unknown'}</div>
+                    `;
+                    
+                    // Drag events for sidebar songs
+                    songDiv.addEventListener('dragstart', (e) => this.handleSidebarDragStart(e));
+                    songDiv.addEventListener('dragend', (e) => this.handleSidebarDragEnd(e));
+                    
+                    this.elements.songsContainer.appendChild(songDiv);
+                });
+                
+                // Also render to the floating panel
+                this.renderSongPanel();
+                
+                // Setup drag and drop for editors
+                this.pages.forEach(page => {
+                    this.setupEditorDragAndDrop(page.editor);
+                });
+            }
+            
+            renderSongPanel() {
+                const sheetSongs = this.getSheetSongsFromLocalStorage();
+                this.elements.songPanelList.innerHTML = '';
+                
+                // Update panel title with count
+                const titleSpan = this.elements.songPanel.querySelector('.song-selector-title span');
+                if (titleSpan) {
+                    titleSpan.textContent = `Song Library (${this.songs.length})`;
+                }
+                
+                this.songs.forEach(song => {
+                    const songDiv = document.createElement('div');
+                    songDiv.className = 'song-selector-item';
+                    songDiv.draggable = true;
+                    
+                    const isUsed = sheetSongs.some(s => s.title === song.title && s.artist === song.artist);
+                    if (isUsed) songDiv.classList.add('used');
+                    
+                    songDiv.dataset.song = JSON.stringify(song);
+                    
+                    songDiv.innerHTML = `
+                        <div class="title">${song.title}</div>
+                        <div class="artist">${song.artist || 'Unknown'}</div>
+                    `;
+                    
+                    // Enhanced drag events
+                    this.setupEnhancedDrag(songDiv);
+                    
+                    // Double-click to add
+                    songDiv.addEventListener('dblclick', () => {
+                        const song = JSON.parse(songDiv.dataset.song);
+                        this.addSongToSheet(song);
+                    });
+                    
+                    this.elements.songPanelList.appendChild(songDiv);
+                });
+                
+                // Make panel draggable
+                this.makePanelDraggable();
+            }
+            
+            setupEnhancedDrag(element) {
+                let dragGhost = null;
+                
+                element.addEventListener('dragstart', (e) => {
+                    const song = JSON.parse(element.dataset.song);
+                    this.draggedSong = song;
+                    element.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'copy';
+                    
+                    // Add drag-active class to all editors
+                    document.querySelectorAll('.sheet-editor').forEach(editor => {
+                        editor.classList.add('drag-active');
+                    });
+                    
+                    // Create custom drag ghost
+                    dragGhost = document.createElement('div');
+                    dragGhost.className = 'drag-ghost';
+                    dragGhost.innerHTML = `
+                        <div style="font-weight: 600;">${song.title}</div>
+                        <div style="font-size: 0.8rem; color: var(--color-text-tertiary);">${song.artist}</div>
+                    `;
+                    dragGhost.style.position = 'fixed';
+                    dragGhost.style.left = '-1000px';
+                    document.body.appendChild(dragGhost);
+                    
+                    e.dataTransfer.setDragImage(dragGhost, 10, 10);
+                    
+                    // Clean up ghost after a delay
+                    setTimeout(() => {
+                        if (dragGhost && dragGhost.parentNode) {
+                            dragGhost.remove();
+                        }
+                    }, 0);
+                });
+                
+                element.addEventListener('dragend', (e) => {
+                    element.classList.remove('dragging');
+                    this.draggedSong = null;
+                    
+                    // Remove drag-active class from all editors
+                    document.querySelectorAll('.sheet-editor').forEach(editor => {
+                        editor.classList.remove('drag-active');
+                    });
+                    
+                    // Ensure ghost is removed
+                    if (dragGhost && dragGhost.parentNode) {
+                        dragGhost.remove();
+                    }
+                    dragGhost = null;
+                });
+            }
+            
+            makePanelDraggable() {
+                const panel = this.elements.songPanel;
+                const header = panel.querySelector('.song-selector-header');
+                let isDragging = false;
+                let startX, startY, initialX, initialY;
+                
+                // Load saved position
+                const savedPosition = localStorage.getItem('songPanelPosition');
+                if (savedPosition) {
+                    const { left, top } = JSON.parse(savedPosition);
+                    panel.style.right = 'auto';
+                    panel.style.left = left + 'px';
+                    panel.style.top = top + 'px';
+                }
+                
+                header.addEventListener('mousedown', (e) => {
+                    if (e.target.closest('.collapse-btn')) return;
+                    
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    
+                    const rect = panel.getBoundingClientRect();
+                    initialX = rect.left;
+                    initialY = rect.top;
+                    
+                    panel.style.cursor = 'grabbing';
+                    
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                });
+                
+                const handleMouseMove = (e) => {
+                    if (!isDragging) return;
+                    
+                    const deltaX = e.clientX - startX;
+                    const deltaY = e.clientY - startY;
+                    
+                    const newLeft = initialX + deltaX;
+                    const newTop = initialY + deltaY;
+                    
+                    // Keep panel within viewport
+                    const maxLeft = window.innerWidth - panel.offsetWidth - 10;
+                    const maxTop = window.innerHeight - panel.offsetHeight - 10;
+                    
+                    panel.style.right = 'auto';
+                    panel.style.left = Math.max(10, Math.min(newLeft, maxLeft)) + 'px';
+                    panel.style.top = Math.max(10, Math.min(newTop, maxTop)) + 'px';
+                };
+                
+                const handleMouseUp = () => {
+                    isDragging = false;
+                    panel.style.cursor = '';
+                    
+                    // Save position
+                    const rect = panel.getBoundingClientRect();
+                    localStorage.setItem('songPanelPosition', JSON.stringify({
+                        left: rect.left,
+                        top: rect.top
+                    }));
+                    
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                };
+            }
+            
+            toggleSongPanel() {
+                this.elements.songPanel.classList.toggle('collapsed');
+                
+                // Save collapsed state
+                const isCollapsed = this.elements.songPanel.classList.contains('collapsed');
+                localStorage.setItem('songPanelCollapsed', isCollapsed);
+            }
+            
+            filterPanelSongs(searchTerm) {
+                const songItems = this.elements.songPanelList.querySelectorAll('.song-selector-item');
+                const search = searchTerm.toLowerCase();
+                
+                songItems.forEach(item => {
+                    const title = item.querySelector('.title').textContent.toLowerCase();
+                    const artist = item.querySelector('.artist').textContent.toLowerCase();
+                    
+                    if (title.includes(search) || artist.includes(search)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+            
+            showLoadingState() {
+                this.elements.songsContainer.innerHTML = `
+                    <div class="songs-loading">
+                        <div class="loading"></div>
+                        <p>Loading songs...</p>
+                    </div>
                 `;
-                songsContainer.appendChild(songDiv);
-            });
-
-            addDragAndDropListeners();
-        }
-
-        // Add drag and drop event listeners to the song items and the editor container
-        // to allow dragging and dropping songs into the editor
-        function addDragAndDropListeners() {
-            const songItems = document.querySelectorAll('.song-item');
-            songItems.forEach(item => {
-                item.addEventListener('dragstart', handleDragStart);
-                item.addEventListener('dragend', handleDragEnd);
-            });
-
-            const editorContainer = document.querySelector('#editor-container');
-            editorContainer.addEventListener('dragover', handleDragOver);
-            editorContainer.addEventListener('drop', handleDrop);
-        }
-
-        function handleDragStart(event) {
-            event.dataTransfer.setData('text/plain', JSON.stringify({
-                title: event.target.getAttribute('data-title'),
-                artist: event.target.getAttribute('data-artist'),
-                lyrics: event.target.getAttribute('data-lyrics')
-            }));
-            setTimeout(() => {
-                event.target.classList.add('hide');
-            }, 0);
-        }
-
-        function handleDragEnd(event) {
-            event.target.classList.remove('hide');
-        }
-
-        function handleDragOver(event) {
-            event.preventDefault();
-        }
-
-        function handleDrop(event) {
-            event.preventDefault();
-            const data = event.dataTransfer.getData('text/plain');
-            const song = JSON.parse(data);
-
-            const songSheet = getSheetSongsFromLocalStorage();
-            // Check if the song is already used in the sheet
-            const isUsed = songSheet.some(sheetSong => sheetSong.title === song.title);
-            if (isUsed) {
-                alert(`${song.title} is already in the sheet.`);
-                return;
             }
-
-            // Add the new song to the sheet songs
-            addSongToLocalStorageSheet(song);
-
-            // Append only the lyrics content with an empty line to the existing content
-            const newContent = `<div class="editor-song"><h2>${song.title}</h2><p>${song.lyrics}</p></div>`;
-            document.getElementById("editor").innerHTML += newContent;
-
-            // Update the song list to mark the song as used
-            let songItem = document.querySelector(`.song-item[data-title="${song.title}"]`);
-            songItem.classList.add("song-item-used");
-        }
-
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const text = e.target.result;
-                const lines = text.split('\n');
-                const title = lines[0].trim();
-                const artist = lines[1].trim();
-                const lyrics = lines.slice(2).join('<br>').trim();
-
+            
+            // Sidebar drag and drop
+            handleSidebarDragStart(e) {
+                const song = JSON.parse(e.target.dataset.song);
+                this.draggedSong = song;
+                e.target.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'copy';
+                
+                // Add drag-active class to all editors
+                document.querySelectorAll('.sheet-editor').forEach(editor => {
+                    editor.classList.add('drag-active');
+                });
+            }
+            
+            handleSidebarDragEnd(e) {
+                e.target.classList.remove('dragging');
+                this.draggedSong = null;
+                
+                // Remove drag-active class from all editors
+                document.querySelectorAll('.sheet-editor').forEach(editor => {
+                    editor.classList.remove('drag-active');
+                });
+            }
+            
+            // Sheet song drag and drop
+            handleSheetDragStart(e) {
+                this.draggedElement = e.target;
+                e.target.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            }
+            
+            handleSheetDragEnd(e) {
+                e.target.classList.remove('dragging');
+                this.draggedElement = null;
+                
+                // Clean up any drag-over states
+                document.querySelectorAll('.sheet-song').forEach(song => {
+                    song.classList.remove('drag-over');
+                });
+            }
+            
+            handleSheetDragOver(e) {
+                e.preventDefault();
+                const draggingOver = e.target.closest('.sheet-song');
+                
+                if (draggingOver && draggingOver !== this.draggedElement) {
+                    // Remove previous drag-over state
+                    if (this.dragOverElement) {
+                        this.dragOverElement.classList.remove('drag-over');
+                    }
+                    
+                    // Add drag-over state to current element
+                    draggingOver.classList.add('drag-over');
+                    this.dragOverElement = draggingOver;
+                }
+            }
+            
+            handleSheetDrop(e) {
+                e.preventDefault();
+                const dropTarget = e.target.closest('.sheet-song');
+                
+                if (this.draggedElement && dropTarget && dropTarget !== this.draggedElement) {
+                    // Reorder songs
+                    const parent = dropTarget.parentNode;
+                    const dropIndex = Array.from(parent.children).indexOf(dropTarget);
+                    const dragIndex = Array.from(parent.children).indexOf(this.draggedElement);
+                    
+                    if (dragIndex < dropIndex) {
+                        parent.insertBefore(this.draggedElement, dropTarget.nextSibling);
+                    } else {
+                        parent.insertBefore(this.draggedElement, dropTarget);
+                    }
+                    
+                    // Update layout after reordering if in auto mode
+                    // Reordering might allow for better optimization
+                    if (this.settings.autoColumns) {
+                        setTimeout(() => {
+                            this.optimizeLayout();
+                        }, 100);
+                    }
+                }
+                
+                // Clean up
+                if (this.dragOverElement) {
+                    this.dragOverElement.classList.remove('drag-over');
+                    this.dragOverElement = null;
+                }
+            }
+            
+            setupEditorDragAndDrop(editor) {
+                editor.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    
+                    if (this.draggedSong) {
+                        // From sidebar or panel
+                        editor.parentElement.classList.add('drag-over');
+                    } else if (this.draggedElement) {
+                        // Reordering within sheet
+                        this.handleSheetDragOver(e);
+                    }
+                });
+                
+                editor.addEventListener('dragleave', (e) => {
+                    if (e.target === editor) {
+                        editor.parentElement.classList.remove('drag-over');
+                    }
+                });
+                
+                editor.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    editor.parentElement.classList.remove('drag-over');
+                    
+                    if (this.draggedSong) {
+                        // Add song from sidebar/panel
+                        this.addSongToSheet(this.draggedSong);
+                        
+                        // Show success animation
+                        const rect = editor.getBoundingClientRect();
+                        const dropX = e.clientX - rect.left;
+                        const dropY = e.clientY - rect.top;
+                        this.showDropAnimation(dropX, dropY);
+                    } else if (this.draggedElement) {
+                        // Reorder within sheet
+                        this.handleSheetDrop(e);
+                    }
+                });
+            }
+            
+            showDropAnimation(x, y) {
+                const animation = document.createElement('div');
+                animation.style.cssText = `
+                    position: fixed;
+                    left: ${x}px;
+                    top: ${y}px;
+                    width: 50px;
+                    height: 50px;
+                    background-color: var(--color-accent);
+                    border-radius: 50%;
+                    opacity: 0.6;
+                    transform: scale(0);
+                    pointer-events: none;
+                    z-index: 1000;
+                    animation: dropPulse 0.6s ease-out;
+                `;
+                
+                const editorRect = document.querySelector('#editor').getBoundingClientRect();
+                animation.style.left = (editorRect.left + x) + 'px';
+                animation.style.top = (editorRect.top + y) + 'px';
+                
+                document.body.appendChild(animation);
+                
+                setTimeout(() => animation.remove(), 600);
+            }
+            
+            addSongToSheet(song, save = true) {
+                if (save) {
+                    // Check if already in sheet
+                    const sheetSongs = this.getSheetSongsFromLocalStorage();
+                    if (sheetSongs.some(s => s.title === song.title && s.artist === song.artist)) {
+                        alert(`${song.title} is already in the sheet.`);
+                        return;
+                    }
+                    
+                    // Save to localStorage
+                    sheetSongs.push(song);
+                    localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
+                    
+                    // Update sidebar UI - find the song item by its data
+                    const songItems = this.elements.songsContainer.querySelectorAll('.song-item');
+                    songItems.forEach(item => {
+                        const songData = JSON.parse(item.dataset.song);
+                        if (songData.title === song.title && songData.artist === song.artist) {
+                            item.classList.add('song-item-used');
+                        }
+                    });
+                    
+                    // Update panel UI
+                    const panelItems = this.elements.songPanelList.querySelectorAll('.song-selector-item');
+                    panelItems.forEach(item => {
+                        const songData = JSON.parse(item.dataset.song);
+                        if (songData.title === song.title && songData.artist === song.artist) {
+                            item.classList.add('used');
+                        }
+                    });
+                }
+                
+                // Create song element
+                const songElement = this.createSongElement(song);
+                
+                // If auto columns is enabled, let optimization handle placement
+                if (this.settings.autoColumns) {
+                    // Temporarily add to check if we need to re-optimize
+                    const currentPage = this.pages[this.currentPageIndex];
+                    currentPage.editor.appendChild(songElement);
+                    currentPage.songs.push(song);
+                    
+                    // Check if this causes overflow
+                    if (currentPage.editor.scrollHeight > currentPage.editor.clientHeight) {
+                        // Remove and re-optimize
+                        songElement.remove();
+                        currentPage.songs.pop();
+                        this.optimizeLayout();
+                    } else {
+                        // Check if we should try fewer columns for better font size
+                        if (this.layoutState.columns > 1) {
+                            // Test if we can use fewer columns with this new song
+                            const allSongs = [];
+                            this.pages.forEach(page => {
+                                page.editor.querySelectorAll('.sheet-song').forEach(s => allSongs.push(s));
+                            });
+                            
+                            // Try with one less column
+                            const testConfig = {
+                                columns: this.layoutState.columns - 1,
+                                scale: this.settings.currentScale * 1.2,
+                                fontSize: this.settings.currentFontSize * 1.2
+                            };
+                            
+                            const result = this.testConfiguration(allSongs, testConfig);
+                            if (result.fits && !result.touching) {
+                                // We can use fewer columns with larger font!
+                                this.optimizeLayout();
+                            }
+                        }
+                    }
+                } else {
+                    // Manual mode - add to current page or create new page if needed
+                    const currentPage = this.pages[this.currentPageIndex];
+                    currentPage.editor.appendChild(songElement);
+                    currentPage.songs.push(song);
+                    
+                    // Check if overflowing
+                    if (currentPage.editor.scrollHeight > currentPage.editor.clientHeight) {
+                        // Remove from current page
+                        songElement.remove();
+                        currentPage.songs.pop();
+                        
+                        // Create new page if needed
+                        if (this.currentPageIndex === this.pages.length - 1) {
+                            this.addNewPage();
+                        }
+                        
+                        // Move to next page
+                        this.currentPageIndex++;
+                        this.pages[this.currentPageIndex].editor.appendChild(songElement);
+                        this.pages[this.currentPageIndex].songs.push(song);
+                    }
+                }
+                
+                // Update controls
+                this.updateClearSheetButton();
+            }
+            
+            createSongElement(song) {
+                const songDiv = document.createElement('div');
+                songDiv.className = 'sheet-song';
+                songDiv.draggable = true;
+                songDiv.dataset.title = song.title;
+                songDiv.dataset.artist = song.artist;
+                
+                // Create remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-button';
+                removeBtn.innerHTML = '×';
+                removeBtn.onclick = () => this.removeSongFromSheet(song.title, song.artist);
+                
+                // Create content wrapper
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'song-content';
+                
+                // Add title if enabled
+                if (this.settings.includeTitles) {
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'song-title-in-sheet';
+                    titleDiv.textContent = song.title;
+                    contentDiv.appendChild(titleDiv);
+                }
+                
+                // Add lyrics with preserved line breaks
+                const lyricsDiv = document.createElement('div');
+                lyricsDiv.className = 'song-lyrics';
+                // Use white-space: pre-wrap to preserve original formatting
+                lyricsDiv.style.whiteSpace = 'pre-wrap';
+                lyricsDiv.textContent = song.lyrics;
+                contentDiv.appendChild(lyricsDiv);
+                
+                // Assemble song element
+                songDiv.appendChild(removeBtn);
+                songDiv.appendChild(contentDiv);
+                
+                // Set alignment
+                this.updateSongAlignment(songDiv);
+                
+                // Add drag events
+                songDiv.addEventListener('dragstart', (e) => this.handleSheetDragStart(e));
+                songDiv.addEventListener('dragend', (e) => this.handleSheetDragEnd(e));
+                
+                return songDiv;
+            }
+            
+            filterSongs(searchTerm) {
+                const songItems = this.elements.songsContainer.querySelectorAll('.song-item');
+                const search = searchTerm.toLowerCase();
+                
+                songItems.forEach(item => {
+                    const title = item.querySelector('.song-title').textContent.toLowerCase();
+                    const artist = item.querySelector('.song-artist').textContent.toLowerCase();
+                    
+                    if (title.includes(search) || artist.includes(search)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+            
+            removeSongFromSheet(title, artist) {
+                // Remove from localStorage
+                const sheetSongs = this.getSheetSongsFromLocalStorage();
+                const updatedSongs = sheetSongs.filter(s => 
+                    !(s.title === title && s.artist === artist)
+                );
+                localStorage.setItem('sheetSongs', JSON.stringify(updatedSongs));
+                
+                // Remove from all pages
+                this.pages.forEach(page => {
+                    const songElement = page.editor.querySelector(
+                        `.sheet-song[data-title="${title}"][data-artist="${artist}"]`
+                    );
+                    if (songElement) {
+                        songElement.remove();
+                        page.songs = page.songs.filter(s => 
+                            !(s.title === title && s.artist === artist)
+                        );
+                    }
+                });
+                
+                // Update sidebar UI - find the song item by its data
+                const songItems = this.elements.songsContainer.querySelectorAll('.song-item');
+                songItems.forEach(item => {
+                    const songData = JSON.parse(item.dataset.song);
+                    if (songData.title === title && songData.artist === artist) {
+                        item.classList.remove('song-item-used');
+                    }
+                });
+                
+                // Update panel UI
+                const panelItems = this.elements.songPanelList.querySelectorAll('.song-selector-item');
+                panelItems.forEach(item => {
+                    const songData = JSON.parse(item.dataset.song);
+                    if (songData.title === title && songData.artist === artist) {
+                        item.classList.remove('used');
+                    }
+                });
+                
+                // Update controls and layout
+                this.updateClearSheetButton();
+                
+                // Always optimize when removing songs in auto mode
+                // This ensures we use fewer columns if possible with larger font
+                if (this.settings.autoColumns) {
+                    setTimeout(() => {
+                        this.optimizeLayout();
+                    }, 100);
+                }
+            }
+            
+            optimizeLayout() {
+                // Show optimization in progress
+                const scaleIndicator = this.elements.scaleIndicator;
+                const originalText = scaleIndicator.textContent;
+                scaleIndicator.textContent = 'Optimizing...';
+                scaleIndicator.style.backgroundColor = 'var(--color-accent-light)';
+                
+                // Collect all songs from all pages
+                const allSongs = [];
+                this.pages.forEach(page => {
+                    const songs = page.editor.querySelectorAll('.sheet-song');
+                    songs.forEach(song => {
+                        allSongs.push(song);
+                        song.remove(); // Temporarily remove from DOM
+                    });
+                });
+                
+                // Clear all pages except the first
+                while (this.pages.length > 1) {
+                    this.pages[this.pages.length - 1].element.remove();
+                    this.pages.pop();
+                }
+                
+                // Reset first page
+                const firstPage = this.pages[0];
+                firstPage.editor.innerHTML = '';
+                firstPage.songs = [];
+                
+                // Start with optimal settings
+                this.currentPageIndex = 0;
+                let bestConfig = null;
+                
+                // Try configurations in order, preferring larger fonts and fewer columns
+                // Start with 1 column and largest possible font
+                for (let columns = 1; columns <= 3; columns++) {
+                    // For each column count, find the largest font that works
+                    const maxScale = 1.5; // Allow up to 150% for very large fonts (27pt)
+                    const minScale = columns === 1 ? 0.65 : columns === 2 ? 0.55 : 0.45;
+                    
+                    // Try larger increments first for faster optimization
+                    const scaleSteps = [0.1, 0.05, 0.02];
+                    
+                    for (const step of scaleSteps) {
+                        for (let scale = maxScale; scale >= minScale; scale -= step) {
+                            const config = {
+                                columns: columns,
+                                scale: scale,
+                                fontSize: this.settings.baseFontSize * scale
+                            };
+                            
+                            const result = this.testConfiguration(allSongs, config);
+                            
+                            if (result.fits && !result.touching) {
+                                // This configuration works!
+                                // Try to find the exact maximum by testing slightly larger
+                                let finalScale = scale;
+                                for (let testScale = scale + step; testScale <= scale + step * 2; testScale += 0.01) {
+                                    const testConfig = {
+                                        columns: columns,
+                                        scale: testScale,
+                                        fontSize: this.settings.baseFontSize * testScale
+                                    };
+                                    const testResult = this.testConfiguration(allSongs, testConfig);
+                                    if (testResult.fits && !testResult.touching) {
+                                        finalScale = testScale;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                                
+                                bestConfig = {
+                                    columns: columns,
+                                    scale: finalScale,
+                                    fontSize: this.settings.baseFontSize * finalScale,
+                                    filledToBottom: result.filledToBottom
+                                };
+                                
+                                // Check if we should try more columns
+                                if (columns < 3 && result.filledToBottom) {
+                                    // Current columns are full, try next column count
+                                    break; // Exit scale loop to try next column count
+                                } else {
+                                    // Found optimal configuration
+                                    break;
+                                }
+                            }
+                        }
+                        if (bestConfig && !bestConfig.filledToBottom) break;
+                    }
+                    
+                    // If we found a working configuration that's not full, stop
+                    if (bestConfig && (!bestConfig.filledToBottom || columns === 3)) {
+                        break;
+                    }
+                }
+                
+                // If no configuration worked, use fallback
+                if (!bestConfig) {
+                    bestConfig = {
+                        columns: 3,
+                        scale: 0.5,
+                        fontSize: this.settings.baseFontSize * 0.5
+                    };
+                }
+                
+                // Apply the best configuration
+                this.applyConfiguration(bestConfig.columns, bestConfig.scale);
+                this.distributeSongs(allSongs);
+                
+                // Show success feedback
+                setTimeout(() => {
+                    scaleIndicator.style.backgroundColor = 'var(--color-success)';
+                    scaleIndicator.style.color = 'white';
+                    scaleIndicator.classList.add('success');
+                    setTimeout(() => {
+                        scaleIndicator.style.backgroundColor = '';
+                        scaleIndicator.style.color = '';
+                        scaleIndicator.classList.remove('success');
+                    }, 1000);
+                }, 100);
+                
+                console.log(`Auto-layout: ${bestConfig.columns} column${bestConfig.columns > 1 ? 's' : ''} at ${Math.round(bestConfig.fontSize)}pt (${Math.round(bestConfig.scale * 100)}% scale)`);
+            }
+            
+            testConfiguration(songs, config) {
+                const testEditor = this.pages[0].editor;
+                testEditor.style.columnCount = config.columns;
+                testEditor.style.fontSize = config.fontSize + 'pt';
+                testEditor.innerHTML = '';
+                
+                // Add all songs to test
+                const testSongs = [];
+                for (const song of songs) {
+                    const testSong = song.cloneNode(true);
+                    testEditor.appendChild(testSong);
+                    testSongs.push(testSong);
+                }
+                
+                // Check if content fits vertically
+                const fits = testEditor.scrollHeight <= testEditor.clientHeight;
+                
+                // Check if songs are touching horizontally
+                let touching = false;
+                const songRects = testSongs.map(s => s.getBoundingClientRect());
+                const minHorizontalGap = 30; // Require at least 30px between songs
+                
+                for (let i = 0; i < songRects.length; i++) {
+                    for (let j = i + 1; j < songRects.length; j++) {
+                        const rect1 = songRects[i];
+                        const rect2 = songRects[j];
+                        
+                        // Check if they're in the same row (vertical overlap)
+                        const verticalOverlap = !(rect1.bottom < rect2.top || rect2.bottom < rect1.top);
+                        
+                        if (verticalOverlap) {
+                            // Check horizontal spacing
+                            const horizontalGap = rect1.right < rect2.left 
+                                ? rect2.left - rect1.right 
+                                : rect1.left - rect2.right;
+                            
+                            if (horizontalGap < minHorizontalGap) {
+                                touching = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (touching) break;
+                }
+                
+                // Check if columns are filled to the bottom
+                let filledToBottom = false;
+                if (fits && config.columns < 3) {
+                    const editorRect = testEditor.getBoundingClientRect();
+                    const editorHeight = editorRect.height - (2 * 0.8 * 96); // Account for padding
+                    
+                    // Find the bottom-most song
+                    let maxBottom = 0;
+                    testSongs.forEach(song => {
+                        const rect = song.getBoundingClientRect();
+                        const relativeBottom = rect.bottom - editorRect.top - (0.8 * 96); // Relative to content area
+                        maxBottom = Math.max(maxBottom, relativeBottom);
+                    });
+                    
+                    // Consider filled if we're using more than 85% of available height
+                    filledToBottom = maxBottom > editorHeight * 0.85;
+                    
+                    if (config.columns === 1) {
+                        console.log(`Column 1: Using ${Math.round(maxBottom / editorHeight * 100)}% of height`);
+                    }
+                    
+                    // For multi-column layouts, also check if all columns are being used
+                    if (config.columns > 1) {
+                        const columnWidth = (editorRect.width - 2 * 0.8 * 96 - (config.columns - 1) * this.settings.columnGap) / config.columns;
+                        const columnsUsed = new Set();
+                        
+                        testSongs.forEach(song => {
+                            const rect = song.getBoundingClientRect();
+                            const relativeLeft = rect.left - editorRect.left - (0.8 * 96);
+                            const columnIndex = Math.floor(relativeLeft / (columnWidth + this.settings.columnGap));
+                            columnsUsed.add(columnIndex);
+                        });
+                        
+                        // Only consider filled to bottom if all columns are used and height is mostly filled
+                        filledToBottom = filledToBottom && columnsUsed.size === config.columns;
+                        
+                        if (filledToBottom) {
+                            console.log(`${config.columns} column${config.columns > 1 ? 's' : ''}: Filled to ${Math.round(maxBottom / editorHeight * 100)}% with all columns used`);
+                        }
+                    } else if (filledToBottom) {
+                        console.log(`${config.columns} column: Filled to ${Math.round(maxBottom / editorHeight * 100)}% of height`);
+                    }
+                }
+                
+                // Clean up test
+                testEditor.innerHTML = '';
+                
+                return { fits, touching, filledToBottom };
+            }
+            
+            tryConfiguration(songs, config) {
+                const testEditor = this.pages[0].editor;
+                testEditor.style.columnCount = config.columns;
+                
+                // Try different scales within the range
+                for (let scale = config.maxScale; scale >= config.minScale; scale -= 0.02) {
+                    testEditor.style.fontSize = (this.settings.baseFontSize * scale) + 'pt';
+                    
+                    // Test fit
+                    testEditor.innerHTML = '';
+                    let fits = true;
+                    let secondColumnFull = false;
+                    
+                    // Add all songs to test
+                    for (const song of songs) {
+                        const testSong = song.cloneNode(true);
+                        testEditor.appendChild(testSong);
+                    }
+                    
+                    // Check if content fits
+                    if (testEditor.scrollHeight > testEditor.clientHeight) {
+                        fits = false;
+                    }
+                    
+                    // For 2 columns, check if second column is actually being used
+                    if (config.columns === 2 && fits) {
+                        const songElements = testEditor.querySelectorAll('.sheet-song');
+                        const editorRect = testEditor.getBoundingClientRect();
+                        const columnWidth = (editorRect.width - 2 * 0.8 * 96) / 2; // Account for padding
+                        
+                        // Check last few songs to see if they're in second column
+                        const lastSongs = Array.from(songElements).slice(-3);
+                        for (const song of lastSongs) {
+                            const songRect = song.getBoundingClientRect();
+                            const relativeLeft = songRect.left - editorRect.left;
+                            
+                            // If song is in second column (past halfway point)
+                            if (relativeLeft > columnWidth) {
+                                secondColumnFull = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    testEditor.innerHTML = '';
+                    
+                    if (fits) {
+                        return { success: true, scale: scale, secondColumnFull: secondColumnFull };
+                    }
+                }
+                
+                // If nothing fits, check if second column is full at minimum scale
+                if (config.columns === 2) {
+                    testEditor.style.fontSize = (this.settings.baseFontSize * config.minScale) + 'pt';
+                    testEditor.innerHTML = '';
+                    
+                    for (const song of songs) {
+                        testEditor.appendChild(song.cloneNode(true));
+                    }
+                    
+                    const songElements = testEditor.querySelectorAll('.sheet-song');
+                    const editorRect = testEditor.getBoundingClientRect();
+                    const lastSong = songElements[songElements.length - 1];
+                    
+                    if (lastSong) {
+                        const lastSongRect = lastSong.getBoundingClientRect();
+                        const bottomPosition = lastSongRect.bottom - editorRect.top;
+                        const editorHeight = editorRect.height - 2 * 0.8 * 96; // Account for padding
+                        
+                        // Check if we're near the bottom of the editor
+                        if (bottomPosition > editorHeight * 0.8) {
+                            secondColumnFull = true;
+                        }
+                    }
+                    
+                    testEditor.innerHTML = '';
+                }
+                
+                return { success: false, secondColumnFull: config.columns === 2 ? secondColumnFull : false };
+            }
+            
+            applyConfiguration(columns, scale) {
+                this.layoutState.columns = columns;
+                this.settings.currentScale = scale;
+                this.settings.currentFontSize = this.settings.baseFontSize * scale;
+                
+                // Update all pages
+                this.pages.forEach(page => {
+                    page.editor.style.columnCount = columns;
+                    page.editor.style.fontSize = this.settings.currentFontSize + 'pt';
+                    page.editor.style.columnGap = this.settings.columnGap + 'px';
+                });
+                
+                // Update controls to reflect current state
+                this.elements.columnSlider.value = columns;
+                this.elements.columnDisplay.textContent = columns;
+                this.elements.fontSizeSlider.value = this.settings.currentFontSize;
+                this.elements.sizeDisplay.textContent = Math.round(this.settings.currentFontSize * 10) / 10 + 'pt';
+                
+                this.updateScaleIndicator();
+            }
+            
+            distributeSongs(songs) {
+                let currentPageIndex = 0;
+                
+                for (const song of songs) {
+                    // Try to add to current page
+                    const currentPage = this.pages[currentPageIndex];
+                    currentPage.editor.appendChild(song);
+                    
+                    // Add animation class
+                    song.classList.add('optimized');
+                    setTimeout(() => song.classList.remove('optimized'), 300);
+                    
+                    // Check if overflowing
+                    if (currentPage.editor.scrollHeight > currentPage.editor.clientHeight) {
+                        // Remove from current page
+                        song.remove();
+                        
+                        // Create new page if needed
+                        if (currentPageIndex === this.pages.length - 1) {
+                            this.addNewPage();
+                        }
+                        
+                        // Move to next page
+                        currentPageIndex++;
+                        this.pages[currentPageIndex].editor.appendChild(song);
+                    }
+                    
+                    // Extract song data and update page songs array
+                    const lyricsElement = song.querySelector('.song-lyrics');
+                    const titleElement = song.querySelector('.song-title-in-sheet');
+                    
+                    const songData = {
+                        title: song.dataset.title,
+                        artist: song.dataset.artist,
+                        lyrics: lyricsElement ? lyricsElement.textContent : ''
+                    };
+                    
+                    this.pages[currentPageIndex].songs.push(songData);
+                }
+            }
+            
+            addNewPage() {
+                const pageNumber = this.pages.length + 1;
+                
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'sheet-page';
+                pageDiv.id = `page-${pageNumber}`;
+                
+                const editorDiv = document.createElement('div');
+                editorDiv.className = 'sheet-editor';
+                editorDiv.dataset.page = pageNumber;
+                editorDiv.style.columnCount = this.layoutState.columns;
+                editorDiv.style.fontSize = this.settings.currentFontSize + 'pt';
+                editorDiv.style.columnGap = this.settings.columnGap + 'px';
+                
+                if (this.settings.textAlignment === 'rtl') {
+                    editorDiv.style.textAlign = 'right';
+                    editorDiv.dir = 'rtl';
+                }
+                
+                pageDiv.appendChild(editorDiv);
+                this.elements.editorSection.appendChild(pageDiv);
+                
+                // Setup drag and drop for new page
+                this.setupEditorDragAndDrop(editorDiv);
+                
+                this.pages.push({
+                    element: pageDiv,
+                    editor: editorDiv,
+                    songs: []
+                });
+                
+                return editorDiv;
+            }
+            
+            updateFontSize(size) {
+                this.settings.currentFontSize = size;
+                this.settings.currentScale = size / this.settings.baseFontSize;
+                
+                this.elements.fontSizeSlider.value = size;
+                this.elements.sizeDisplay.textContent = size + 'pt';
+                
+                // Update all pages
+                this.pages.forEach(page => {
+                    page.editor.style.fontSize = size + 'pt';
+                });
+                
+                this.updateScaleIndicator();
+                
+                // Disable auto columns when manually adjusting
+                if (this.settings.autoColumns) {
+                    this.settings.autoColumns = false;
+                    this.updateColumnControls();
+                }
+            }
+            
+            setColumns(count) {
+                this.layoutState.columns = count;
+                
+                // Update all pages
+                this.pages.forEach(page => {
+                    page.editor.style.columnCount = count;
+                });
+                
+                // Update UI
+                this.elements.columnSlider.value = count;
+                this.elements.columnDisplay.textContent = count;
+                
+                this.updateColumnControls();
+                
+                // Re-check layout to ensure songs fit properly
+                this.redistributeSongsForColumns();
+                
+                // Show visual feedback
+                this.showColumnChangeAnimation(count);
+            }
+            
+            showColumnChangeAnimation(columns) {
+                const editors = document.querySelectorAll('.sheet-editor');
+                editors.forEach(editor => {
+                    editor.style.transition = 'column-count 0.3s ease';
+                    
+                    // Add temporary visual guides
+                    editor.style.position = 'relative';
+                    
+                    // Remove any existing guides
+                    editor.querySelectorAll('.column-guide').forEach(guide => guide.remove());
+                    
+                    if (columns > 1) {
+                        for (let i = 1; i < columns; i++) {
+                            const guide = document.createElement('div');
+                            guide.className = 'column-guide';
+                            guide.style.cssText = `
+                                position: absolute;
+                                left: ${(100 / columns) * i}%;
+                                top: 0;
+                                bottom: 0;
+                                width: 1px;
+                                background-color: rgba(255, 203, 5, 0.3);
+                                pointer-events: none;
+                                z-index: 1;
+                                animation: fadeInOut 1s ease;
+                            `;
+                            editor.appendChild(guide);
+                            
+                            // Remove guide after animation
+                            setTimeout(() => guide.remove(), 1000);
+                        }
+                    }
+                });
+            }
+            
+            redistributeSongsForColumns() {
+                // Collect all songs with their data
+                const allSongsData = [];
+                this.pages.forEach(page => {
+                    page.songs.forEach(song => {
+                        allSongsData.push(song);
+                    });
+                    page.editor.innerHTML = '';
+                    page.songs = [];
+                });
+                
+                // Clear extra pages
+                while (this.pages.length > 1) {
+                    this.pages[this.pages.length - 1].element.remove();
+                    this.pages.pop();
+                }
+                
+                // Recreate song elements and redistribute
+                const songElements = allSongsData.map(song => this.createSongElement(song));
+                
+                // Distribute songs with current column setting
+                let currentPageIndex = 0;
+                
+                for (let i = 0; i < songElements.length; i++) {
+                    const song = songElements[i];
+                    const songData = allSongsData[i];
+                    const currentPage = this.pages[currentPageIndex];
+                    
+                    currentPage.editor.appendChild(song);
+                    
+                    // Check if overflowing
+                    if (currentPage.editor.scrollHeight > currentPage.editor.clientHeight) {
+                        // Remove from current page
+                        song.remove();
+                        
+                        // Create new page if needed
+                        if (currentPageIndex === this.pages.length - 1) {
+                            this.addNewPage();
+                        }
+                        
+                        // Move to next page
+                        currentPageIndex++;
+                        this.pages[currentPageIndex].editor.appendChild(song);
+                    }
+                    
+                    // Update page songs array
+                    this.pages[currentPageIndex].songs.push(songData);
+                }
+            }
+            
+            updateColumnGap(gap) {
+                this.settings.columnGap = gap;
+                
+                this.elements.gapSlider.value = gap;
+                this.elements.gapDisplay.textContent = gap + 'px';
+                
+                // Update all pages
+                this.pages.forEach(page => {
+                    page.editor.style.columnGap = gap + 'px';
+                });
+                
+                // Re-optimize layout if auto columns is enabled
+                if (this.settings.autoColumns) {
+                    this.optimizeLayout();
+                }
+            }
+            
+            updateLayoutControls() {
+                // Update column display
+                if (this.settings.autoColumns) {
+                    this.elements.columnDisplay.textContent = 'Auto';
+                    this.elements.columnSlider.disabled = true;
+                    this.elements.columnSlider.style.opacity = '0.5';
+                } else {
+                    this.elements.columnDisplay.textContent = this.layoutState.columns;
+                    this.elements.columnSlider.value = this.layoutState.columns;
+                    this.elements.columnSlider.disabled = false;
+                    this.elements.columnSlider.style.opacity = '1';
+                }
+                
+                // Update scale indicator
+                this.updateScaleIndicator();
+            }
+            
+            updateColumnControls() {
+                const autoBtn = document.getElementById('col-auto');
+                if (this.settings.autoColumns) {
+                    autoBtn.classList.add('active');
+                } else {
+                    autoBtn.classList.remove('active');
+                }
+                
+                this.updateLayoutControls();
+            }
+            
+            updateScaleIndicator() {
+                const percentage = Math.round(this.settings.currentScale * 100);
+                this.elements.scaleIndicator.textContent = `Scale: ${percentage}%`;
+            }
+            
+            updateSongAlignment(songElement) {
+                if (this.settings.textAlignment === 'rtl') {
+                    songElement.style.textAlign = 'right';
+                    songElement.dir = 'rtl';
+                } else {
+                    songElement.style.textAlign = 'center';
+                    songElement.dir = 'auto';
+                }
+                
+                const lyricsDiv = songElement.querySelector('.song-lyrics');
+                if (lyricsDiv) {
+                    lyricsDiv.style.textAlign = this.settings.textAlignment === 'rtl' ? 'right' : 'center';
+                }
+                
+                const titleDiv = songElement.querySelector('.song-title-in-sheet');
+                if (titleDiv) {
+                    titleDiv.style.textAlign = this.settings.textAlignment === 'rtl' ? 'right' : 'center';
+                }
+            }
+            
+            updateAllSongsAlignment() {
+                this.pages.forEach(page => {
+                    // Update editor alignment
+                    if (this.settings.textAlignment === 'rtl') {
+                        page.editor.style.textAlign = 'right';
+                        page.editor.dir = 'rtl';
+                    } else {
+                        page.editor.style.textAlign = 'center';
+                        page.editor.dir = 'auto';
+                    }
+                    
+                    // Update individual songs
+                    page.editor.querySelectorAll('.sheet-song').forEach(song => {
+                        this.updateSongAlignment(song);
+                    });
+                });
+            }
+            
+            toggleTitles() {
+                this.settings.includeTitles = !this.settings.includeTitles;
+                this.elements.toggleTitlesBtn.classList.toggle('active');
+                this.elements.toggleTitlesBtn.textContent = this.settings.includeTitles ? 'Titles: On' : 'Include Titles';
+                localStorage.setItem('includeTitles', this.settings.includeTitles);
+                
+                // Recreate all songs with updated title setting
+                this.recreateAllSongs();
+            }
+            
+            toggleAlignment() {
+                this.settings.textAlignment = this.settings.textAlignment === 'center' ? 'rtl' : 'center';
+                this.elements.toggleAlignmentBtn.classList.toggle('active', this.settings.textAlignment === 'rtl');
+                this.elements.toggleAlignmentBtn.textContent = this.settings.textAlignment === 'rtl' ? 'RTL Mode' : 'Center Mode';
+                localStorage.setItem('textAlignment', this.settings.textAlignment);
+                
+                this.updateAllSongsAlignment();
+            }
+            
+            recreateAllSongs() {
+                // Collect all songs data
+                const allSongsData = [];
+                this.pages.forEach(page => {
+                    page.editor.querySelectorAll('.sheet-song').forEach(songElement => {
+                        const lyricsElement = songElement.querySelector('.song-lyrics');
+                        allSongsData.push({
+                            title: songElement.dataset.title,
+                            artist: songElement.dataset.artist,
+                            lyrics: lyricsElement ? lyricsElement.textContent : ''
+                        });
+                    });
+                    page.editor.innerHTML = '';
+                    page.songs = [];
+                });
+                
+                // Clear extra pages
+                while (this.pages.length > 1) {
+                    this.pages[this.pages.length - 1].element.remove();
+                    this.pages.pop();
+                }
+                
+                // Reset page index
+                this.currentPageIndex = 0;
+                
+                // Re-add all songs
+                allSongsData.forEach(song => {
+                    this.addSongToSheet(song, false);
+                });
+            }
+            
+            clearSheet() {
+                if (!confirm('Are you sure you want to clear the sheet?')) return;
+                
+                // Clear localStorage
+                localStorage.removeItem('sheetSongs');
+                
+                // Clear all pages
+                this.pages.forEach(page => {
+                    page.editor.innerHTML = '';
+                    page.songs = [];
+                });
+                
+                // Remove all pages except the first
+                while (this.pages.length > 1) {
+                    this.pages[this.pages.length - 1].element.remove();
+                    this.pages.pop();
+                }
+                
+                // Update UI
+                document.querySelectorAll('.song-item-used').forEach(item => {
+                    item.classList.remove('song-item-used');
+                });
+                
+                document.querySelectorAll('.song-selector-item.used').forEach(item => {
+                    item.classList.remove('used');
+                });
+                
+                this.updateClearSheetButton();
+            }
+            
+            updateClearSheetButton() {
+                const sheetSongs = this.getSheetSongsFromLocalStorage();
+                this.elements.clearSheetBtn.disabled = sheetSongs.length === 0;
+            }
+            
+            getSheetSongsFromLocalStorage() {
+                return JSON.parse(localStorage.getItem('sheetSongs')) || [];
+            }
+            
+            // Modal functions
+            openAddSongModal() {
+                this.elements.addSongModal.classList.add('active');
+                this.elements.songTitleInput.focus();
+            }
+            
+            closeAddSongModal() {
+                this.elements.addSongModal.classList.remove('active');
+                document.getElementById('add-song-form').reset();
+            }
+            
+            submitNewSong() {
+                const title = this.elements.songTitleInput.value.trim();
+                const artist = this.elements.songArtistInput.value.trim() || 'Unknown';
+                const lyrics = this.elements.songLyricsInput.value.trim();
+                
+                if (!title || !lyrics) {
+                    alert('Please fill in the required fields');
+                    return;
+                }
+                
                 const newSong = { title, artist, lyrics };
-                // Add the new song to the songs array
-                songs.push(newSong);
-                renderSongs(songs);
-            };
-            reader.readAsText(file);
-        }
-
-        uploadInput.addEventListener("change", handleFileUpload);
-
-        let songs = [];
-        fetch(songsEndpoint)
-            .then(response => response.json())
-            .then(data => {
-                songs = data;
-                renderSongs(songs);
-            })
-            .catch(error => {
-                console.error('Error loading songs:', error);
-                songsContainer.innerText = "Error loading songs.";
-            });
-
-        // Print functionality
-        document.getElementById('print-button').addEventListener('click', function () {
-            const printContents = document.getElementById('editor-container').innerHTML;
-
-            const printStyles = `
-                <style>
-                    body {
-                        margin: 0;
-                        padding: 0;
-                        width: 8.5in;
-                        height: 11in;
-                        box-sizing: border-box;
-                        overflow: hidden;
-                    }
-                    body {
-                        margin: 0;
-                        padding: 0;
-                        width: calc(100vh * 8.5 / 11);
-                        height: 100vh;
-                        box-sizing: border-box;
-                        overflow: hidden;
-                    }
-                    #editor-container {
-                        background: url('/assets/sheetskin.png') no-repeat center center !important;
-                        background-size: 100% 100% !important;
-                        width: calc(100vh * 8.5 / 11);
-                        height: 100vh;
-                        margin: 0 auto;
-                        overflow: hidden;
-                    }
-                    #editor {
-                        height: 100%;
-                        width: 100%;
-                        padding: 60px;
-                        column-count: 3;
-                        column-gap: 40px;
-                        font-size: 1.2vh; /* Responsive font size */
-                    }
-                    .editor-song {
-                        break-inside: avoid-column;
-                    }
-                </style>
-            `;
-
-            const printWindow = window.open('', '', 'height=800,width=600');
-            printWindow.document.write('<html><head><title>Print</title>');
-            printWindow.document.write(printStyles);
-            printWindow.document.write('</head><body>');
-            printWindow.document.write(printContents);
-            printWindow.document.write('</body></html>');
-            printWindow.document.close();
-            printWindow.print();
-        });
-        function updateClearSheetButton() {
-            const clearSheetButton = document.getElementById("clear-sheet");
-            const sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
-            clearSheetButton.disabled = sheetSongs.length === 0;
-        }
-
-        document.getElementById("clear-sheet").addEventListener("click", function () {
-            if (confirm("Are you sure you want to clear the sheet?")) {
-                localStorage.removeItem("sheetSongs");
-                updateClearSheetButton();
-                renderSongs(songs);
-                alert("Sheet cleared.");
-                document.getElementById("editor").innerHTML = "";
+                
+                // Add to songs array
+                this.songs.push(newSong);
+                
+                // Re-render songs list
+                this.renderSongsList();
+                
+                // Close modal
+                this.closeAddSongModal();
+                
+                // Show success feedback
+                this.showNotification('Song added successfully!');
             }
-        });
-
-        // Initial button state update
-        updateClearSheetButton();
-
-        // Update button state whenever a song is added to the sheet
-        function addSongToLocalStorageSheet(song) {
-            const sheetSongs = getSheetSongsFromLocalStorage();
-            if (!sheetSongs.some(s => s.title === song.title && s.artist === song.artist)) {
-                sheetSongs.push(song);
-                localStorage.setItem('sheetSongs', JSON.stringify(sheetSongs));
-                updateClearSheetButton();
-                return;
+            
+            showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                const bgColor = type === 'warning' ? 'var(--color-warning)' : 
+                               type === 'error' ? 'var(--color-danger)' : 
+                               'var(--color-success)';
+                
+                notification.style.cssText = `
+                    position: fixed;
+                    bottom: 2rem;
+                    right: 2rem;
+                    background: ${bgColor};
+                    color: ${type === 'warning' ? 'black' : 'white'};
+                    padding: 1rem 1.5rem;
+                    border-radius: var(--border-radius-sm);
+                    box-shadow: var(--shadow-md);
+                    z-index: 1001;
+                    animation: slideIn 0.3s ease;
+                    max-width: 400px;
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
             }
-            alert(`${song.title} is already in the sheet.`);
+            
+            handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const text = e.target.result;
+                    const lines = text.split('\n');
+                    const title = lines[0].trim();
+                    const artist = lines[1].trim();
+                    const lyrics = lines.slice(2).join('\n').trim();
+                    
+                    const newSong = { title, artist, lyrics };
+                    this.songs.push(newSong);
+                    this.renderSongsList();
+                    this.showNotification('Song uploaded successfully!');
+                };
+                reader.readAsText(file);
+            }
+            
+            handlePrint() {
+                const processingIndicator = this.createProcessingIndicator();
+                document.body.appendChild(processingIndicator);
+                
+                const printContainer = this.createPrintContainer();
+                document.body.appendChild(printContainer);
+                
+                // Get all pages to print
+                const pagesToPrint = this.pages.map(page => page.element);
+                this.processPage(0, pagesToPrint, printContainer, processingIndicator);
+            }
+            
+            createProcessingIndicator() {
+                const indicator = document.createElement('div');
+                indicator.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: var(--color-surface);
+                    color: white;
+                    padding: 2rem;
+                    border-radius: var(--border-radius);
+                    box-shadow: var(--shadow-lg);
+                    z-index: 9999;
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                `;
+                indicator.innerHTML = '<div class="loading"></div><span>Preparing print output...</span>';
+                return indicator;
+            }
+            
+            createPrintContainer() {
+                const container = document.createElement('div');
+                container.id = 'print-container';
+                container.style.cssText = `
+                    position: fixed;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: white;
+                    z-index: 9998;
+                    overflow: auto;
+                    display: none;
+                `;
+                return container;
+            }
+            
+            processPage(index, pages, printContainer, processingIndicator) {
+                if (index >= pages.length) {
+                    this.finalizePrint(printContainer, processingIndicator);
+                    return;
+                }
+                
+                processingIndicator.querySelector('span').textContent = 
+                    `Capturing page ${index + 1} of ${pages.length}...`;
+                
+                const pageWrapper = document.createElement('div');
+                pageWrapper.className = 'print-page';
+                pageWrapper.style.cssText = `
+                    width: 8.5in;
+                    height: 11in;
+                    margin: 0 auto;
+                    page-break-after: always;
+                    background: white;
+                    overflow: hidden;
+                `;
+                
+                html2canvas(pages[index], {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: null,
+                    logging: false,
+                    onclone: function(clonedDoc) {
+                        const removeButtons = clonedDoc.querySelectorAll('.remove-button');
+                        removeButtons.forEach(btn => btn.style.display = 'none');
+                    }
+                }).then(canvas => {
+                    const img = document.createElement('img');
+                    img.src = canvas.toDataURL('image/png');
+                    img.style.cssText = 'width: 100%; height: auto; display: block;';
+                    pageWrapper.appendChild(img);
+                    printContainer.appendChild(pageWrapper);
+                    this.processPage(index + 1, pages, printContainer, processingIndicator);
+                }).catch(error => {
+                    console.error('Error capturing page:', error);
+                    processingIndicator.querySelector('span').textContent = 
+                        'Error preparing print output. Please try again.';
+                    setTimeout(() => {
+                        document.body.removeChild(processingIndicator);
+                        document.body.removeChild(printContainer);
+                    }, 3000);
+                });
+            }
+            
+            finalizePrint(printContainer, processingIndicator) {
+                processingIndicator.querySelector('span').textContent = 'Opening print dialog...';
+                printContainer.style.display = 'block';
+                
+                setTimeout(() => {
+                    window.print();
+                    document.body.removeChild(processingIndicator);
+                    document.body.removeChild(printContainer);
+                }, 500);
+            }
         }
+        
+        // Initialize the sheet builder
+        const sheetBuilder = new SheetBuilder();
+        
+        // Make it globally accessible for onclick handlers
+        window.sheetBuilder = sheetBuilder;
+        
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Setup initial drag and drop for first page
+        sheetBuilder.setupEditorDragAndDrop(document.getElementById('editor'));
     </script>
-
 </body>
-
 </html>

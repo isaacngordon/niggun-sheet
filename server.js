@@ -9,7 +9,7 @@ const app = express();
 const songsHandler = require('./api/songs');
 
 // Use the route handlers
-app.use(songsHandler);
+app.use('/api/songs', songsHandler);
 
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -19,6 +19,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', '404.html'));
 });
 
+// Spin up the server
 if (process.env.VERCEL) {
   // Running on Vercel, export the app as serverless
   module.exports = serverless(app);

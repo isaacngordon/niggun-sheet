@@ -5,92 +5,379 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Niggun Sheet | Home</title>
-    <!-- Add your CSS link here -->
     <link rel="stylesheet" href="css/main.css">
+    <script src="/header-loader.js"></script>
+    <style>
+        /* Core theme colors */
+        :root {
+            --bg-dark: #0d0d0d;
+            --bg-darker: #050505;
+            --accent: #EAB308;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Hero section */
+        .hero-section {
+            background-color: var(--bg-darker);
+            position: relative;
+            overflow: hidden;
+            padding: 5rem 0;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            font-weight: 800;
+        }
+
+        .hero-description {
+            font-size: 1.25rem;
+            margin-bottom: 2.5rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-search {
+            max-width: 500px;
+            margin: 0 auto 2rem;
+        }
+
+        .hero-search input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1rem;
+        }
+
+        .hero-search input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .hero-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .primary-button {
+            background-color: var(--accent);
+            color: #000000;
+        }
+
+        .primary-button:hover {
+            background-color: #c98f00;
+        }
+
+        .secondary-button {
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .secondary-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Subhero section */
+        .subhero-section {
+            padding: 5rem 0;
+            background-color: var(--bg-dark);
+        }
+
+        .subhero-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .subhero-title {
+            font-size: 2.25rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        .subhero-description {
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin-bottom: 2rem;
+        }
+
+        /* Media Queries */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-description {
+                font-size: 1.125rem;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+            
+            .subhero-title {
+                font-size: 1.75rem;
+            }
+        }
+
+        /* Custom styles for header & footer (keeping consistent with your original) */
+        .text-header-link {
+            color: #a0a0a0;
+        }
+        
+        #footer {
+            background-color: var(--bg-darker);
+            padding: 2rem 0;
+            text-align: center;
+        }
+        
+        #footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin: 0 1rem;
+            transition: color 0.2s;
+        }
+        
+        #footer a:hover {
+            color: var(--accent);
+        }
+        
+        .footer-copyright {
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+    </style>
 </head>
 
 <!-- Google tag (gtag.js) -->
-<!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-BM1G2V2EMD"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-N0MP01KGSP"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
-  gtag('config', 'G-BM1G2V2EMD');
-</script> -->
+  gtag('config', 'G-N0MP01KGSP');
+</script>
 
 <body>
+    <!-- Original Header - Kept as is -->
+    <header class="bg-gray-900 sticky top-0 z-50">
+        <div class="relative z-50 flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+          <!-- Logo positioned at far left -->
+          <div class="flex items-center">
+            <a href="/" class="mr-8">
+              <img src="/assets/Niggun_Sheet_Header_Logo.png" alt="Niggun Sheet" class="h-10" />
+            </a>
+          </div>
+          
+          <!-- Mobile menu button (only visible on mobile) -->
+          <div class="flex lg:hidden ml-auto">
+            <button type="button" class="block text-white" id="mobile-menu-button">
+              <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="bars" class="svg-inline--fa fa-bars" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="24" height="24">
+                <path fill="currentColor" d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"></path>
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Desktop Navigation (now positioned after logo) -->
+          <div class="hidden lg:flex lg:items-center lg:flex-1 lg:justify-center">
+            <ul class="flex h-full items-center gap-8">
+              <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/">Home</a>
+              <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/songs.html">Song Directory</a>
+              <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/sheet-builder.html">Sheet Builder
+                <span class="ml-2.5 rounded-sm bg-yellow-400 p-1 text-xs font-bold uppercase leading-none text-gray-900">new</span>
+              </a>
+              <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/contact.html">Contact</a>
+            </ul>
+          </div>
+          
+          <!-- User Action Buttons -->
+          <div class="flex h-full min-h-8 shrink-0 items-center justify-end">
+            <button type="button" class="flex justify-center items-center font-bold rounded-full transition-colors bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-1.5 px-5 text-sm">
+              <span class="relative flex min-h-5 items-center justify-center">
+                <span class="whitespace-nowrap">Download Sheet</span>
+              </span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Mobile Menu (hidden by default) -->
+        <div id="mobile-menu" class="hidden lg:hidden">
+          <div class="space-y-1 px-4 pb-3 pt-2">
+            <a href="/" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Home</a>
+            <a href="/songs.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Song Directory</a>
+            <a href="/sheet-builder.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Sheet Builder <span class="ml-2 rounded-sm bg-yellow-400 p-1 text-xs font-bold uppercase leading-none text-gray-900">new</span></a>
+            <a href="/contact.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Contact</a>
+          </div>
+        </div>
+    </header>
 
-    <div id="navbar">
-        <a href="/">Home Page</a>
-        <a href="/songs.html">Song Directory</a>
-        <a href="/sheet-builder.html">Sheet Builder</a>
-    </div>
-
-    <div class="container" style="min-height: min-content;">
-        <!-- Hero Section w Title and Search -->
-        <div id="hero">
-            <h1>Niggun Sheet</h1>
-            <p>Search for niggunim and simcha songs</p>
-            <!-- Add an ID to the search input field -->
-            <input type="search" id="song-search" placeholder="search..." onkeydown="if(event.key === 'Enter') performSearch()">
-            <div id="button-container">
-                <button id="search-button" class="primary-button" onclick="performSearch()">Search</button>
-                <button id="lucky-button" class="secondary-button">I'm Feeling Lucky</button>
+    <!-- New Hero Section with Lorem Ipsum -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">Discover Your Perfect Niggun</h1>
+                <p class="hero-description">
+                    Goodbye Copy and Paste, Hello Drag and Drop <br>
+                    the next generation of Kumzits Sheets has arrived
+                </p>
+                <div class="hero-search">
+                    <input type="search" id="song-search" placeholder="Search for a niggun..." onkeydown="if(event.key === 'Enter') performSearch()">
+                </div>
+                <div class="hero-buttons">
+                    <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank" class="hero-button primary-button">Download Niggun Sheet</a>
+                    <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank" class="hero-button secondary-button">Download Simcha Sheet</a>
+                </div>
             </div>
         </div>
+    </section>
 
-        <!-- Highlighted Download Section -->
-        <div id="download-section">
-            <h2>Download the Original Niggun Sheets Here</h2>
-            <div >
-                <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
-                    target="_blank" class="download-button primary-button">Download Niggun Sheet</a>
-                <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
-                    target="_blank" class="download-button primary-button">Download Simcha Sheet</a>
+    <!-- New Subhero Section -->
+    <section class="subhero-section">
+        <div class="container">
+            <div class="subhero-content">
+                <h2 class="subhero-title">Create Your Own Sheet</h2>
+                <p class="subhero-description">
+                    This is where you can save hours of time looking for the songs you need<br>just drag and drop and you're good to go
+                </p>
+                <a href="/sheet-builder.html" class="hero-button primary-button">Try Sheet Builder</a>
             </div>
         </div>
+    </section>
+<!-- Corner Banner - Add this code just after your opening <body> tag -->
 
-        <!-- Call to Action Section for Sheet Builder -->
-        <div id="cta-section">
-            <h2>Create Your Own Sheet</h2>
-            <p>Use our Sheet Builder to create personalized niggun sheets for your events.</p>
-            <a href="/sheet-builder.html" class="primary-button">Go to Sheet Builder</a>
-        </div>
-
+    <div class="corner-banner">
+        <span>Find out how you can help</span>
     </div>
-
-    <!-- Foot containing links to external sites -->
+    
+    <style>
+        
+        .corner-banner {
+            position: fixed;
+            top: 65.2px;
+            right: -67.6px;
+            width: 311.8px;
+            transform: rotate(45deg);
+            background-color: rgb(255, 218, 42);
+            color: #0d0d0d;
+            text-align: center;
+            padding: 11px 0;
+            font-size: 15.0px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .corner-banner span {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Add hover effect */
+        .corner-banner:hover {
+            background-color: rgb(255, 228, 92);
+            cursor: pointer;
+        }
+    
+        /* Make the banner a link */
+        .corner-banner a {
+            color: inherit;
+            text-decoration: none;
+            display: block;
+        }
+        
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .corner-banner {
+                width: 200px;
+                right: -50px;
+                font-size: 12px;
+            }
+        }
+    </style>
+    
+    <!-- Add this script at the end of your body to make the banner clickable -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var banner = document.querySelector('.corner-banner');
+            
+            banner.addEventListener('click', function() {
+                window.location.href = '/project-growth-page.html';
+            });
+            
+            // Add link semantics for accessibility
+            banner.setAttribute('role', 'link');
+            banner.setAttribute('aria-label', 'Visit project growth page');
+        });
+    </script>
+    
+    <!-- Original Footer - Kept as is -->
     <div id="footer">
-        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
-            target="_blank">Download Niggun Sheet</a>
-        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
-            target="_blank">Download Simcha Sheet</a>
-        <div class="footer-copyright">copyright Yehuda Jacobs</div>
+        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
+        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
+        <div class="footer-copyright">© 2025 Yehudah Jacobs - The Niggun Sheet</div>
     </div>
 
     <script>
-        // Function to display search results
-        function displaySearchResults(results) {
-            const searchResults = document.getElementById('search-results');
-            // Clear previous results
-            searchResults.innerHTML = '';
-
-            // Display new results
-            results.forEach(result => {
-                const resultLink = document.createElement('a');
-                resultLink.textContent = `${result.title}`;
-                // Redirect to dynamic page with song details when clicked
-                resultLink.addEventListener('click', function () {
-                    // Navigate to dynamic page with song details
-                    window.location.href = `/song-details.html?title=${encodeURIComponent(result.title)}&artist=${encodeURIComponent(result.artist)}`;
-                });
-                searchResults.appendChild(resultLink);
-            });
-
-            // Show the search results container
-            searchResults.style.display = 'block';
-        }
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
 
         // Function to perform search and navigate to songs.html
         function performSearch() {
@@ -102,12 +389,10 @@
         document.addEventListener('click', function (event) {
             const searchInput = document.getElementById('song-search');
             const searchResults = document.getElementById('search-results');
-            if (event.target !== searchInput && event.target !== searchResults) {
+            if (searchResults && event.target !== searchInput && event.target !== searchResults) {
                 searchResults.style.display = 'none';
             }
         });
     </script>
-
 </body>
-
 </html>
