@@ -466,6 +466,29 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
+        /* Pre-made menu styles */
+        .pre-made-menu {
+            display: flex;
+            flex-direction: column;
+            background-color: var(--color-grey-800);
+            border: 1px solid var(--color-grey-700);
+            border-radius: 8px;
+            margin-top: 10px;
+            width: 200px;
+        }
+
+        .pre-made-menu a {
+            padding: 8px 12px;
+            color: var(--color-white);
+            text-decoration: none;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .pre-made-menu a:hover {
+            background-color: var(--color-grey-700);
+        }
+
         /* Controls styling */
         .controls-container {
             display: flex;
@@ -1199,8 +1222,12 @@
                     <h1 class="hero-title">Choose your songs to enjoy your simchah</h1>
                     <p class="hero-subtitle">Explore lyrics and recordings that cover any kind of simchah,<br>from Bar Mitzvah to Sheva Brachos.</p>
                     <div class="hero-buttons">
-                        <button class="hero-button-primary">Download Pre-made Now</button>
-                        <button class="hero-button-secondary">Design your own</button>
+                        <button id="download-pre-made" class="hero-button-primary">Download Pre-made Now</button>
+                        <button id="design-own" class="hero-button-secondary">Design your own</button>
+                    </div>
+                    <div id="pre-made-menu" class="pre-made-menu" style="display:none;">
+                        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Niggun Sheet</a>
+                        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Simcha Sheet</a>
                     </div>
                 </div>
             </section>
@@ -1648,6 +1675,25 @@
         
         // Initial render of sheet songs
         renderSheetSongs();
+
+        // Pre-made download selector logic
+        const preMadeButton = document.getElementById('download-pre-made');
+        const preMadeMenu = document.getElementById('pre-made-menu');
+
+        preMadeButton.addEventListener('click', () => {
+            preMadeMenu.style.display = preMadeMenu.style.display === 'none' ? 'block' : 'none';
+        });
+
+        preMadeMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                preMadeMenu.style.display = 'none';
+            });
+        });
+
+        // Design your own button logic
+        document.getElementById('design-own').addEventListener('click', () => {
+            window.location.href = '/sheet-builder.html';
+        });
     </script>
 </body>
 </html>
