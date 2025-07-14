@@ -466,6 +466,29 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
+        /* Pre-made menu styles */
+        .pre-made-menu {
+            display: flex;
+            flex-direction: column;
+            background-color: var(--color-grey-800);
+            border: 1px solid var(--color-grey-700);
+            border-radius: 8px;
+            margin-top: 10px;
+            width: 200px;
+        }
+
+        .pre-made-menu a {
+            padding: 8px 12px;
+            color: var(--color-white);
+            text-decoration: none;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .pre-made-menu a:hover {
+            background-color: var(--color-grey-700);
+        }
+
         /* Controls styling */
         .controls-container {
             display: flex;
@@ -1202,12 +1225,9 @@
                         <button id="download-pre-made" class="hero-button-primary">Download Pre-made Now</button>
                         <button id="design-own" class="hero-button-secondary">Design your own</button>
                     </div>
-                    <div id="pre-made-select-container" style="display:none;margin-top:10px;">
-                        <select id="pre-made-select">
-                            <option value="" disabled selected>Select a sheet</option>
-                            <option value="niggun">Niggun Sheet</option>
-                            <option value="simcha">Simcha Sheet</option>
-                        </select>
+                    <div id="pre-made-menu" class="pre-made-menu" style="display:none;">
+                        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Niggun Sheet</a>
+                        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Simcha Sheet</a>
                     </div>
                 </div>
             </section>
@@ -1658,24 +1678,16 @@
 
         // Pre-made download selector logic
         const preMadeButton = document.getElementById('download-pre-made');
-        const preMadeContainer = document.getElementById('pre-made-select-container');
-        const preMadeSelect = document.getElementById('pre-made-select');
+        const preMadeMenu = document.getElementById('pre-made-menu');
 
         preMadeButton.addEventListener('click', () => {
-            preMadeContainer.style.display = preMadeContainer.style.display === 'none' ? 'block' : 'none';
+            preMadeMenu.style.display = preMadeMenu.style.display === 'none' ? 'block' : 'none';
         });
 
-        preMadeSelect.addEventListener('change', function () {
-            const value = this.value;
-            const links = {
-                niggun: 'https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link',
-                simcha: 'https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link'
-            };
-            if (links[value]) {
-                window.open(links[value], '_blank');
-                this.selectedIndex = 0;
-                preMadeContainer.style.display = 'none';
-            }
+        preMadeMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                preMadeMenu.style.display = 'none';
+            });
         });
 
         // Design your own button logic
