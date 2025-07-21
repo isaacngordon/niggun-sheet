@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drag and Drop Icons</title>
+<style>
+    /* Style for icons */
+    .icon {
+        width: 50px;
+        height: 50px;
+        margin: 10px;
+        cursor: pointer;
+        position: absolute;
+        z-index: 100;
+    }
+
+    /* Style for canvas */
+    #canvas {
+        width: 400px;
+        height: 300px;
+        border: 2px solid #000;
+        background-color: #f0f0f0;
+        position: relative;
+    }
+</style>
+</head>
+<body>
+
+<!-- Icons to drag -->
+<div class="icon" draggable="true" ondragstart="drag(event)">
+    <img src="https://via.placeholder.com/50" alt="Icon 1">
+</div>
+<div class="icon" draggable="true" ondragstart="drag(event)">
+    <img src="https://via.placeholder.com/50" alt="Icon 2">
+</div>
+<div class="icon" draggable="true" ondragstart="drag(event)">
+    <img src="https://via.placeholder.com/50" alt="Icon 3">
+</div>
+
+<!-- Canvas to drop icons -->
+<canvas id="canvas"></canvas>
+
+<script>
+    // Function to handle drag start event
+    function drag(ev) {
+        ev.dataTransfer.setData("text", ev.target.alt);
+    }
+
+    // Get canvas and context
+    var canvas = document.getElementById("canvas");
+    var ctx = canvas.getContext("2d");
+
+    // Add event listeners to canvas for dragging and dropping
+    canvas.addEventListener("dragover", function(ev) {
+        ev.preventDefault();
+    });
+
+    canvas.addEventListener("drop", function(ev) {
+        ev.preventDefault();
+        var data = ev.dataTransfer.getData("text");
+        var img = new Image();
+        img.src = "https://via.placeholder.com/50";
+        img.onload = function() {
+            ctx.drawImage(img, ev.layerX - 25, ev.layerY - 25, 50, 50);
+        };
+    });
+</script>
+</body>
+</html>
