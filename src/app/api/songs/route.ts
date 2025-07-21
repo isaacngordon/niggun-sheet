@@ -5,8 +5,6 @@ import path from 'path';
 const songsFilePath = path.join(process.cwd(), 'express_app/data/songs.csv');
 
 export async function GET(req: NextRequest) {
-    console.log(`Handling GET /api/songs ${req.query} `);
-
     try {
         const data = await fs.promises.readFile(songsFilePath, 'utf8');
         const songs = data.split(/\r?\n(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((line, i) => {
