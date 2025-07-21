@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { SearchInput, CornerBanner } from "./InteractiveComponents";
 
 export default function Home() {
   return (
@@ -55,7 +56,7 @@ export default function Home() {
                 the next generation of Kumzits Sheets has arrived
               </p>
               <div className="hero-search">
-                <input type="search" id="song-search" placeholder="Search for a niggun..." onKeyDown={(e) => { if (e.key === 'Enter') performSearch() }} />
+                <SearchInput />
               </div>
               <div className="hero-buttons">
                 <Link href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank" className="hero-button primary-button">Download Niggun Sheet</Link>
@@ -75,9 +76,7 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <div className="corner-banner" onClick={() => window.location.href = '/project-growth-page.html'} role="link" aria-label="Visit project growth page">
-          <span>Find out how you can help</span>
-        </div>
+        <CornerBanner />
       </main>
       <footer id="footer">
         <Link href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</Link>
@@ -86,9 +85,4 @@ export default function Home() {
       </footer>
     </div>
   );
-}
-
-function performSearch() {
-  const searchQuery = (document.getElementById('song-search') as HTMLInputElement).value;
-  window.location.href = `/songs.html?search=${encodeURIComponent(searchQuery)}`;
 }
