@@ -1,18 +1,14 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
 const songsFilePath = path.join(process.cwd(), 'express_app/data/songs.csv');
 
-export function GET(req: NextApiRequest, res: NextApiResponse) {
+export async function GET(req: NextRequest) {
     console.log(`Handling GET /api/songs ${req.query} `);
 
-    fs.readFile(songsFilePath, 'utf8', (err, data) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: 'Internal Server Error' });
-        }
-
+    try {
+        const data = await fs.promises.readFile(songsFilePath, 'utf8');
         const songs = data.split(/\r?\n(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((line, i) => {
             if (i === 0) return;
             if (!line) return;
@@ -21,6 +17,9 @@ export function GET(req: NextApiRequest, res: NextApiResponse) {
             return { search_title, title, lyrics, artist, drive, youtube };
         });
 
-        res.json(songs[0] == null ? songs.slice(1) : songs);
-    });
+        return NextResponse.json(songs[0] == null ? songs.slice(1) : songs);
+    } catch (err) {
+        console.error(err);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
 }
