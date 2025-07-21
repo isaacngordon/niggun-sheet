@@ -4,8 +4,8 @@ import path from 'path';
 
 const songsFilePath = path.join(process.cwd(), 'express_app/data/songs.csv');
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-    console.log(`Handling GET /api/songs ${req.query} from ${req.socket.remoteAddress}`);
+export function GET(req: NextApiRequest, res: NextApiResponse) {
+    console.log(`Handling GET /api/songs ${req.query} `);
 
     fs.readFile(songsFilePath, 'utf8', (err, data) => {
         if (err) {
