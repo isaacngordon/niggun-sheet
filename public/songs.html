@@ -744,8 +744,8 @@
             background-color: var(--color-yellow);
             color: var(--color-grey-900);
             border: none;
-            width: 36px;
-            height: 36px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -823,19 +823,47 @@
 
         /* Progress bar for the audio */
         .progress-container {
-            height: 4px;
+            height: 6px;
             width: 100%;
             background-color: var(--color-grey-600);
-            border-radius: 2px;
+            border-radius: 3px;
             margin-top: 6px;
-            overflow: hidden;
+            position: relative;
+            cursor: pointer;
         }
 
         .progress-bar {
             height: 100%;
             width: 0%;
             background-color: var(--color-yellow);
-            transition: width 0.1s;
+            border-radius: 3px;
+            position: relative;
+        }
+
+        .progress-playhead {
+            position: absolute;
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            background-color: var(--color-white);
+            border: 2px solid var(--color-yellow);
+            border-radius: 50%;
+            cursor: grab;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .progress-container:hover .progress-playhead,
+        .progress-playhead.dragging {
+            opacity: 1;
+        }
+
+        .progress-playhead:active,
+        .progress-playhead.dragging {
+            cursor: grabbing;
+            transform: translateY(-50%) scale(1.2);
         }
 
         /* Side panel for selected songs */
@@ -1406,15 +1434,99 @@
             }
         }
         
+        // Interactive playhead functionality
+        let isDragging = false;
+        let dragRowId = null;
+
+        function seekToPosition(event, rowId) {
+            if (!player || currentlyPlaying !== rowId) return;
+            
+            // Prevent any default behavior and stop propagation
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const container = event.currentTarget;
+            const rect = container.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const percentage = clickX / rect.width;
+            
+            const duration = player.getDuration();
+            const seekTime = duration * percentage;
+            
+            player.seekTo(seekTime);
+        }
+
+        function startDragging(event, rowId) {
+            if (!player || currentlyPlaying !== rowId) return;
+            
+            event.preventDefault();
+            event.stopPropagation();
+            
+            isDragging = true;
+            dragRowId = rowId;
+            
+            const playhead = event.target;
+            playhead.classList.add('dragging');
+            
+            // Add global event listeners
+            document.addEventListener('mousemove', handleDragMove);
+            document.addEventListener('mouseup', stopDragging);
+            document.addEventListener('touchmove', handleDragMove, { passive: false });
+            document.addEventListener('touchend', stopDragging);
+        }
+
+        function handleDragMove(event) {
+            if (!isDragging || !dragRowId || !player) return;
+            
+            event.preventDefault();
+            
+            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const container = document.querySelector(`#progress-bar-${dragRowId}`).parentElement;
+            const rect = container.getBoundingClientRect();
+            
+            let percentage = (clientX - rect.left) / rect.width;
+            percentage = Math.max(0, Math.min(1, percentage)); // Clamp between 0 and 1
+            
+            // Update visual progress immediately
+            const progressBar = document.querySelector(`#progress-bar-${dragRowId}`);
+            if (progressBar) {
+                progressBar.style.width = `${percentage * 100}%`;
+            }
+            
+            // Seek to new position
+            const duration = player.getDuration();
+            const seekTime = duration * percentage;
+            player.seekTo(seekTime);
+        }
+
+        function stopDragging() {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            
+            const playhead = document.querySelector(`#progress-bar-${dragRowId} .progress-playhead`);
+            if (playhead) {
+                playhead.classList.remove('dragging');
+            }
+            
+            dragRowId = null;
+            
+            // Remove global event listeners
+            document.removeEventListener('mousemove', handleDragMove);
+            document.removeEventListener('mouseup', stopDragging);
+            document.removeEventListener('touchmove', handleDragMove);
+            document.removeEventListener('touchend', stopDragging);
+        }
+        
         // Icons for play/pause
         const playIcon = `
-            <svg width="160" height="160" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M5 3L19 12L5 21V3Z" fill="currentColor"/>
             </svg>
         `;
         
         const pauseIcon = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M6 4H10V20H6V4Z" fill="currentColor"/>
                 <path d="M14 4H18V20H14V4Z" fill="currentColor"/>
             </svg>
@@ -1509,12 +1621,18 @@
                                                 </div>
                                                 Now playing
                                             </div>
-                                            <div class="progress-container">
-                                                <div id="progress-bar-${rowId}" class="progress-bar"></div>
-                                            </div>
                                         ` : ''}
                                     </div>
                                 </a>
+                                ${hasYouTube ? `
+                                    <div class="progress-container" onclick="seekToPosition(event, '${rowId}')">
+                                        <div id="progress-bar-${rowId}" class="progress-bar">
+                                            <div class="progress-playhead" 
+                                                 onmousedown="startDragging(event, '${rowId}')"
+                                                 ontouchstart="startDragging(event, '${rowId}')"></div>
+                                        </div>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
                     </td>
