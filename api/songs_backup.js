@@ -83,8 +83,6 @@ async function fetchFromGoogleSheets() {
             throw new Error('No data found in Google Sheets');
         }
         
-        console.log(`Google Sheets API returned ${rows.length} total rows (including header)`);
-        
         // Convert rows to song objects (skip header row)
         const songs = [];
         for (let i = 1; i < rows.length; i++) {
@@ -102,7 +100,7 @@ async function fetchFromGoogleSheets() {
             }
         }
         
-        console.log(`Successfully processed ${songs.length} songs from Google Sheets API`);
+        console.log(`Successfully fetched ${songs.length} songs from Google Sheets API`);
         return songs;
     } catch (error) {
         console.error('Error fetching from Google Sheets API:', error);
@@ -128,8 +126,6 @@ function readLocalCSV() {
             }
         });
     });
-}
-
 // Main handler function with Google Sheets API integration
 async function handler(req, res) {
     // Add CORS headers for local development
@@ -160,14 +156,12 @@ async function handler(req, res) {
         try {
             if (GOOGLE_SHEETS_ID && !GOOGLE_SHEETS_ID.includes('YOUR_SHEET_ID') && 
                 GOOGLE_API_KEY && !GOOGLE_API_KEY.includes('YOUR_API_KEY')) {
-                console.log('Google Sheets credentials found, attempting to fetch data...');
                 songs = await fetchFromGoogleSheets();
                 
                 // Update cache
                 cachedSongs = songs;
                 cacheTimestamp = now;
                 
-                console.log(`✅ Successfully returned ${songs.length} songs from Google Sheets`);
                 res.json(songs);
                 return;
             } else {
@@ -196,9 +190,9 @@ async function handler(req, res) {
     }
 }
 
-// For Vercel serverless deployment
 app.get('/api/songs', handler);
 
-// Export the handler function for direct use and the app for Vercel
-module.exports = handler;
-module.exports.app = app;
+// Export both the handler function and the app
+module.exports = app;
+module.exports.handler = handler;
+module.exports.handler = handler;
