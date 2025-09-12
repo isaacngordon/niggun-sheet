@@ -15,7 +15,7 @@ app.use((req, res, next) => {
 const songsHandler = require('./api/songs');
 
 // Use the route handlers
-app.get('/api/songs', songsHandler);
+app.use('/api/songs', songsHandler);
 
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
