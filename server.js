@@ -5,6 +5,12 @@ const path = require('path');
 
 const app = express();
 
+// log request to console
+app.use((req, res, next) => {
+  console.log(`Received ${req.method} request for ${req.url}`);
+  next();
+});
+
 // Importing route handlers
 const songsHandler = require('./api/songs');
 

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Niggun Sheet | Contact</title>
+    <link rel="stylesheet" href="css/main.css">
+
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-N0MP01KGSP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-N0MP01KGSP');
+</script>
+
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #navbar {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #navbar a {
+            color: #f2cb05;
+            margin: 0 10px;
+            text-decoration: none;
+        }
+
+        #navbar a:hover {
+            text-decoration: underline;
+        }
+
+        #contact-content {
+            flex: 1;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        form {
+            text-align: left;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            height: 150px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #f2cb05;
+            color: #000;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #e0bc04;
+        }
+
+        .success-message {
+            background-color: #dff0d8;
+            color: #3c763d;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .error-message {
+            background-color: #f2dede;
+            color: #a94442;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        #footer {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        #footer a {
+            color: #f2cb05;
+            margin: 0 10px;
+            text-decoration: none;
+        }
+
+        #footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+ <!-- Modern responsive header with your content -->
+ <header class="bg-gray-900 sticky top-0 z-50">
+    <div class="relative z-50 flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+      <!-- Logo positioned at far left -->
+      <div class="flex items-center">
+        <a href="/" class="mr-8">
+          <img src="/assets/Niggun_Sheet_Header_Logo.png" alt="Niggun Sheet" class="h-10" />
+        </a>
+      </div>
+      
+      <!-- Mobile menu button (only visible on mobile) -->
+      <div class="flex lg:hidden ml-auto">
+        <button type="button" class="block text-white" id="mobile-menu-button">
+          <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="bars" class="svg-inline--fa fa-bars" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="24" height="24">
+            <path fill="currentColor" d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Desktop Navigation (now positioned after logo) -->
+      <div class="hidden lg:flex lg:items-center lg:flex-1 lg:justify-center">
+        <ul class="flex h-full items-center gap-8">
+          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/">Home</a>
+          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/songs.html">Song Directory</a>
+          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/sheet-builder.html">Sheet Builder
+            <span class="ml-2.5 rounded-sm bg-yellow-400 p-1 text-xs font-bold uppercase leading-none text-gray-900">new</span>
+          </a>
+          <a class="flex items-center px-3 py-3 text-base font-normal text-header-link hover:text-white whitespace-nowrap" href="/contact.html">Contact</a>
+        </ul>
+      </div>
+      
+      <!-- User Action Buttons -->
+      <div class="flex h-full min-h-8 shrink-0 items-center justify-end">
+        <button type="button" class="flex justify-center items-center font-bold rounded-full transition-colors bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-1.5 px-5 text-sm">
+          <span class="relative flex min-h-5 items-center justify-center">
+            <span class="whitespace-nowrap">Download Sheet</span>
+          </span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Mobile Menu (hidden by default) -->
+    <div id="mobile-menu" class="hidden lg:hidden">
+      <div class="space-y-1 px-4 pb-3 pt-2">
+        <a href="/" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Home</a>
+        <a href="/songs.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Song Directory</a>
+        <a href="/sheet-builder.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Sheet Builder <span class="ml-2 rounded-sm bg-yellow-400 p-1 text-xs font-bold uppercase leading-none text-gray-900">new</span></a>
+        <a href="/contact.html" class="block px-3 py-2 text-base font-medium text-header-link hover:text-white">Contact</a>
+      </div>
+    </div>
+  </header>
+
+<!-- Footer - Use this in all pages -->
+    <div id="contact-content">
+        <h1>Contact Us</h1>
+        <p>Have questions, suggestions, or want to contribute new niggunim? We'd love to hear from you!</p>
+
+        <form id="contact-form" action="https://formspree.io/f/manodjzv" method="POST">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="subject">Subject</label>
+                <input type="text" id="subject" name="subject" required>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Message</label>
+                <textarea id="message" name="message" required></textarea>
+            </div>
+
+            <button type="submit">Send Message</button>
+        </form>
+
+        <div id="success-message" class="success-message">
+            Your message has been sent successfully. We'll get back to you soon!
+        </div>
+
+        <div id="error-message" class="error-message">
+            There was an error sending your message. Please try again later.
+        </div>
+    </div>
+
+    <div id="footer">
+        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
+        <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
+    </div>
+
+    <script>
+        document.getElementById('contact-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const form = this;
+            const formData = new FormData(form);
+            const successMessage = document.getElementById('success-message');
+            const errorMessage = document.getElementById('error-message');
+            
+            // Hide any previous messages
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+            
+            // Use Formspree or similar service
+            fetch('https://formspree.io/f/niggunsheet@yehudah.mozmail.com', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Show success message
+                    form.reset();
+                    successMessage.style.display = 'block';
+                } else {
+                    // Show error message
+                    throw new Error('Form submission failed');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                errorMessage.style.display = 'block';
+            });
+        });
+    </script>
+</body>
+
+</html>

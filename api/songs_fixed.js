@@ -1,33 +1,31 @@
-require('dotenv').config(); // Load environment variables
 const express = require('express');
-const app = express();
-const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 const { google } = require('googleapis');
 
-// Google Sheets API configuration
-const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID || 'YOUR_SHEET_ID';
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'YOUR_API_KEY';
-const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F1000'; // Adjust range as needed
+const app = express();
 
-// Fallback to local CSV file
+// Configuration
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID;
+const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:D';
+
+// File paths
 const songsFilePath = path.join(__dirname, '../data/songs.csv');
 
-// Cache configuration
+// Cache for songs data
 let cachedSongs = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-// Enhanced CSV parsing function that handles quoted fields properly
+// CSV parser function
 function parseCSV(csvText) {
-    const lines = csvText.split('\n');
+    const lines = csvText.trim().split('\n');
     const result = [];
     
     for (let i = 1; i < lines.length; i++) { // Skip header row
-        const line = lines[i].trim();
-        if (!line) continue; // Skip empty lines
-        
+        const line = lines[i];
         const fields = [];
         let current = '';
         let inQuotes = false;
@@ -45,19 +43,18 @@ function parseCSV(csvText) {
             }
         }
         
-        // Don't forget the last field
+        // Add the last field
         fields.push(current.trim());
         
-        // Ensure we have all expected fields
+        // Only add rows with sufficient data
         if (fields.length >= 4) {
-            const [search_title, title, lyrics, artist, drive = '', youtube = ''] = fields;
+            // Clean up the fields by removing surrounding quotes
             result.push({
-                search_title: search_title.replace(/"/g, ''),
-                title: title.replace(/"/g, ''),
-                lyrics: lyrics.replace(/"/g, ''),
-                artist: artist.replace(/"/g, ''),
-                drive: drive.replace(/"/g, ''),
-                youtube: youtube.replace(/"/g, '')
+                id: fields[0].replace(/^"|"$/g, '') || '',
+                title: fields[1].replace(/^"|"$/g, '') || '',
+                composer: fields[2].replace(/^"|"$/g, '') || '',
+                key: fields[3].replace(/^"|"$/g, '') || '',
+                sheetMusic: fields[4] ? fields[4].replace(/^"|"$/g, '') : ''
             });
         }
     }
@@ -65,12 +62,11 @@ function parseCSV(csvText) {
     return result;
 }
 
-// Fetch songs from Google Sheets API
+// Function to fetch data from Google Sheets API
 async function fetchFromGoogleSheets() {
     try {
-        console.log('Fetching songs from Google Sheets API...');
+        console.log('Attempting to fetch from Google Sheets API...');
         
-        // Initialize the Google Sheets API
         const sheets = google.sheets({ version: 'v4', auth: GOOGLE_API_KEY });
         
         const response = await sheets.spreadsheets.values.get({
@@ -83,40 +79,37 @@ async function fetchFromGoogleSheets() {
             throw new Error('No data found in Google Sheets');
         }
         
-        console.log(`Google Sheets API returned ${rows.length} total rows (including header)`);
-        
-        // Convert rows to song objects (skip header row)
         const songs = [];
+        // Skip header row (index 0)
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             if (row.length >= 4) { // Ensure we have at least the required fields
-                const [search_title = '', title = '', lyrics = '', artist = '', drive = '', youtube = ''] = row;
+                
                 songs.push({
-                    search_title: search_title.trim(),
-                    title: title.trim(),
-                    lyrics: lyrics.trim(),
-                    artist: artist.trim(),
-                    drive: drive.trim(),
-                    youtube: youtube.trim()
+                    id: row[0] || '',
+                    title: row[1] || '',
+                    composer: row[2] || '',
+                    key: row[3] || '',
+                    sheetMusic: row[4] || ''
                 });
             }
         }
         
-        console.log(`Successfully processed ${songs.length} songs from Google Sheets API`);
+        console.log(`Successfully fetched ${songs.length} songs from Google Sheets API`);
         return songs;
     } catch (error) {
-        console.error('Error fetching from Google Sheets API:', error);
+        console.error('Google Sheets API error:', error.message);
         throw error;
     }
 }
 
-// Fallback to local CSV file
+// Function to read from local CSV file
 function readLocalCSV() {
     return new Promise((resolve, reject) => {
         fs.readFile(songsFilePath, 'utf8', (err, data) => {
             if (err) {
+                console.error('Error reading local CSV file:', err);
                 reject(err);
-                return;
             }
             
             try {
@@ -124,13 +117,14 @@ function readLocalCSV() {
                 console.log(`Loaded ${songs.length} songs from local CSV file`);
                 resolve(songs);
             } catch (parseError) {
+                console.error('Error parsing CSV:', parseError);
                 reject(parseError);
             }
         });
     });
 }
 
-// Main handler function with Google Sheets API integration
+// Main handler function
 async function handler(req, res) {
     // Add CORS headers for local development
     res.header('Access-Control-Allow-Origin', '*');
@@ -143,7 +137,7 @@ async function handler(req, res) {
         return;
     }
 
-    console.log(`Handling ${req.method} /api/songs from ${req.ip || req.connection.remoteAddress}`);
+    console.log(`Handling GET /api/songs from ${req.ip || req.connection.remoteAddress}`);
 
     try {
         // Check cache first
@@ -160,14 +154,12 @@ async function handler(req, res) {
         try {
             if (GOOGLE_SHEETS_ID && !GOOGLE_SHEETS_ID.includes('YOUR_SHEET_ID') && 
                 GOOGLE_API_KEY && !GOOGLE_API_KEY.includes('YOUR_API_KEY')) {
-                console.log('Google Sheets credentials found, attempting to fetch data...');
                 songs = await fetchFromGoogleSheets();
                 
                 // Update cache
                 cachedSongs = songs;
                 cacheTimestamp = now;
                 
-                console.log(`✅ Successfully returned ${songs.length} songs from Google Sheets`);
                 res.json(songs);
                 return;
             } else {
@@ -196,7 +188,8 @@ async function handler(req, res) {
     }
 }
 
-// For Vercel serverless deployment
-app.get('/', handler);
+app.get('/api/songs', handler);
 
+// Export both the handler function and the app
 module.exports = app;
+module.exports.handler = handler;
