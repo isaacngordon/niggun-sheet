@@ -143,7 +143,7 @@ async function handler(req, res) {
         return;
     }
 
-    console.log(`Handling GET /api/songs from ${req.ip || req.connection.remoteAddress}`);
+    console.log(`Handling ${req.method} /api/songs from ${req.ip || req.connection.remoteAddress}`);
 
     try {
         // Check cache first
@@ -197,8 +197,6 @@ async function handler(req, res) {
 }
 
 // For Vercel serverless deployment
-app.get('/api/songs', handler);
+app.get('/', handler);
 
-// Export the handler function for direct use and the app for Vercel
-module.exports = handler;
-module.exports.app = app;
+module.exports = app;
