@@ -7,9 +7,10 @@ const path = require('path');
 const { google } = require('googleapis');
 
 // Google Sheets API configuration
-const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID || 'YOUR_SHEET_ID';
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'YOUR_API_KEY';
-const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F1000'; // Adjust range as needed
+
+const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID || '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms';
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'YAIzaSyCvSSDdqc-yRN59lHkZToITFCeOCBrZoFg';
+const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F'; // Adjust range as needed
 
 // Fallback to local CSV file
 const songsFilePath = path.join(__dirname, '../data/songs.csv');
