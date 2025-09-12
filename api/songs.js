@@ -60,25 +60,144 @@ function parseCSV(csvText) {
                 youtube: youtube.replace(/"/g, '')
             });
         }
+    }
+    
+    return result;
+}
 
-        // Parse the CSV data and convert it to JSON
-        const songs = data.split(/\r?\n(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((line, i) => {
-            // Skip the first line (headers)
-            if (i === 0) return;
-            // Skip the last line (if empty)
-            if (!line) return;
-            const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
-            const [search_title, title, lyrics, artist, drive, youtube] = line.split(regex).map(cell => cell.replace(/"/g, ''));
-            return {search_title,  title, lyrics, artist, drive, youtube };
+// Fetch songs from Google Sheets API
+async function fetchFromGoogleSheets() {
+    try {
+        console.log('Fetching songs from Google Sheets API...');
+        
+        // Initialize the Google Sheets API
+        const sheets = google.sheets({ version: 'v4', auth: GOOGLE_API_KEY });
+        
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: GOOGLE_SHEETS_ID,
+            range: SHEET_RANGE,
         });
+        
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) {
+            throw new Error('No data found in Google Sheets');
+        }
+        
+        console.log(`Google Sheets API returned ${rows.length} total rows (including header)`);
+        
+        // Convert rows to song objects (skip header row)
+        const songs = [];
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row.length >= 4) { // Ensure we have at least the required fields
+                const [search_title = '', title = '', lyrics = '', artist = '', drive = '', youtube = ''] = row;
+                songs.push({
+                    search_title: search_title.trim(),
+                    title: title.trim(),
+                    lyrics: lyrics.trim(),
+                    artist: artist.trim(),
+                    drive: drive.trim(),
+                    youtube: youtube.trim()
+                });
+            }
+        }
+        
+        console.log(`Successfully processed ${songs.length} songs from Google Sheets API`);
+        return songs;
+    } catch (error) {
+        console.error('Error fetching from Google Sheets API:', error);
+        throw error;
+    }
+}
 
-        // remove the first element in the array if it is null otherwise return the array
-        console.log(songs[0] == null ? songs.slice(1) : songs);
-        res.json(songs[0] == null ? songs.slice(1) : songs);
+// Fallback to local CSV file
+function readLocalCSV() {
+    return new Promise((resolve, reject) => {
+        fs.readFile(songsFilePath, 'utf8', (err, data) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            
+            try {
+                const songs = parseCSV(data);
+                console.log(`Loaded ${songs.length} songs from local CSV file`);
+                resolve(songs);
+            } catch (parseError) {
+                reject(parseError);
+            }
+        });
     });
 }
 
-app.get('/', handler);
+// Main handler function with Google Sheets API integration
+async function handler(req, res) {
+    // Add CORS headers for local development
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+        return;
+    }
+
+    console.log(`Handling GET /api/songs from ${req.ip || req.connection.remoteAddress}`);
+
+    try {
+        // Check cache first
+        const now = Date.now();
+        if (cachedSongs && (now - cacheTimestamp) < CACHE_DURATION) {
+            console.log('Returning cached songs data');
+            res.json(cachedSongs);
+            return;
+        }
+
+        let songs;
+        
+        // Try to fetch from Google Sheets API first
+        try {
+            if (GOOGLE_SHEETS_ID && !GOOGLE_SHEETS_ID.includes('YOUR_SHEET_ID') && 
+                GOOGLE_API_KEY && !GOOGLE_API_KEY.includes('YOUR_API_KEY')) {
+                console.log('Google Sheets credentials found, attempting to fetch data...');
+                songs = await fetchFromGoogleSheets();
+                
+                // Update cache
+                cachedSongs = songs;
+                cacheTimestamp = now;
+                
+                console.log(`✅ Successfully returned ${songs.length} songs from Google Sheets`);
+                res.json(songs);
+                return;
+            } else {
+                console.log('Google Sheets API not configured, using local CSV');
+                throw new Error('Google Sheets API not configured');
+            }
+        } catch (googleSheetsError) {
+            console.log('Google Sheets API fetch failed, falling back to local CSV:', googleSheetsError.message);
+            
+            // Fallback to local CSV
+            songs = await readLocalCSV();
+            
+            // Update cache with local data
+            cachedSongs = songs;
+            cacheTimestamp = now;
+            
+            res.json(songs);
+        }
+        
+    } catch (error) {
+        console.error('Error loading songs:', error);
+        res.status(500).json({ 
+            error: 'Internal Server Error',
+            message: 'Unable to load songs from any source'
+        });
+    }
+}
+
+// For Vercel serverless deployment
+app.get('/api/songs', handler);
 
 // Export the handler function for direct use and the app for Vercel
 module.exports = handler;
