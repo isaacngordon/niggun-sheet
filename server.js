@@ -14,8 +14,10 @@ app.use((req, res, next) => {
 // Importing route handlers
 const songsHandler = require('./api/songs');
 
-// Use the route handlers
-app.use('/api/songs', songsHandler);
+// For local development, wrap the serverless function in Express middleware
+app.get('/api/songs', (req, res) => {
+    songsHandler(req, res);
+});
 
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));

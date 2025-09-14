@@ -1,14 +1,12 @@
 require('dotenv').config(); // Load environment variables
-const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
 
 // Google Sheets API configuration
-
 const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID || '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms';
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'YAIzaSyCvSSDdqc-yRN59lHkZToITFCeOCBrZoFg';
-const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F'; // Adjust range as needed
+const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F';
 
 // Fallback to local CSV file
 const songsFilePath = path.join(process.cwd(), 'data/songs.csv');
@@ -16,16 +14,16 @@ const songsFilePath = path.join(process.cwd(), 'data/songs.csv');
 // Cache configuration
 let cachedSongs = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// Enhanced CSV parsing function that handles quoted fields properly
+// Enhanced CSV parsing function
 function parseCSV(csvText) {
     const lines = csvText.split('\n');
     const result = [];
     
-    for (let i = 1; i < lines.length; i++) { // Skip header row
+    for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
-        if (!line) continue; // Skip empty lines
+        if (!line) continue;
         
         const fields = [];
         let current = '';
@@ -44,19 +42,18 @@ function parseCSV(csvText) {
             }
         }
         
-        // Don't forget the last field
         fields.push(current.trim());
         
-        // Ensure we have all expected fields
         if (fields.length >= 4) {
-            const [search_title, title, lyrics, artist, drive = '', youtube = ''] = fields;
+            const [search_title = '', title = '', lyrics = '', artist = '', drive = '', youtube = ''] = fields;
+            
             result.push({
-                search_title: search_title.replace(/"/g, ''),
-                title: title.replace(/"/g, ''),
-                lyrics: lyrics.replace(/"/g, ''),
-                artist: artist.replace(/"/g, ''),
-                drive: drive.replace(/"/g, ''),
-                youtube: youtube.replace(/"/g, '')
+                search_title: search_title.replace(/^"|"$/g, ''),
+                title: title.replace(/^"|"$/g, ''),
+                lyrics: lyrics.replace(/^"|"$/g, '').replace(/""/g, '"'),
+                artist: artist.replace(/^"|"$/g, ''),
+                drive: drive.replace(/^"|"$/g, ''),
+                youtube: youtube.replace(/^"|"$/g, '')
             });
         }
     }
@@ -64,12 +61,9 @@ function parseCSV(csvText) {
     return result;
 }
 
-// Fetch songs from Google Sheets API
+// Google Sheets API integration
 async function fetchFromGoogleSheets() {
     try {
-        console.log('Fetching songs from Google Sheets API...');
-        
-        // Initialize the Google Sheets API
         const sheets = google.sheets({ version: 'v4', auth: GOOGLE_API_KEY });
         
         const response = await sheets.spreadsheets.values.get({
@@ -82,13 +76,10 @@ async function fetchFromGoogleSheets() {
             throw new Error('No data found in Google Sheets');
         }
         
-        console.log(`Google Sheets API returned ${rows.length} total rows (including header)`);
-        
-        // Convert rows to song objects (skip header row)
         const songs = [];
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            if (row.length >= 4) { // Ensure we have at least the required fields
+            if (row.length >= 4) {
                 const [search_title = '', title = '', lyrics = '', artist = '', drive = '', youtube = ''] = row;
                 songs.push({
                     search_title: search_title.trim(),
@@ -101,7 +92,6 @@ async function fetchFromGoogleSheets() {
             }
         }
         
-        console.log(`Successfully processed ${songs.length} songs from Google Sheets API`);
         return songs;
     } catch (error) {
         console.error('Error fetching from Google Sheets API:', error);
@@ -109,7 +99,7 @@ async function fetchFromGoogleSheets() {
     }
 }
 
-// Fallback to local CSV file
+// Fallback to local CSV
 function readLocalCSV() {
     return new Promise((resolve, reject) => {
         fs.readFile(songsFilePath, 'utf8', (err, data) => {
@@ -120,7 +110,6 @@ function readLocalCSV() {
             
             try {
                 const songs = parseCSV(data);
-                console.log(`Loaded ${songs.length} songs from local CSV file`);
                 resolve(songs);
             } catch (parseError) {
                 reject(parseError);
@@ -129,52 +118,40 @@ function readLocalCSV() {
     });
 }
 
-// Main handler function with Google Sheets API integration
+// Main handler function
 async function handler(req, res) {
-    // Add CORS headers for local development
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    // CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     
-    // Handle preflight requests
     if (req.method === 'OPTIONS') {
-        res.sendStatus(200);
+        res.status(200).end();
         return;
     }
-
-    console.log(`Handling ${req.method} /api/songs from ${req.ip || req.connection.remoteAddress}`);
-
+    
     try {
-        // Check cache first
         const now = Date.now();
+        
+        // Return cached data if still valid
         if (cachedSongs && (now - cacheTimestamp) < CACHE_DURATION) {
-            console.log('Returning cached songs data');
-            res.json(cachedSongs);
+            res.status(200).json(cachedSongs);
             return;
         }
-
+        
         let songs;
         
-        // Try to fetch from Google Sheets API first
         try {
-            if (GOOGLE_SHEETS_ID && !GOOGLE_SHEETS_ID.includes('YOUR_SHEET_ID') && 
-                GOOGLE_API_KEY && !GOOGLE_API_KEY.includes('YOUR_API_KEY')) {
-                console.log('Google Sheets credentials found, attempting to fetch data...');
-                songs = await fetchFromGoogleSheets();
-                
-                // Update cache
-                cachedSongs = songs;
-                cacheTimestamp = now;
-                
-                console.log(`✅ Successfully returned ${songs.length} songs from Google Sheets`);
-                res.json(songs);
-                return;
-            } else {
-                console.log('Google Sheets API not configured, using local CSV');
-                throw new Error('Google Sheets API not configured');
-            }
-        } catch (googleSheetsError) {
-            console.log('Google Sheets API fetch failed, falling back to local CSV:', googleSheetsError.message);
+            // Try Google Sheets first
+            songs = await fetchFromGoogleSheets();
+            
+            // Update cache
+            cachedSongs = songs;
+            cacheTimestamp = now;
+            
+            res.status(200).json(songs);
+        } catch (sheetsError) {
+            console.error('Google Sheets failed, trying local CSV:', sheetsError);
             
             // Fallback to local CSV
             songs = await readLocalCSV();
@@ -183,7 +160,7 @@ async function handler(req, res) {
             cachedSongs = songs;
             cacheTimestamp = now;
             
-            res.json(songs);
+            res.status(200).json(songs);
         }
         
     } catch (error) {
@@ -195,13 +172,5 @@ async function handler(req, res) {
     }
 }
 
-// For local Express server
-const router = express.Router();
-
-// Main handler function
-router.get('/', handler);
-
-// Export for both local and Vercel
-module.exports = router;
-module.exports.default = handler; // For Vercel ES modules
-module.exports.handler = handler; // Alternative for Vercel
+// Export for Vercel
+module.exports = handler;

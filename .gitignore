@@ -19,6 +19,11 @@ data/backups/**
 *.log
 *.tmp
 
+# Ignore environment variables
+.env
+.env.local
+.env.production
+
 # Ignore IDE and editor-specific files
 .idea/
 .vscode/
