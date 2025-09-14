@@ -237,6 +237,10 @@
             cursor: default;
         }
         
+        .page-canvas.dragging {
+            cursor: grabbing;
+        }
+        
         .page-canvas.drag-over {
             box-shadow: 0 0 20px rgba(242, 203, 5, 0.5);
         }
@@ -332,7 +336,9 @@
                 this.draggedSong = null;
                 this.hoveredSong = null;
                 this.selectedSong = null;
+                this.dragState = null; // For internal song repositioning
                 this.showTitles = true; // Toggle for showing/hiding titles
+                this.lastGlobalReflowTime = 0; // Prevent rapid successive globalReflow calls
                 this.showPageNumbers = true; // Toggle for showing/hiding page numbers
                 this.textAlignment = 'center'; // Text alignment: 'center', 'right' (removed 'left')
                 this.maxColumns = 3; // Maximum columns allowed (1, 2, or 3)
@@ -376,7 +382,6 @@
             loadSelectedSongs() {
                 // Load selected songs from localStorage (from songs.html)
                 const sheetSongs = JSON.parse(localStorage.getItem("sheetSongs")) || [];
-                console.log(`Loading ${sheetSongs.length} selected songs from localStorage`);
                 
                 // Add each selected song to the sheet (skip sync to avoid loops)
                 sheetSongs.forEach(song => {
@@ -414,7 +419,6 @@
                 
                 // Update localStorage
                 localStorage.setItem("sheetSongs", JSON.stringify(sheetSongs));
-                console.log(`Synced ${sheetSongs.length} songs to localStorage`);
             }
             
             renderSongsList() {
@@ -506,15 +510,23 @@
                 wrapper.appendChild(canvas);
                 document.getElementById('canvasContainer').appendChild(wrapper);
                 
+                // Inherit configuration from first page if it exists
+                let columns = 1;
+                let fontSize = 18;
+                if (this.pages.length > 0 && this.pages[0].columns && this.pages[0].fontSize) {
+                    columns = this.pages[0].columns;
+                    fontSize = this.pages[0].fontSize;
+                }
+                
                 const page = {
                     canvas: canvas,
                     ctx: ctx,
                     wrapper: wrapper,
                     dpr: dpr, // Store DPR for later use
                     songs: [],
-                    columns: 1,
-                    fontSize: 18,
-                    columnHeights: [0]
+                    columns: columns,
+                    fontSize: fontSize,
+                    columnHeights: new Array(columns).fill(0)
                 };
                 
                 this.pages.push(page);
@@ -558,12 +570,37 @@
                     this.handleCanvasClick(page, x, y);
                 });
                 
-                // Mouse move for hover
+                // Mouse down to start drag
+                canvas.addEventListener('mousedown', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) * (this.PAGE_WIDTH / rect.width);
+                    const y = (e.clientY - rect.top) * (this.PAGE_HEIGHT / rect.height);
+                    this.handleMouseDown(page, x, y, e);
+                });
+                
+                // Mouse move for hover and drag
                 canvas.addEventListener('mousemove', (e) => {
                     const rect = canvas.getBoundingClientRect();
                     const x = (e.clientX - rect.left) * (this.PAGE_WIDTH / rect.width);
                     const y = (e.clientY - rect.top) * (this.PAGE_HEIGHT / rect.height);
-                    this.handleCanvasHover(page, x, y);
+                    
+                    if (this.dragState && !this.globalMouseMoveHandler) {
+                        // Only handle if global listeners aren't active
+                        this.handleMouseDrag(x, y);
+                    } else if (!this.dragState) {
+                        this.handleCanvasHover(page, x, y);
+                    }
+                });
+                
+                // Mouse up to end drag
+                canvas.addEventListener('mouseup', (e) => {
+                    if (this.dragState && !this.globalMouseUpHandler) {
+                        // Only handle if global listeners aren't active
+                        const rect = canvas.getBoundingClientRect();
+                        const x = (e.clientX - rect.left) * (this.PAGE_WIDTH / rect.width);
+                        const y = (e.clientY - rect.top) * (this.PAGE_HEIGHT / rect.height);
+                        this.handleMouseUp(x, y);
+                    }
                 });
             }
             
@@ -594,6 +631,336 @@
                 // If no pages exist, create the first page
                 const newPage = this.addNewPage();
                 this.addSongToPage(song, newPage);
+            }
+            
+            handleMouseDown(page, x, y, event) {
+                // Find song at this position
+                const song = this.findSongAt(page, x, y);
+                if (song) {
+                    this.dragState = {
+                        song: song,
+                        page: page,
+                        originalPage: page,
+                        startX: x,
+                        startY: y,
+                        offset: {
+                            x: x - song.x,
+                            y: y - song.y
+                        },
+                        previewPosition: null,
+                        isDragging: false,
+                        targetPage: page
+                    };
+                    
+                    // Add dragging class for cursor
+                    page.canvas.classList.add('dragging');
+                    
+                    // Set up global mouse tracking for cross-page dragging
+                    this.setupGlobalDragListeners();
+                    
+                    event.preventDefault();
+                }
+            }
+            
+            setupGlobalDragListeners() {
+                // Global mouse move listener for cross-page dragging
+                this.globalMouseMoveHandler = (e) => {
+                    if (!this.dragState) return;
+                    
+                    // Find which page canvas the mouse is over
+                    const targetElement = document.elementFromPoint(e.clientX, e.clientY);
+                    let targetPage = null;
+                    let x = 0, y = 0;
+                    
+                    // Check if we're over a page canvas
+                    for (let page of this.pages) {
+                        if (targetElement === page.canvas || page.canvas.contains(targetElement)) {
+                            targetPage = page;
+                            const rect = page.canvas.getBoundingClientRect();
+                            x = (e.clientX - rect.left) * (this.PAGE_WIDTH / rect.width);
+                            y = (e.clientY - rect.top) * (this.PAGE_HEIGHT / rect.height);
+                            break;
+                        }
+                    }
+                    
+                    if (targetPage) {
+                        this.dragState.targetPage = targetPage;
+                        this.handleMouseDragGlobal(targetPage, x, y);
+                    }
+                };
+                
+                // Global mouse up listener
+                this.globalMouseUpHandler = (e) => {
+                    if (!this.dragState) return;
+                    
+                    // Find which page canvas the mouse is over
+                    const targetElement = document.elementFromPoint(e.clientX, e.clientY);
+                    let targetPage = null;
+                    let x = 0, y = 0;
+                    
+                    // Check if we're over a page canvas
+                    for (let page of this.pages) {
+                        if (targetElement === page.canvas || page.canvas.contains(targetElement)) {
+                            targetPage = page;
+                            const rect = page.canvas.getBoundingClientRect();
+                            x = (e.clientX - rect.left) * (this.PAGE_WIDTH / rect.width);
+                            y = (e.clientY - rect.top) * (this.PAGE_HEIGHT / rect.height);
+                            break;
+                        }
+                    }
+                    
+                    if (targetPage) {
+                        this.handleMouseUpGlobal(targetPage, x, y);
+                    } else {
+                        // Dropped outside any page - cancel drag
+                        this.cancelDrag();
+                    }
+                };
+                
+                document.addEventListener('mousemove', this.globalMouseMoveHandler);
+                document.addEventListener('mouseup', this.globalMouseUpHandler);
+            }
+            
+            removeGlobalDragListeners() {
+                if (this.globalMouseMoveHandler) {
+                    document.removeEventListener('mousemove', this.globalMouseMoveHandler);
+                    this.globalMouseMoveHandler = null;
+                }
+                if (this.globalMouseUpHandler) {
+                    document.removeEventListener('mouseup', this.globalMouseUpHandler);
+                    this.globalMouseUpHandler = null;
+                }
+            }
+            
+            handleMouseDragGlobal(targetPage, x, y) {
+                if (!this.dragState) return;
+                
+                // Check if we've moved enough to consider this a drag (not just a click)
+                const originalPage = this.dragState.originalPage;
+                const moved = Math.abs(x - this.dragState.startX) > 5 || 
+                             Math.abs(y - this.dragState.startY) > 5 ||
+                             targetPage !== originalPage; // Cross-page movement is always considered a drag
+                
+                if (moved) {
+                    this.dragState.isDragging = true;
+                    
+                    // Calculate where the song would be inserted if dropped here
+                    const insertPosition = this.findInsertPosition(targetPage, x, y, this.dragState.song);
+                    
+                    // Calculate preview position for visual feedback
+                    this.dragState.previewPosition = this.calculatePreviewPosition(targetPage, insertPosition, x, y);
+                    this.dragState.targetPage = targetPage;
+                }
+                
+                // Re-render to show preview
+                this.render();
+            }
+            
+            handleMouseUpGlobal(targetPage, x, y) {
+                if (!this.dragState) return;
+                
+                const { song, originalPage } = this.dragState;
+                
+                // Remove dragging class
+                originalPage.canvas.classList.remove('dragging');
+                
+                // Check if we actually moved (avoid triggering on simple clicks)
+                const moved = Math.abs(x - this.dragState.startX) > 5 || 
+                             Math.abs(y - this.dragState.startY) > 5 ||
+                             targetPage !== originalPage;
+                
+                if (moved) {
+                    // Find new position BEFORE removing the song (so bounds are still available)
+                    const insertPosition = this.findInsertPosition(targetPage, x, y, song);
+                    
+                    // Remove song from original page
+                    const songIndex = originalPage.songs.indexOf(song);
+                    if (songIndex > -1) {
+                        originalPage.songs.splice(songIndex, 1);
+                    }
+                    
+                    // Add song to target page
+                    if (targetPage !== originalPage) {
+                        // Cross-page move - add to target page
+                        targetPage.songs.splice(insertPosition.index, 0, song);
+                        song.preferredColumn = insertPosition.column;
+                    } else {
+                        // Same page move - adjust insert index if needed
+                        let adjustedIndex = insertPosition.index;
+                        if (songIndex < insertPosition.index) {
+                            adjustedIndex--;
+                        }
+                        originalPage.songs.splice(adjustedIndex, 0, song);
+                        song.preferredColumn = insertPosition.column;
+                    }
+                    
+                    // Clear dragging state COMPLETELY before any redistribution
+                    const wasDragging = this.dragState.isDragging;
+                    this.dragState.isDragging = false;
+                    this.dragState.previewPosition = null;
+                    this.dragState.song = null; // Clear song reference to prevent render conflicts
+                    
+                    // Redistribute songs on both pages if different
+                    if (targetPage !== originalPage) {
+                        const originalPageIndex = this.pages.indexOf(originalPage);
+                        const targetPageIndex = this.pages.indexOf(targetPage);
+                        
+                        // Use backflow logic when moving FROM earlier page TO later page
+                        if (originalPageIndex < targetPageIndex) {
+                            // First redistribute both pages
+                            this.redistributeSongs(originalPage);
+                            this.redistributeSongs(targetPage);
+                            
+                            // Only do backflow if the original page has very few songs (obvious gap)
+                            if (originalPage.songs.length <= 2) {
+                                this.controlledBackflow(originalPageIndex);
+                                this.render();
+                            }
+                        } else {
+                            // Moving backward - just redistribute both pages normally
+                            this.redistributeSongs(originalPage);
+                            this.redistributeSongs(targetPage);
+                        }
+                        
+                        this.updateStatus(`Moved "${song.title}" to page ${targetPageIndex + 1}`);
+                    } else {
+                        this.redistributeSongs(originalPage);
+                        this.updateStatus(`Moved "${song.title}"`);
+                    }
+                    
+                    this.syncToLocalStorage();
+                    this.render();
+                } else {
+                    // Clear dragging state before rendering 
+                    if (this.dragState) {
+                        this.dragState.isDragging = false;
+                        this.dragState.previewPosition = null;
+                    }
+                    
+                    // Just re-render to reset position if no real movement
+                    this.redistributeSongs(originalPage);
+                    this.render();
+                }
+                
+                // Clean up global listeners
+                this.removeGlobalDragListeners();
+                this.dragState = null;
+            }
+            
+            cancelDrag() {
+                if (!this.dragState) return;
+                
+                // Remove dragging class
+                this.dragState.originalPage.canvas.classList.remove('dragging');
+                
+                // Clear dragging state
+                this.dragState.isDragging = false;
+                this.dragState.previewPosition = null;
+                
+                // Re-render to reset position
+                this.redistributeSongs(this.dragState.originalPage);
+                this.render();
+                
+                // Clean up global listeners
+                this.removeGlobalDragListeners();
+                this.dragState = null;
+            }
+            
+            handleMouseDrag(x, y) {
+                if (!this.dragState) return;
+                
+                // Check if we've moved enough to consider this a drag (not just a click)
+                const moved = Math.abs(x - this.dragState.startX) > 5 || Math.abs(y - this.dragState.startY) > 5;
+                
+                if (moved) {
+                    this.dragState.isDragging = true;
+                    
+                    // Calculate where the song would be inserted if dropped here
+                    const insertPosition = this.findInsertPosition(this.dragState.page, x, y, this.dragState.song);
+                    
+                    // Calculate preview position for visual feedback
+                    this.dragState.previewPosition = this.calculatePreviewPosition(this.dragState.page, insertPosition, x, y);
+                }
+                
+                // Re-render to show preview
+                this.render();
+            }
+            
+            handleMouseUp(x, y) {
+                if (!this.dragState) return;
+                
+                const { song, page } = this.dragState;
+                
+                // Remove dragging class
+                page.canvas.classList.remove('dragging');
+                
+                // Check if we actually moved (avoid triggering on simple clicks)
+                const moved = Math.abs(x - this.dragState.startX) > 5 || Math.abs(y - this.dragState.startY) > 5;
+                
+                if (moved) {
+                    // Find new position BEFORE removing the song (so bounds are still available)
+                    const insertPosition = this.findInsertPosition(page, x, y, song);
+                    
+                    // Remove song from current position
+                    const songIndex = page.songs.indexOf(song);
+                    if (songIndex > -1) {
+                        page.songs.splice(songIndex, 1);
+                    }
+                    
+                    // Adjust insert index if needed (if we removed a song before the insertion point)
+                    let adjustedIndex = insertPosition.index;
+                    if (songIndex < insertPosition.index) {
+                        adjustedIndex--;
+                    }
+                    
+                    // Re-insert at new position
+                    page.songs.splice(adjustedIndex, 0, song);
+                    song.preferredColumn = insertPosition.column;
+                    
+                    // Clear dragging state before rendering so song becomes visible
+                    this.dragState.isDragging = false;
+                    this.dragState.previewPosition = null;
+                    
+                    // Just redistribute songs without changing the page configuration
+                    this.redistributeSongs(page);
+                    this.syncToLocalStorage();
+                    this.render();
+                    this.updateStatus(`Moved "${song.title}"`);
+                } else {
+                    // Clear dragging state before rendering 
+                    if (this.dragState) {
+                        this.dragState.isDragging = false;
+                        this.dragState.previewPosition = null;
+                    }
+                    
+                    // Just re-render to reset position if no real movement
+                    this.redistributeSongs(page);
+                    this.render();
+                }
+                
+                this.dragState = null;
+            }
+            
+            handleCanvasHover(page, x, y) {
+                // Check if cursor is over a song
+                const song = this.findSongAt(page, x, y);
+                if (song) {
+                    page.canvas.style.cursor = 'grab';
+                } else {
+                    page.canvas.style.cursor = 'default';
+                }
+            }
+            
+            findSongAt(page, x, y) {
+                // Check each song's bounds
+                for (let song of page.songs) {
+                    if (song.bounds && 
+                        x >= song.bounds.x && x <= song.bounds.x + song.bounds.width &&
+                        y >= song.bounds.y && y <= song.bounds.y + song.bounds.height) {
+                        return song;
+                    }
+                }
+                return null;
             }
             
             canFitSong(page, song) {
@@ -636,7 +1003,14 @@
                     height: 0, // Will be calculated during render
                 };
                 
-                page.songs.push(songData);
+                // If specific position provided, insert at that position
+                if (dropX !== null && dropY !== null) {
+                    const insertPosition = this.findInsertPosition(page, dropX, dropY);
+                    page.songs.splice(insertPosition.index, 0, songData);
+                    songData.preferredColumn = insertPosition.column;
+                } else {
+                    page.songs.push(songData);
+                }
                 
                 // Now optimize the layout to find the best configuration
                 this.optimizePageLayout(page);
@@ -651,6 +1025,77 @@
                 
                 this.render();
                 this.updateStatus(`Added "${song.title}" to page ${this.pages.indexOf(page) + 1}`);
+            }
+            
+            findInsertPosition(page, dropX, dropY, draggedSong = null) {
+                // Determine which column the drop position is in
+                const columnWidth = this.getColumnWidth(page.columns);
+                let targetColumn = Math.floor((dropX - this.MARGIN_LEFT) / (columnWidth + this.COLUMN_GAP));
+                targetColumn = Math.max(0, Math.min(targetColumn, page.columns - 1));
+                
+                // Get all songs that are currently in the target column (by their actual rendered position)
+                // Exclude the dragged song from consideration
+                const songsInColumn = [];
+                for (let i = 0; i < page.songs.length; i++) {
+                    const song = page.songs[i];
+                    if (song === draggedSong) continue; // Skip the dragged song
+                    
+                    if (song.bounds) {
+                        const songColumn = Math.floor((song.bounds.x - this.MARGIN_LEFT) / (columnWidth + this.COLUMN_GAP));
+                        if (songColumn === targetColumn) {
+                            songsInColumn.push({ song, index: i, y: song.bounds.y });
+                        }
+                    }
+                }
+                
+                // Sort songs by their Y position
+                songsInColumn.sort((a, b) => a.y - b.y);
+                
+                // Find where to insert based on Y position
+                let insertIndex = 0;
+                
+                if (songsInColumn.length === 0) {
+                    // Empty column - need to find where this column should start
+                    // Find the first song that should come after this column position
+                    for (let i = 0; i < page.songs.length; i++) {
+                        const song = page.songs[i];
+                        if (song === draggedSong) continue;
+                        
+                        if (song.bounds) {
+                            const songColumn = Math.floor((song.bounds.x - this.MARGIN_LEFT) / (columnWidth + this.COLUMN_GAP));
+                            if (songColumn > targetColumn) {
+                                insertIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    // If no songs found in later columns, insert at end
+                    if (insertIndex === 0) {
+                        insertIndex = page.songs.length;
+                    }
+                } else {
+                    // Find the right position between songs
+                    let inserted = false;
+                    for (let i = 0; i < songsInColumn.length; i++) {
+                        const currentSong = songsInColumn[i];
+                        const songMiddleY = currentSong.y + (currentSong.song.bounds.height / 2);
+                        
+                        if (dropY < songMiddleY) {
+                            // Insert before this song
+                            insertIndex = currentSong.index;
+                            inserted = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!inserted) {
+                        // Insert after the last song in the column
+                        const lastSong = songsInColumn[songsInColumn.length - 1];
+                        insertIndex = lastSong.index + 1;
+                    }
+                }
+                
+                return { index: insertIndex, column: targetColumn };
             }
             
             getShortestColumnIndex(page) {
@@ -675,28 +1120,13 @@
                 const pageIndex = this.pages.indexOf(page);
                 const isFirstPage = pageIndex === 0;
                 
-                // For subsequent pages, use the same configuration as the first page for consistency
+                // For subsequent pages, always use the same configuration as the first page
                 if (!isFirstPage && this.pages[0].columns && this.pages[0].fontSize) {
-                    const firstPageConfig = {
-                        columns: this.pages[0].columns,
-                        fontSize: this.pages[0].fontSize
-                    };
-                    
-                    console.log(`Using first page config for page ${pageIndex + 1}: ${firstPageConfig.columns} columns, ${firstPageConfig.fontSize}px font`);
-                    
-                    // Test if the first page's configuration works for this page
-                    if (this.testConfiguration(page, firstPageConfig)) {
-                        page.columns = firstPageConfig.columns;
-                        page.fontSize = firstPageConfig.fontSize;
-                        page.columnHeights = new Array(firstPageConfig.columns).fill(0);
-                        this.redistributeSongs(page);
-                        return;
-                    } else {
-                        // If first page config doesn't work, fall back to overflow handling
-                        console.log(`First page config doesn't fit on page ${pageIndex + 1}, using overflow handling`);
-                        this.handleOverflow(page);
-                        return;
-                    }
+                    page.columns = this.pages[0].columns;
+                    page.fontSize = this.pages[0].fontSize;
+                    page.columnHeights = new Array(this.pages[0].columns).fill(0);
+                    this.redistributeSongs(page);
+                    return;
                 }
                 
                 // For first page, try different column counts and font sizes
@@ -715,15 +1145,21 @@
                 // Filter configurations based on maxColumns setting
                 let configurations = allConfigurations.filter(config => config.columns <= this.maxColumns);
                 
-                // For first page, try to fit as much as possible by testing higher density first
-                configurations = configurations.reverse();
+                // Always try to use the maximum columns first, then fall back if needed
+                // Sort by columns descending (highest first), then by fontSize descending for same column count
+                configurations = configurations.sort((a, b) => {
+                    if (a.columns !== b.columns) {
+                        return b.columns - a.columns; // Higher columns first
+                    }
+                    return b.fontSize - a.fontSize; // Higher fontSize first for same column count
+                });
                 
                 let bestConfig = null;
                 
                 for (let config of configurations) {
                     if (this.testConfiguration(page, config)) {
                         bestConfig = config;
-                        // For first page, continue to find the most dense configuration that works
+                        break; // Take the first (highest column count) that works
                     }
                 }
                 
@@ -732,7 +1168,6 @@
                     page.fontSize = bestConfig.fontSize;
                     page.columnHeights = new Array(bestConfig.columns).fill(0);
                     this.redistributeSongs(page);
-                    console.log(`First page optimized: ${bestConfig.columns} columns, ${bestConfig.fontSize}px font`);
                     return;
                 }
                 
@@ -744,8 +1179,7 @@
                 const columnWidth = this.getColumnWidth(config.columns);
                 const testHeights = new Array(config.columns).fill(0);
                 
-                // Debug logging
-                console.log(`Testing config: ${config.columns} columns, ${config.fontSize}px font, column width: ${columnWidth.toFixed(1)}px`);
+                let currentColumn = 0;
                 
                 for (let song of page.songs) {
                     const height = this.estimateSongHeight(song, config.fontSize);
@@ -753,20 +1187,32 @@
                     // Check if this configuration causes unnatural line breaks
                     const naturalBreaksOk = this.checkNaturalLineBreaks(song, config.fontSize, columnWidth);
                     if (!naturalBreaksOk) {
-                        console.log(`  - Rejected: Natural line breaks failed for "${song.title}"`);
                         return false; // Reject if it causes unnatural breaks
                     }
                     
-                    const columnIndex = testHeights.indexOf(Math.min(...testHeights));
-                    testHeights[columnIndex] += height;
+                    // Use flow logic: try current column, then move to next if full
+                    let placed = false;
+                    while (currentColumn < config.columns && !placed) {
+                        // Add spacing if not first song in column (same logic as redistributeSongs)
+                        const spacing = testHeights[currentColumn] === 0 ? 0 : 
+                                      (this.showTitles ? this.spacingWithTitles : this.spacingWithoutTitles);
+                        
+                        const totalHeight = testHeights[currentColumn] + spacing + height;
+                        
+                        if (totalHeight <= this.USABLE_HEIGHT) {
+                            testHeights[currentColumn] += spacing + height;
+                            placed = true;
+                        } else {
+                            currentColumn++;
+                        }
+                    }
                     
-                    if (testHeights[columnIndex] > this.USABLE_HEIGHT) {
-                        console.log(`  - Rejected: Height overflow (${testHeights[columnIndex].toFixed(1)} > ${this.USABLE_HEIGHT})`);
+                    // If couldn't place in any column, configuration doesn't work
+                    if (!placed) {
                         return false;
                     }
                 }
                 
-                console.log(`  - SUCCESS: ${config.columns} columns, ${config.fontSize}px font fits all ${page.songs.length} songs`);
                 return true;
             }
             
@@ -802,25 +1248,220 @@
                 const columnWidth = this.getColumnWidth(page.columns);
                 page.columnHeights = new Array(page.columns).fill(0);
                 
-                page.songs.forEach((song, songIndex) => {
-                    const columnIndex = this.getShortestColumnIndex(page);
+                const songsToPlace = [...page.songs];
+                const placedSongs = [];
+                const overflowSongs = [];
+                
+                let currentColumn = 0;
+                
+                for (let song of songsToPlace) {
+                    const height = this.estimateSongHeight(song, page.fontSize);
+                    let placed = false;
                     
-                    // Add spacing before the song (except for the first song in each column)
-                    const isFirstInColumn = page.columnHeights[columnIndex] === 0;
-                    if (!isFirstInColumn) {
-                        const songSpacing = this.showTitles ? this.spacingWithTitles : this.spacingWithoutTitles;
-                        page.columnHeights[columnIndex] += songSpacing;
+                    // Try to place in current column
+                    while (currentColumn < page.columns && !placed) {
+                        // Add spacing if not first song in column
+                        const spacing = page.columnHeights[currentColumn] === 0 ? 0 : 
+                                      (this.showTitles ? this.spacingWithTitles : this.spacingWithoutTitles);
+                        
+                        const totalHeight = page.columnHeights[currentColumn] + spacing + height;
+                        
+                        // If it fits in current column, place it
+                        if (totalHeight <= this.USABLE_HEIGHT) {
+                            page.columnHeights[currentColumn] += spacing;
+                            
+                            song.x = this.MARGIN_LEFT + (currentColumn * (columnWidth + this.COLUMN_GAP));
+                            song.y = this.MARGIN_TOP + page.columnHeights[currentColumn];
+                            song.width = columnWidth;
+                            song.columnIndex = currentColumn;
+                            song.height = height;
+                            song.preferredColumn = currentColumn;
+                            
+                            page.columnHeights[currentColumn] += height;
+                            
+                            // Set bounds for drag detection
+                            song.bounds = {
+                                x: song.x,
+                                y: song.y - page.fontSize,
+                                width: song.width,
+                                height: song.height
+                            };
+                            
+                            placedSongs.push(song);
+                            placed = true;
+                        } else {
+                            // Column is full, move to next column
+                            currentColumn++;
+                        }
                     }
                     
-                    song.x = this.MARGIN_LEFT + (columnIndex * (columnWidth + this.COLUMN_GAP));
-                    song.y = this.MARGIN_TOP + page.columnHeights[columnIndex];
-                    song.width = columnWidth;
-                    song.columnIndex = columnIndex;
+                    // If we couldn't place it in any column, it overflows to next page
+                    if (!placed) {
+                        overflowSongs.push(song);
+                    }
+                }
+                
+                // Update page with placed songs
+                page.songs = placedSongs;
+                
+                // Handle overflow to next page
+                if (overflowSongs.length > 0) {
+                    this.handleOverflowToNextPage(page, overflowSongs);
+                }
+            }
+            
+            globalReflow(startPageIndex) {
+                // Prevent rapid successive calls that can cause chaos during dragging
+                const now = Date.now();
+                if (now - this.lastGlobalReflowTime < 500) { // 500ms cooldown
+                    // Instead of global reflow, just redistribute affected pages normally
+                    for (let i = startPageIndex; i < this.pages.length; i++) {
+                        this.redistributeSongs(this.pages[i]);
+                    }
+                    return;
+                }
+                this.lastGlobalReflowTime = now;
+                
+                // Starting from the affected page, redistribute all songs across all pages
+                // This creates backflow effect where songs from later pages fill gaps in earlier pages
+                
+                // Collect all songs from startPage onwards
+                const allSongsFromStart = [];
+                for (let i = startPageIndex; i < this.pages.length; i++) {
+                    allSongsFromStart.push(...this.pages[i].songs);
+                    this.pages[i].songs = []; // Clear the page
+                }
+                
+                // Redistribute all collected songs starting from the start page
+                let currentPageIndex = startPageIndex;
+                let songIndex = 0;
+                
+                while (songIndex < allSongsFromStart.length) {
+                    const currentPage = this.pages[currentPageIndex];
+                    const song = allSongsFromStart[songIndex];
                     
-                    const height = this.estimateSongHeight(song, page.fontSize);
-                    page.columnHeights[columnIndex] += height;
-                    song.height = height;
+                    // Try to add song to current page
+                    currentPage.songs.push(song);
+                    this.redistributeSongs(currentPage);
+                    
+                    // Check if song was placed (not overflowed)
+                    if (currentPage.songs.includes(song)) {
+                        songIndex++; // Song was placed, move to next song
+                    } else {
+                        // Song was overflowed, remove it and try next page
+                        currentPage.songs.pop();
+                        currentPageIndex++;
+                        
+                        // Create new page if needed
+                        if (currentPageIndex >= this.pages.length) {
+                            this.addNewPage();
+                        }
+                    }
+                }
+                
+                // Clean up any empty pages at the end
+                this.removeEmptyTrailingPages();
+            }
+            
+            removeEmptyTrailingPages() {
+                // Remove empty pages from the end (but keep at least one page)
+                while (this.pages.length > 1 && this.pages[this.pages.length - 1].songs.length === 0) {
+                    const lastPage = this.pages.pop();
+                    lastPage.wrapper.remove(); // Remove from DOM
+                }
+            }
+            
+            getPageCapacity(page) {
+                // Estimate how many songs can fit on a page based on current configuration
+                const avgSongHeight = 60; // Conservative estimate
+                const availableHeight = this.USABLE_HEIGHT;
+                const songsPerColumn = Math.floor(availableHeight / avgSongHeight);
+                return songsPerColumn * page.columns;
+            }
+            
+            controlledBackflow(startPageIndex) {
+                // Conservative backflow that only moves one song at a time to prevent chaos
+                let changesMade = false;
+                
+                // Only try to move ONE song from the immediate next page
+                if (startPageIndex + 1 < this.pages.length) {
+                    const currentPage = this.pages[startPageIndex];
+                    const nextPage = this.pages[startPageIndex + 1];
+                    
+                    if (nextPage.songs.length > 0) {
+                        // Try only the first song from next page
+                        const song = nextPage.songs[0];
+                        
+                        // Store current state
+                        const originalSongs = [...currentPage.songs];
+                        
+                        // Try adding the song
+                        currentPage.songs.push(song);
+                        this.redistributeSongs(currentPage);
+                        
+                        // Check if it actually fit
+                        const songStillThere = currentPage.songs.find(s => s.title === song.title);
+                        if (songStillThere) {
+                            // Success! Remove from next page
+                            const songIndex = nextPage.songs.findIndex(s => s.title === song.title);
+                            if (songIndex > -1) {
+                                nextPage.songs.splice(songIndex, 1);
+                                this.redistributeSongs(nextPage);
+                                changesMade = true;
+                                console.log(`Backflow: Moved "${song.title}" from page ${startPageIndex + 2} to page ${startPageIndex + 1}`);
+                            }
+                        } else {
+                            // Didn't fit, restore original state
+                            currentPage.songs = originalSongs;
+                            this.redistributeSongs(currentPage);
+                        }
+                    }
+                }
+                
+                // Clean up any empty pages
+                this.removeEmptyTrailingPages();
+                
+                return changesMade;
+            }
+            
+            calculatePageUsage(page) {
+                // Calculate approximate height usage of a page
+                let totalHeight = 0;
+                for (let song of page.songs) {
+                    totalHeight += this.estimateSongHeight(song, page.fontSize);
+                    totalHeight += (this.showTitles ? this.spacingWithTitles : this.spacingWithoutTitles);
+                }
+                return totalHeight;
+            }
+            
+            handleOverflowToNextPage(currentPage, overflowSongs) {
+                const pageIndex = this.pages.indexOf(currentPage);
+                let nextPage;
+                
+                // Get or create next page
+                if (pageIndex === this.pages.length - 1) {
+                    // This is the last page, create a new one
+                    nextPage = this.addNewPage();
+                } else {
+                    // Use existing next page
+                    nextPage = this.pages[pageIndex + 1];
+                }
+                
+                // Add overflow songs to the beginning of next page
+                overflowSongs.forEach(song => {
+                    // Reset song properties for new page
+                    delete song.x;
+                    delete song.y;
+                    delete song.columnIndex;
+                    delete song.preferredColumn;
+                    delete song.bounds;
                 });
+                
+                // Prepend overflow songs to next page (maintaining order)
+                nextPage.songs = [...overflowSongs, ...nextPage.songs];
+                
+                // Redistribute the next page to handle the new songs
+                this.redistributeSongs(nextPage);
             }
             
             handleOverflow(page) {
@@ -884,7 +1525,24 @@
                     ctx.fillStyle = 'black';
                     ctx.font = `${page.fontSize}px Arial`;
                     
+                    // Draw preview insertion indicator if dragging
+                    if (this.dragState && this.dragState.targetPage === page && this.dragState.previewPosition && this.dragState.isDragging) {
+                        this.drawInsertionPreview(ctx, this.dragState.previewPosition, page.fontSize);
+                    }
+                    
                     page.songs.forEach((song, songIndex) => {
+                        // Skip drawing the song that's currently being dragged (only if actually dragging, not just clicked)
+                        if (this.dragState && this.dragState.song === song && this.dragState.isDragging) {
+                            // Still store bounds for interaction, but don't draw
+                            song.bounds = {
+                                x: song.x,
+                                y: song.y - page.fontSize,
+                                width: song.width,
+                                height: song.height
+                            };
+                            return;
+                        }
+                        
                         this.drawSong(ctx, song, page.fontSize);
                         
                         // Store bounds for interaction
@@ -980,6 +1638,88 @@
                 song.height = currentY - song.y + this.SONG_SPACING;
             }
             
+            drawInsertionPreview(ctx, previewPosition, fontSize) {
+                // Draw a subtle horizontal line indicating where the song will be inserted
+                const { x, y, width } = previewPosition;
+                
+                ctx.save();
+                ctx.strokeStyle = 'rgba(242, 203, 5, 0.8)'; // Golden color with transparency
+                ctx.lineWidth = 3;
+                ctx.setLineDash([10, 5]); // Dashed line
+                
+                // Draw horizontal line
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + width, y);
+                ctx.stroke();
+                
+                // Draw small vertical indicators at the ends
+                ctx.setLineDash([]); // Solid line for indicators
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, y - 5);
+                ctx.lineTo(x, y + 5);
+                ctx.moveTo(x + width, y - 5);
+                ctx.lineTo(x + width, y + 5);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+            
+            calculatePreviewPosition(page, insertPosition, dropX, dropY) {
+                const columnWidth = this.getColumnWidth(page.columns);
+                const columnX = this.MARGIN_LEFT + insertPosition.column * (columnWidth + this.COLUMN_GAP);
+                
+                // Find songs in the target column (excluding dragged song)
+                const songsInColumn = [];
+                for (let i = 0; i < page.songs.length; i++) {
+                    const song = page.songs[i];
+                    if (song === this.dragState.song) continue; // Skip dragged song
+                    
+                    if (song.bounds) {
+                        const songColumn = Math.floor((song.bounds.x - this.MARGIN_LEFT) / (columnWidth + this.COLUMN_GAP));
+                        if (songColumn === insertPosition.column) {
+                            songsInColumn.push({ song, index: i, y: song.bounds.y });
+                        }
+                    }
+                }
+                
+                // Sort by Y position
+                songsInColumn.sort((a, b) => a.y - b.y);
+                
+                let previewY;
+                
+                if (songsInColumn.length === 0) {
+                    // Empty column - show at top
+                    previewY = this.MARGIN_TOP;
+                } else {
+                    // Find where we would insert and calculate Y position
+                    let insertBefore = null;
+                    for (let i = 0; i < songsInColumn.length; i++) {
+                        const songMiddleY = songsInColumn[i].y + (songsInColumn[i].song.bounds.height / 2);
+                        if (dropY < songMiddleY) {
+                            insertBefore = songsInColumn[i];
+                            break;
+                        }
+                    }
+                    
+                    if (insertBefore) {
+                        // Insert before this song
+                        previewY = insertBefore.y - 10; // 10px above the song
+                    } else {
+                        // Insert after last song
+                        const lastSong = songsInColumn[songsInColumn.length - 1];
+                        previewY = lastSong.y + lastSong.song.bounds.height + 10; // 10px below the song
+                    }
+                }
+                
+                return {
+                    x: columnX,
+                    y: previewY,
+                    width: columnWidth
+                };
+            }
+            
             handleCanvasClick(page, x, y) {
                 // Find clicked song
                 for (let i = page.songs.length - 1; i >= 0; i--) {
@@ -1051,7 +1791,16 @@
                 const index = page.songs.indexOf(song);
                 if (index > -1) {
                     page.songs.splice(index, 1);
-                    this.optimizePageLayout(page);
+                    
+                    const pageIndex = this.pages.indexOf(page);
+                    
+                    // Always redistribute the current page first
+                    this.redistributeSongs(page);
+                    
+                    // Only try backflow if this page now has very few songs (2 or fewer)
+                    if (page.songs.length <= 2) {
+                        this.controlledBackflow(pageIndex);
+                    }
                     
                     // Sync with localStorage
                     this.syncToLocalStorage();
