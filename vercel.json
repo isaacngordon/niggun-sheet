@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "api/songs.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/songs",
+      "destination": "/api/songs.js"
+    }
+  ]
+}

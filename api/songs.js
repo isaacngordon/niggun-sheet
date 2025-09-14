@@ -1,7 +1,5 @@
 require('dotenv').config(); // Load environment variables
 const express = require('express');
-const app = express();
-const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
@@ -13,7 +11,7 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'YAIzaSyCvSSDdqc-yRN59lHkZT
 const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F'; // Adjust range as needed
 
 // Fallback to local CSV file
-const songsFilePath = path.join(__dirname, '../data/songs.csv');
+const songsFilePath = path.join(process.cwd(), 'data/songs.csv');
 
 // Cache configuration
 let cachedSongs = null;
@@ -197,7 +195,13 @@ async function handler(req, res) {
     }
 }
 
-// For Vercel serverless deployment
-app.get('/', handler);
+// For local Express server
+const router = express.Router();
 
-module.exports = app;
+// Main handler function
+router.get('/', handler);
+
+// Export for both local and Vercel
+module.exports = router;
+module.exports.default = handler; // For Vercel ES modules
+module.exports.handler = handler; // Alternative for Vercel
