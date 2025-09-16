@@ -1,12 +1,22 @@
 require('dotenv').config(); // Load environment variables
 const fs = require('fs');
 const path = require('path');
-const { google } = require('googleapis');
+const https = require('https');
 
 // Google Sheets API configuration
-const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID || '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms';
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'AIzaSyC4HlzMeO1AFcYFSAm1TVsTxUOU_hEDwb8';
-const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F'; // Adjust range as needed
+const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID;
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F';
+
+// Log configuration status (without exposing sensitive data)
+console.log('Environment:', process.env.VERCEL ? 'Vercel' : 'Local');
+console.log('Google Sheets Config:', {
+    hasSheetId: !!GOOGLE_SHEETS_ID,
+    hasApiKey: !!GOOGLE_API_KEY,
+    sheetIdPreview: GOOGLE_SHEETS_ID ? `${GOOGLE_SHEETS_ID.substring(0, 8)}...` : 'Not set',
+    apiKeyPreview: GOOGLE_API_KEY ? `${GOOGLE_API_KEY.substring(0, 8)}...` : 'Not set',
+    range: SHEET_RANGE
+});
 
 // Fallback to local CSV file
 const songsFilePath = path.join(__dirname, '../data/songs.csv');
@@ -62,49 +72,75 @@ function parseCSV(csvText) {
     return result;
 }
 
-// Fetch songs from Google Sheets API
+// Fetch songs from Google Sheets API using direct HTTP request
 async function fetchFromGoogleSheets() {
-    try {
+    return new Promise((resolve, reject) => {
         console.log('Fetching songs from Google Sheets API...');
         
-        // Initialize the Google Sheets API
-        const sheets = google.sheets({ version: 'v4', auth: GOOGLE_API_KEY });
+        if (!GOOGLE_SHEETS_ID || !GOOGLE_API_KEY) {
+            reject(new Error(`Missing credentials - Sheet ID: ${!!GOOGLE_SHEETS_ID}, API Key: ${!!GOOGLE_API_KEY}`));
+            return;
+        }
         
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: GOOGLE_SHEETS_ID,
-            range: SHEET_RANGE,
+        // Use the direct API URL that we know works
+        const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_ID}/values/${encodeURIComponent(SHEET_RANGE)}?key=${GOOGLE_API_KEY}`;
+        console.log('Fetching from URL (key hidden):', apiUrl.replace(GOOGLE_API_KEY, 'API_KEY_HIDDEN'));
+        
+        https.get(apiUrl, (res) => {
+            let data = '';
+            
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            
+            res.on('end', () => {
+                try {
+                    if (res.statusCode !== 200) {
+                        console.error(`API returned status ${res.statusCode}`);
+                        console.error('Response:', data);
+                        reject(new Error(`Google Sheets API returned status ${res.statusCode}`));
+                        return;
+                    }
+                    
+                    const response = JSON.parse(data);
+                    const rows = response.values;
+                    
+                    if (!rows || rows.length === 0) {
+                        reject(new Error('No data found in Google Sheets'));
+                        return;
+                    }
+                    
+                    console.log(`Google Sheets API returned ${rows.length} total rows (including header)`);
+                    
+                    // Convert rows to song objects (skip header row)
+                    const songs = [];
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (row && row.length >= 4) { // Ensure we have at least the required fields
+                            const [search_title = '', title = '', lyrics = '', artist = '', drive = '', youtube = ''] = row;
+                            songs.push({
+                                search_title: search_title.trim(),
+                                title: title.trim(),
+                                lyrics: lyrics.trim(),
+                                artist: artist.trim(),
+                                drive: drive.trim(),
+                                youtube: youtube.trim()
+                            });
+                        }
+                    }
+                    
+                    console.log(`Successfully processed ${songs.length} songs from Google Sheets API`);
+                    resolve(songs);
+                } catch (error) {
+                    console.error('Error parsing API response:', error);
+                    reject(error);
+                }
+            });
+        }).on('error', (error) => {
+            console.error('Network error fetching from Google Sheets API:', error);
+            reject(error);
         });
-        
-        const rows = response.data.values;
-        if (!rows || rows.length === 0) {
-            throw new Error('No data found in Google Sheets');
-        }
-        
-        console.log(`Google Sheets API returned ${rows.length} total rows (including header)`);
-        
-        // Convert rows to song objects (skip header row)
-        const songs = [];
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (row.length >= 4) { // Ensure we have at least the required fields
-                const [search_title = '', title = '', lyrics = '', artist = '', drive = '', youtube = ''] = row;
-                songs.push({
-                    search_title: search_title.trim(),
-                    title: title.trim(),
-                    lyrics: lyrics.trim(),
-                    artist: artist.trim(),
-                    drive: drive.trim(),
-                    youtube: youtube.trim()
-                });
-            }
-        }
-        
-        console.log(`Successfully processed ${songs.length} songs from Google Sheets API`);
-        return songs;
-    } catch (error) {
-        console.error('Error fetching from Google Sheets API:', error);
-        throw error;
-    }
+    });
 }
 
 // Fallback to local CSV file
@@ -155,8 +191,7 @@ async function handler(req, res) {
         
         // Try to fetch from Google Sheets API first
         try {
-            if (GOOGLE_SHEETS_ID && !GOOGLE_SHEETS_ID.includes('YOUR_SHEET_ID') && 
-                GOOGLE_API_KEY && !GOOGLE_API_KEY.includes('YOUR_API_KEY')) {
+            if (GOOGLE_SHEETS_ID && GOOGLE_API_KEY) {
                 console.log('Google Sheets credentials found, attempting to fetch data...');
                 songs = await fetchFromGoogleSheets();
                 
@@ -168,11 +203,13 @@ async function handler(req, res) {
                 res.status(200).json(songs);
                 return;
             } else {
-                console.log('Google Sheets API not configured, using local CSV');
+                console.log('Missing Google Sheets configuration:');
+                console.log('- GOOGLE_SHEETS_ID:', GOOGLE_SHEETS_ID ? 'Set' : 'Missing');
+                console.log('- GOOGLE_API_KEY:', GOOGLE_API_KEY ? 'Set' : 'Missing');
                 throw new Error('Google Sheets API not configured');
             }
         } catch (googleSheetsError) {
-            console.log('Google Sheets API fetch failed, falling back to local CSV:', googleSheetsError.message);
+            console.log('Google Sheets API fetch failed:', googleSheetsError.message);
             
             // Fallback to local CSV
             songs = await readLocalCSV();
