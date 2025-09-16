@@ -44,4 +44,3 @@ if (process.env.VERCEL) {
     console.log(`API endpoint: http://localhost:${port}/api/songs`);
   });
 }
-}
