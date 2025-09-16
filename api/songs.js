@@ -5,7 +5,7 @@ const { google } = require('googleapis');
 
 // Google Sheets API configuration
 const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID || '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms';
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'YAIzaSyCvSSDdqc-yRN59lHkZToITFCeOCBrZoFg';
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'AIzaSyC4HlzMeO1AFcYFSAm1TVsTxUOU_hEDwb8';
 const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F'; // Adjust range as needed
 
 // Fallback to local CSV file
