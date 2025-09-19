@@ -9,14 +9,18 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F';
 
 // Log configuration status (without exposing sensitive data)
-console.log('Environment:', process.env.VERCEL ? 'Vercel' : 'Local');
-console.log('Google Sheets Config:', {
-    hasSheetId: !!GOOGLE_SHEETS_ID,
-    hasApiKey: !!GOOGLE_API_KEY,
-    sheetIdPreview: GOOGLE_SHEETS_ID ? `${GOOGLE_SHEETS_ID.substring(0, 8)}...` : 'Not set',
-    apiKeyPreview: GOOGLE_API_KEY ? `${GOOGLE_API_KEY.substring(0, 8)}...` : 'Not set',
-    range: SHEET_RANGE
-});
+console.log('========================================');
+console.log('Environment:', process.env.VERCEL ? 'VERCEL PRODUCTION' : 'LOCAL DEVELOPMENT');
+console.log('Google Sheets Config Status:');
+console.log('- GOOGLE_SHEETS_ID:', GOOGLE_SHEETS_ID ? `✅ Set (${GOOGLE_SHEETS_ID.substring(0, 8)}...)` : '❌ NOT SET');
+console.log('- GOOGLE_API_KEY:', GOOGLE_API_KEY ? `✅ Set (${GOOGLE_API_KEY.substring(0, 8)}...)` : '❌ NOT SET');
+console.log('- SHEET_RANGE:', SHEET_RANGE);
+
+if (process.env.VERCEL && (!GOOGLE_SHEETS_ID || !GOOGLE_API_KEY)) {
+    console.log('⚠️ WARNING: Running on Vercel but environment variables are missing!');
+    console.log('Please add GOOGLE_SHEETS_ID and GOOGLE_API_KEY in Vercel Dashboard > Settings > Environment Variables');
+}
+console.log('========================================');
 
 // Fallback to local CSV file
 const songsFilePath = path.join(__dirname, '../data/songs.csv');
