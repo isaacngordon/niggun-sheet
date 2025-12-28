@@ -5,6 +5,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
+const csv = require('csv-parser');
 
 // Google Sheets API configuration
 const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID || 'YOUR_SHEET_ID';
@@ -18,52 +19,6 @@ const songsFilePath = path.join(__dirname, '../data/songs.csv');
 let cachedSongs = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
-
-// Enhanced CSV parsing function that handles quoted fields properly
-function parseCSV(csvText) {
-    const lines = csvText.split('\n');
-    const result = [];
-    
-    for (let i = 1; i < lines.length; i++) { // Skip header row
-        const line = lines[i].trim();
-        if (!line) continue; // Skip empty lines
-        
-        const fields = [];
-        let current = '';
-        let inQuotes = false;
-        
-        for (let j = 0; j < line.length; j++) {
-            const char = line[j];
-            
-            if (char === '"') {
-                inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-                fields.push(current.trim());
-                current = '';
-            } else {
-                current += char;
-            }
-        }
-        
-        // Don't forget the last field
-        fields.push(current.trim());
-        
-        // Ensure we have all expected fields
-        if (fields.length >= 4) {
-            const [search_title, title, lyrics, artist, drive = '', youtube = ''] = fields;
-            result.push({
-                search_title: search_title.replace(/"/g, ''),
-                title: title.replace(/"/g, ''),
-                lyrics: lyrics.replace(/"/g, ''),
-                artist: artist.replace(/"/g, ''),
-                drive: drive.replace(/"/g, ''),
-                youtube: youtube.replace(/"/g, '')
-            });
-        }
-    }
-    
-    return result;
-}
 
 // Fetch songs from Google Sheets API
 async function fetchFromGoogleSheets() {
@@ -110,23 +65,32 @@ async function fetchFromGoogleSheets() {
     }
 }
 
-// Fallback to local CSV file
+// Fallback to local CSV file using csv-parser library
 function readLocalCSV() {
     return new Promise((resolve, reject) => {
-        fs.readFile(songsFilePath, 'utf8', (err, data) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            
-            try {
-                const songs = parseCSV(data);
+        const songs = [];
+        
+        fs.createReadStream(songsFilePath)
+            .pipe(csv())
+            .on('data', (row) => {
+                // Map CSV columns to song object
+                songs.push({
+                    search_title: (row['Search title'] || '').trim(),
+                    title: (row['Title'] || '').trim(),
+                    lyrics: (row['lyrics'] || '').trim(),
+                    artist: (row['artist'] || '').trim(),
+                    drive: (row['google drive'] || '').trim(),
+                    youtube: (row['youtube link'] || '').trim()
+                });
+            })
+            .on('end', () => {
                 console.log(`Loaded ${songs.length} songs from local CSV file`);
                 resolve(songs);
-            } catch (parseError) {
-                reject(parseError);
-            }
-        });
+            })
+            .on('error', (error) => {
+                console.error('Error reading CSV file:', error);
+                reject(error);
+            });
     });
 }
 
