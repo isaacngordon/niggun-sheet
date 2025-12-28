@@ -169,6 +169,9 @@ function readLocalCSV() {
 
 // Main handler function for Vercel
 async function handler(req, res) {
+    const handlerStartTime = Date.now();
+    console.log(`[DEBUG] ========== Handler started at ${new Date().toISOString()} ==========`);
+    
     // Add CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -176,6 +179,7 @@ async function handler(req, res) {
     
     // Handle preflight requests
     if (req.method === 'OPTIONS') {
+        console.log(`[DEBUG] OPTIONS request handled at ${Date.now() - handlerStartTime}ms`);
         res.status(200).end();
         return;
     }
@@ -186,10 +190,15 @@ async function handler(req, res) {
         // Check cache first
         const now = Date.now();
         if (cachedSongs && (now - cacheTimestamp) < CACHE_DURATION) {
-            console.log('Returning cached songs data');
-            return res.status(200).json(cachedSongs);
+            console.log(`[DEBUG] Returning cached songs data at ${Date.now() - handlerStartTime}ms`);
+            console.log(`[DEBUG] Cache age: ${Math.floor((now - cacheTimestamp) / 1000)}s`);
+            const response = res.status(200).json(cachedSongs);
+            console.log(`[DEBUG] Response sent at ${Date.now() - handlerStartTime}ms`);
+            console.log(`[DEBUG] ========== Handler completed (cached) at ${Date.now() - handlerStartTime}ms ==========`);
+            return response;
         }
 
+        console.log(`[DEBUG] Cache miss or expired, fetching fresh data at ${Date.now() - handlerStartTime}ms`);
         let songs;
         
         // Try to fetch from Google Sheets API first
@@ -197,13 +206,21 @@ async function handler(req, res) {
             if (GOOGLE_SHEETS_ID && GOOGLE_API_KEY) {
                 console.log('Google Sheets credentials found, attempting to fetch data...');
                 songs = await fetchFromGoogleSheetsWithTimeout(8000);
+                console.log(`[DEBUG] Fetch completed in ${Date.now() - fetchStartTime}ms`);
                 
                 // Update cache
                 cachedSongs = songs;
                 cacheTimestamp = now;
                 
-                console.log(`✅ Successfully returned ${songs.length} songs from Google Sheets`);
-                return res.status(200).json(songs);
+                console.log(`[DEBUG] Cache updated at ${Date.now() - handlerStartTime}ms`);
+                console.log(`[DEBUG] Preparing response with ${songs.length} songs`);
+                
+                const response = res.status(200).json(songs);
+                
+                console.log(`[DEBUG] ✅ Response sent at ${Date.now() - handlerStartTime}ms`);
+                console.log(`[DEBUG] ========== Handler completed (success) at ${Date.now() - handlerStartTime}ms ==========`);
+                
+                return response;
             } else {
                 console.log('Missing Google Sheets configuration:');
                 console.log('- GOOGLE_SHEETS_ID:', GOOGLE_SHEETS_ID ? 'Set' : 'Missing');
@@ -220,15 +237,20 @@ async function handler(req, res) {
             cachedSongs = songs;
             cacheTimestamp = now;
             
-            return res.status(200).json(songs);
+            console.log(`[DEBUG] Fallback CSV loaded, sending response at ${Date.now() - handlerStartTime}ms`);
+            const response = res.status(200).json(songs);
+            console.log(`[DEBUG] ========== Handler completed (fallback) at ${Date.now() - handlerStartTime}ms ==========`);
+            return response;
         }
         
     } catch (error) {
-        console.error('Error loading songs:', error);
-        return res.status(500).json({ 
+        console.error(`[DEBUG] Fatal error at ${Date.now() - handlerStartTime}ms:`, error);
+        const response = res.status(500).json({ 
             error: 'Internal Server Error',
             message: 'Unable to load songs from any source'
         });
+        console.log(`[DEBUG] ========== Handler completed (error) at ${Date.now() - handlerStartTime}ms ==========`);
+        return response;
     }
 }
 
