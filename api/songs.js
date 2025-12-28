@@ -140,7 +140,7 @@ async function handler(req, res) {
         return;
     }
 
-    console.log(`Handling ${req.method} /api/songs from ${req.headers['x-forwarded-for'] || 'undefined'}`);
+    console.log(`Handling ${req.method} /api/songs from ${req.headers['x-forwarded-for'] || 'unknown'}`);
 
     try {
         // Check cache first
