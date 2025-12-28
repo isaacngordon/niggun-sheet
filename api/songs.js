@@ -1,6 +1,4 @@
 require('dotenv').config(); // Load environment variables
-const express = require('express');
-const app = express();
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
@@ -131,25 +129,25 @@ function readLocalCSV() {
 
 // Main handler function with Google Sheets API integration
 async function handler(req, res) {
-    // Add CORS headers for local development
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    // Add CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     
     // Handle preflight requests
     if (req.method === 'OPTIONS') {
-        res.sendStatus(200);
+        res.status(200).end();
         return;
     }
 
-    console.log(`Handling ${req.method} /api/songs from ${req.ip || req.connection.remoteAddress}`);
+    console.log(`Handling ${req.method} /api/songs from ${req.headers['x-forwarded-for'] || 'undefined'}`);
 
     try {
         // Check cache first
         const now = Date.now();
         if (cachedSongs && (now - cacheTimestamp) < CACHE_DURATION) {
             console.log('Returning cached songs data');
-            res.json(cachedSongs);
+            res.status(200).json(cachedSongs);
             return;
         }
 
@@ -167,7 +165,7 @@ async function handler(req, res) {
                 cacheTimestamp = now;
                 
                 console.log(`✅ Successfully returned ${songs.length} songs from Google Sheets`);
-                res.json(songs);
+                res.status(200).json(songs);
                 return;
             } else {
                 console.log('Google Sheets API not configured, using local CSV');
@@ -183,7 +181,7 @@ async function handler(req, res) {
             cachedSongs = songs;
             cacheTimestamp = now;
             
-            res.json(songs);
+            res.status(200).json(songs);
         }
         
     } catch (error) {
@@ -195,14 +193,5 @@ async function handler(req, res) {
     }
 }
 
-// For Vercel serverless deployment
-app.get('/', handler);
-app.get('/api/songs', handler);
-
-// Export for both local Express and Vercel serverless
-if (process.env.VERCEL) {
-    const serverless = require('serverless-http');
-    module.exports = serverless(app);
-} else {
-    module.exports = app;
-}
+// Export the handler directly for Vercel serverless
+module.exports = handler;
