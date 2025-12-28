@@ -302,7 +302,7 @@ async function handler(req, res) {
             const response = res.status(200).json(cachedSongs);
             console.log(`[DEBUG] Response sent at ${Date.now() - handlerStartTime}ms`);
             console.log(`[DEBUG] ========== Handler completed (cached) at ${Date.now() - handlerStartTime}ms ==========`);
-            return response;
+            return;
         }
 
         console.log(`[DEBUG] Cache miss or expired, fetching fresh data at ${Date.now() - handlerStartTime}ms`);
@@ -336,7 +336,7 @@ async function handler(req, res) {
                 console.log(`[DEBUG] Cache updated at ${Date.now() - handlerStartTime}ms`);
                 console.log(`[DEBUG] Preparing response with ${songs.length} songs`);
                 
-                const response = res.status(200).json(songs);
+                res.status(200).json(songs);
                 
                 console.log(`[DEBUG] ✅ Response sent at ${Date.now() - handlerStartTime}ms`);
                 console.log(`[DEBUG] ========== Handler completed (success) at ${Date.now() - handlerStartTime}ms ==========`);
@@ -367,7 +367,7 @@ async function handler(req, res) {
             console.log(`[DEBUG] Fallback CSV loaded, sending response at ${Date.now() - handlerStartTime}ms`);
             const response = res.status(200).json(songs);
             console.log(`[DEBUG] ========== Handler completed (fallback) at ${Date.now() - handlerStartTime}ms ==========`);
-            return response;
+            return;
         }
         
     } catch (error) {
