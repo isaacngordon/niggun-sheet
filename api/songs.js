@@ -1,4 +1,9 @@
 require('dotenv').config(); // Load environment variables
+<<<<<<< HEAD
+=======
+const express = require('express');
+const app = express();
+>>>>>>> 1c8a375 (Refactor app export for Vercel serverless compatibility)
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
@@ -253,6 +258,7 @@ async function handler(req, res) {
     }
 }
 
+<<<<<<< HEAD
 // Export for Vercel
 module.exports = handler;
 
@@ -263,3 +269,16 @@ module.exports.expressRouter = function() {
     router.get('/', handler);
     return router;
 };
+=======
+// For Vercel serverless deployment
+app.get('/', handler);
+app.get('/api/songs', handler);
+
+// Export for both local Express and Vercel serverless
+if (process.env.VERCEL) {
+    const serverless = require('serverless-http');
+    module.exports = serverless(app);
+} else {
+    module.exports = app;
+}
+>>>>>>> 1c8a375 (Refactor app export for Vercel serverless compatibility)
