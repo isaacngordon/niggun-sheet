@@ -23,6 +23,8 @@ if (!process.env.VERCEL) {
     app.get('/api/songs', songsHandler);
   }
 }
+// Use the route handlers - wrap the handler for Express
+app.get('/api/songs', songsHandler);
 
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -32,15 +34,8 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', '404.html'));
 });
 
-// Export for Vercel or start local server
-if (process.env.VERCEL) {
-  // Running on Vercel, export the app for serverless
-  module.exports = app;
-} else {
-  // Running locally, start the server
-  const port = process.env.PORT || 3000;
-  app.listen(port, () => {
-    console.log(`Listening on port ${port}`);
-    console.log(`API endpoint: http://localhost:${port}/api/songs`);
-  });
-}
+// Running locally, start the server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Listening on port ${port}`);
+});
