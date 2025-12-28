@@ -70,12 +70,22 @@ function parseCSV(csvText) {
 
 // Fetch songs from Google Sheets API with timeout
 async function fetchFromGoogleSheetsWithTimeout(timeoutMs = 8000) {
-    return Promise.race([
-        fetchFromGoogleSheets(),
-        new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Google Sheets API request timed out')), timeoutMs)
-        )
-    ]);
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Google Sheets API request timed out')), timeoutMs);
+    });
+    
+    try {
+        const result = await Promise.race([
+            fetchFromGoogleSheets(),
+            timeoutPromise
+        ]);
+        clearTimeout(timeoutId);
+        return result;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+    }
 }
 
 // Fetch songs from Google Sheets API
@@ -87,11 +97,11 @@ async function fetchFromGoogleSheets() {
         const sheets = google.sheets({ 
             version: 'v4', 
             auth: GOOGLE_API_KEY,
-            timeout: 7000, // 7 second timeout for the API call itself
             // Use custom agents that don't keep connections alive
             transporterOptions: {
-                agent: httpsAgent,
-                httpAgent: httpAgent
+                httpsAgent: httpsAgent,
+                httpAgent: httpAgent,
+                timeout: 7000 // 7 second timeout for the API call
             }
         });
         
