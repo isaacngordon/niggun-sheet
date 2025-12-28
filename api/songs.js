@@ -84,7 +84,31 @@ function parseCSV(csvText) {
     return result;
 }
 
-// Fetch songs from Google Sheets API using direct HTTP request
+// Fetch songs from Google Sheets API with timeout
+async function fetchFromGoogleSheetsWithTimeout(timeoutMs = 8000) {
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Google Sheets API request timed out')), timeoutMs);
+        // Unref the timeout so it doesn't keep the event loop alive
+        if (timeoutId.unref) timeoutId.unref();
+    });
+    
+    try {
+        const result = await Promise.race([
+            fetchFromGoogleSheets(),
+            timeoutPromise
+        ]);
+        clearTimeout(timeoutId);
+        console.log('[DEBUG] Timeout cleared after successful fetch');
+        return result;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        console.log('[DEBUG] Timeout cleared after error');
+        throw error;
+    }
+}
+
+// Fetch songs from Google Sheets API
 async function fetchFromGoogleSheets() {
     return new Promise((resolve, reject) => {
         console.log('Fetching songs from Google Sheets API...');
@@ -94,99 +118,46 @@ async function fetchFromGoogleSheets() {
     const httpAgent = new http.Agent({ keepAlive: false });
     const httpsAgent = new https.Agent({ keepAlive: false });
     
-    let sheets = null;
-    
     try {
         console.log('[DEBUG] Starting Google Sheets API fetch...');
         console.log(`[DEBUG] Created fresh agents - keepAlive: false for both HTTP and HTTPS`);
         
-        if (!GOOGLE_SHEETS_ID || !GOOGLE_API_KEY) {
-            reject(new Error(`Missing credentials - Sheet ID: ${!!GOOGLE_SHEETS_ID}, API Key: ${!!GOOGLE_API_KEY}`));
-            return;
-        }
+        // Use direct HTTPS request instead of googleapis library for better control
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_ID}/values/${encodeURIComponent(SHEET_RANGE)}?key=${GOOGLE_API_KEY}`;
+        console.log(`[DEBUG] Making direct HTTPS request at ${Date.now() - startTime}ms`);
         
-        // Use the direct API URL that we know works
-        const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_ID}/values/${encodeURIComponent(SHEET_RANGE)}?key=${GOOGLE_API_KEY}`;
-        console.log('Fetching from URL (key hidden):', apiUrl.replace(GOOGLE_API_KEY, 'API_KEY_HIDDEN'));
-        
-        https.get(apiUrl, (res) => {
-            let data = '';
-            
-            res.on('data', (chunk) => {
-                data += chunk;
+        const response = await new Promise((resolve, reject) => {
+            const req = https.get(url, { agent: httpsAgent, timeout: 7000 }, (res) => {
+                let data = '';
+                
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+                
+                res.on('end', () => {
+                    console.log(`[DEBUG] Response data received at ${Date.now() - startTime}ms`);
+                    try {
+                        const parsed = JSON.parse(data);
+                        resolve(parsed);
+                    } catch (e) {
+                        reject(new Error('Failed to parse response: ' + e.message));
+                    }
+                });
             });
             
-            res.on('end', () => {
-                try {
-                    if (res.statusCode !== 200) {
-                        console.error(`API returned status ${res.statusCode}`);
-                        console.error('Response:', data);
-                        reject(new Error(`Google Sheets API returned status ${res.statusCode}`));
-                        return;
-                    }
-                    
-                    const response = JSON.parse(data);
-                    const rows = response.values;
-                    
-                    if (!rows || rows.length === 0) {
-                        reject(new Error('No data found in Google Sheets'));
-                        return;
-                    }
-                    
-                    console.log(`Google Sheets API returned ${rows.length} total rows (including header)`);
-                    
-                    // Convert rows to song objects (skip header row)
-                    const songs = [];
-                    for (let i = 1; i < rows.length; i++) {
-                        const row = rows[i];
-                        if (row && row.length >= 4) { // Ensure we have at least the required fields
-                            const [search_title = '', title = '', lyrics = '', artist = '', drive = '', youtube = ''] = row;
-                            songs.push({
-                                search_title: search_title.trim(),
-                                title: title.trim(),
-                                lyrics: lyrics.trim(),
-                                artist: artist.trim(),
-                                drive: drive.trim(),
-                                youtube: youtube.trim()
-                            });
-                        }
-                    }
-                    
-                    console.log(`Successfully processed ${songs.length} songs from Google Sheets API`);
-                    resolve(songs);
-                } catch (error) {
-                    console.error('Error parsing API response:', error);
-                    reject(error);
-                }
+            req.on('error', (error) => {
+                reject(error);
             });
-        }).on('error', (error) => {
-            console.error('Network error fetching from Google Sheets API:', error);
-            reject(error);
-        });
-    });
-        // Initialize the Google Sheets API with custom agents to prevent keep-alive
-        sheets = google.sheets({ 
-            version: 'v4', 
-            auth: GOOGLE_API_KEY,
-            // Use custom agents that don't keep connections alive
-            transporterOptions: {
-                httpsAgent: httpsAgent,
-                httpAgent: httpAgent,
-                timeout: 7000 // 7 second timeout for the API call
-            }
-        });
-        
-        console.log(`[DEBUG] Google Sheets client created at ${Date.now() - startTime}ms`);
-        console.log(`[DEBUG] Making API request to spreadsheet: ${GOOGLE_SHEETS_ID}`);
-        
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: GOOGLE_SHEETS_ID,
-            range: SHEET_RANGE,
+            
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Request timed out'));
+            });
         });
         
         console.log(`[DEBUG] API response received at ${Date.now() - startTime}ms`);
         
-        const rows = response.data.values;
+        const rows = response.values;
         if (!rows || rows.length === 0) {
             throw new Error('No data found in Google Sheets');
         }
