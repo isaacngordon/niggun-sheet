@@ -10,10 +10,6 @@ const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID || 'YOUR_SHEET_ID';
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'YOUR_API_KEY';
 const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F1000'; // Adjust range as needed
 
-// Create HTTP agents that don't keep connections alive
-const httpAgent = new http.Agent({ keepAlive: false });
-const httpsAgent = new https.Agent({ keepAlive: false });
-
 // Fallback to local CSV file
 const songsFilePath = path.join(__dirname, '../data/songs.csv');
 
@@ -90,11 +86,20 @@ async function fetchFromGoogleSheetsWithTimeout(timeoutMs = 8000) {
 
 // Fetch songs from Google Sheets API
 async function fetchFromGoogleSheets() {
+    const startTime = Date.now();
+    
+    // Create fresh HTTP agents for this request that don't keep connections alive
+    const httpAgent = new http.Agent({ keepAlive: false });
+    const httpsAgent = new https.Agent({ keepAlive: false });
+    
+    let sheets = null;
+    
     try {
-        console.log('Fetching songs from Google Sheets API...');
+        console.log('[DEBUG] Starting Google Sheets API fetch...');
+        console.log(`[DEBUG] Created fresh agents - keepAlive: false for both HTTP and HTTPS`);
         
         // Initialize the Google Sheets API with custom agents to prevent keep-alive
-        const sheets = google.sheets({ 
+        sheets = google.sheets({ 
             version: 'v4', 
             auth: GOOGLE_API_KEY,
             // Use custom agents that don't keep connections alive
@@ -105,17 +110,23 @@ async function fetchFromGoogleSheets() {
             }
         });
         
+        console.log(`[DEBUG] Google Sheets client created at ${Date.now() - startTime}ms`);
+        console.log(`[DEBUG] Making API request to spreadsheet: ${GOOGLE_SHEETS_ID}`);
+        
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: GOOGLE_SHEETS_ID,
             range: SHEET_RANGE,
         });
+        
+        console.log(`[DEBUG] API response received at ${Date.now() - startTime}ms`);
         
         const rows = response.data.values;
         if (!rows || rows.length === 0) {
             throw new Error('No data found in Google Sheets');
         }
         
-        console.log(`Google Sheets API returned ${rows.length} total rows (including header)`);
+        console.log(`[DEBUG] Google Sheets API returned ${rows.length} total rows (including header)`);
+        console.log(`[DEBUG] Starting data processing at ${Date.now() - startTime}ms`);
         
         // Convert rows to song objects (skip header row)
         const songs = [];
@@ -134,10 +145,31 @@ async function fetchFromGoogleSheets() {
             }
         }
         
-        console.log(`Successfully processed ${songs.length} songs from Google Sheets API`);
+        console.log(`[DEBUG] Data processing complete at ${Date.now() - startTime}ms`);
+        console.log(`[DEBUG] Successfully processed ${songs.length} songs from Google Sheets API`);
+        console.log(`[DEBUG] Destroying HTTP agents...`);
+        
+        // Explicitly destroy agents to ensure connections are closed
+        httpAgent.destroy();
+        httpsAgent.destroy();
+        
+        console.log(`[DEBUG] HTTP agents destroyed at ${Date.now() - startTime}ms`);
+        console.log(`[DEBUG] Total fetch time: ${Date.now() - startTime}ms`);
+        
         return songs;
     } catch (error) {
-        console.error('Error fetching from Google Sheets API:', error);
+        console.error(`[DEBUG] Error at ${Date.now() - startTime}ms:`, error);
+        
+        // Clean up agents on error
+        try {
+            console.log(`[DEBUG] Destroying agents after error...`);
+            httpAgent.destroy();
+            httpsAgent.destroy();
+            console.log(`[DEBUG] Agents destroyed after error`);
+        } catch (cleanupError) {
+            console.error(`[DEBUG] Error destroying agents:`, cleanupError);
+        }
+        
         throw error;
     }
 }
@@ -164,6 +196,9 @@ function readLocalCSV() {
 
 // Main handler function with Google Sheets API integration
 async function handler(req, res) {
+    const handlerStartTime = Date.now();
+    console.log(`[DEBUG] ========== Handler started at ${new Date().toISOString()} ==========`);
+    
     // Add CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -171,41 +206,57 @@ async function handler(req, res) {
     
     // Handle preflight requests
     if (req.method === 'OPTIONS') {
+        console.log(`[DEBUG] OPTIONS request handled at ${Date.now() - handlerStartTime}ms`);
         res.status(200).end();
         return;
     }
 
-    console.log(`Handling ${req.method} /api/songs from ${req.headers['x-forwarded-for'] || 'unknown'}`);
+    console.log(`[DEBUG] Handling ${req.method} /api/songs from ${req.headers['x-forwarded-for'] || 'unknown'}`);
 
     try {
         // Check cache first
         const now = Date.now();
         if (cachedSongs && (now - cacheTimestamp) < CACHE_DURATION) {
-            console.log('Returning cached songs data');
-            return res.status(200).json(cachedSongs);
+            console.log(`[DEBUG] Returning cached songs data at ${Date.now() - handlerStartTime}ms`);
+            console.log(`[DEBUG] Cache age: ${Math.floor((now - cacheTimestamp) / 1000)}s`);
+            const response = res.status(200).json(cachedSongs);
+            console.log(`[DEBUG] Response sent at ${Date.now() - handlerStartTime}ms`);
+            console.log(`[DEBUG] ========== Handler completed (cached) at ${Date.now() - handlerStartTime}ms ==========`);
+            return response;
         }
 
+        console.log(`[DEBUG] Cache miss or expired, fetching fresh data at ${Date.now() - handlerStartTime}ms`);
         let songs;
         
         // Try to fetch from Google Sheets API first
         try {
             if (GOOGLE_SHEETS_ID && !GOOGLE_SHEETS_ID.includes('YOUR_SHEET_ID') && 
                 GOOGLE_API_KEY && !GOOGLE_API_KEY.includes('YOUR_API_KEY')) {
-                console.log('Google Sheets credentials found, attempting to fetch data...');
+                console.log(`[DEBUG] Google Sheets credentials found, attempting to fetch data at ${Date.now() - handlerStartTime}ms`);
+                
+                const fetchStartTime = Date.now();
                 songs = await fetchFromGoogleSheetsWithTimeout(8000);
+                console.log(`[DEBUG] Fetch completed in ${Date.now() - fetchStartTime}ms`);
                 
                 // Update cache
                 cachedSongs = songs;
                 cacheTimestamp = now;
                 
-                console.log(`✅ Successfully returned ${songs.length} songs from Google Sheets`);
-                return res.status(200).json(songs);
+                console.log(`[DEBUG] Cache updated at ${Date.now() - handlerStartTime}ms`);
+                console.log(`[DEBUG] Preparing response with ${songs.length} songs`);
+                
+                const response = res.status(200).json(songs);
+                
+                console.log(`[DEBUG] ✅ Response sent at ${Date.now() - handlerStartTime}ms`);
+                console.log(`[DEBUG] ========== Handler completed (success) at ${Date.now() - handlerStartTime}ms ==========`);
+                
+                return response;
             } else {
-                console.log('Google Sheets API not configured, using local CSV');
+                console.log(`[DEBUG] Google Sheets API not configured, using local CSV at ${Date.now() - handlerStartTime}ms`);
                 throw new Error('Google Sheets API not configured');
             }
         } catch (googleSheetsError) {
-            console.log('Google Sheets API fetch failed, falling back to local CSV:', googleSheetsError.message);
+            console.log(`[DEBUG] Google Sheets API fetch failed at ${Date.now() - handlerStartTime}ms, falling back to local CSV:`, googleSheetsError.message);
             
             // Fallback to local CSV
             songs = await readLocalCSV();
@@ -214,15 +265,20 @@ async function handler(req, res) {
             cachedSongs = songs;
             cacheTimestamp = now;
             
-            return res.status(200).json(songs);
+            console.log(`[DEBUG] Fallback CSV loaded, sending response at ${Date.now() - handlerStartTime}ms`);
+            const response = res.status(200).json(songs);
+            console.log(`[DEBUG] ========== Handler completed (fallback) at ${Date.now() - handlerStartTime}ms ==========`);
+            return response;
         }
         
     } catch (error) {
-        console.error('Error loading songs:', error);
-        return res.status(500).json({ 
+        console.error(`[DEBUG] Fatal error at ${Date.now() - handlerStartTime}ms:`, error);
+        const response = res.status(500).json({ 
             error: 'Internal Server Error',
             message: 'Unable to load songs from any source'
         });
+        console.log(`[DEBUG] ========== Handler completed (error) at ${Date.now() - handlerStartTime}ms ==========`);
+        return response;
     }
 }
 
