@@ -187,8 +187,7 @@ async function handler(req, res) {
         const now = Date.now();
         if (cachedSongs && (now - cacheTimestamp) < CACHE_DURATION) {
             console.log('Returning cached songs data');
-            res.status(200).json(cachedSongs);
-            return;
+            return res.status(200).json(cachedSongs);
         }
 
         let songs;
@@ -197,15 +196,14 @@ async function handler(req, res) {
         try {
             if (GOOGLE_SHEETS_ID && GOOGLE_API_KEY) {
                 console.log('Google Sheets credentials found, attempting to fetch data...');
-                songs = await fetchFromGoogleSheets();
+                songs = await fetchFromGoogleSheetsWithTimeout(8000);
                 
                 // Update cache
                 cachedSongs = songs;
                 cacheTimestamp = now;
                 
                 console.log(`✅ Successfully returned ${songs.length} songs from Google Sheets`);
-                res.status(200).json(songs);
-                return;
+                return res.status(200).json(songs);
             } else {
                 console.log('Missing Google Sheets configuration:');
                 console.log('- GOOGLE_SHEETS_ID:', GOOGLE_SHEETS_ID ? 'Set' : 'Missing');
@@ -222,12 +220,12 @@ async function handler(req, res) {
             cachedSongs = songs;
             cacheTimestamp = now;
             
-            res.status(200).json(songs);
+            return res.status(200).json(songs);
         }
         
     } catch (error) {
         console.error('Error loading songs:', error);
-        res.status(500).json({ 
+        return res.status(500).json({ 
             error: 'Internal Server Error',
             message: 'Unable to load songs from any source'
         });

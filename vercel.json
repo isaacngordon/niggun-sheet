@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/songs.js": {
-      "maxDuration": 10
+      "maxDuration": 15
     }
   },
   "rewrites": [
