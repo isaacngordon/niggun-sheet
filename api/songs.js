@@ -2,11 +2,17 @@ require('dotenv').config(); // Load environment variables
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
+const https = require('https');
+const http = require('http');
 
 // Google Sheets API configuration
 const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID || 'YOUR_SHEET_ID';
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'YOUR_API_KEY';
 const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F1000'; // Adjust range as needed
+
+// Create HTTP agents that don't keep connections alive
+const httpAgent = new http.Agent({ keepAlive: false });
+const httpsAgent = new https.Agent({ keepAlive: false });
 
 // Fallback to local CSV file
 const songsFilePath = path.join(__dirname, '../data/songs.csv');
@@ -62,13 +68,32 @@ function parseCSV(csvText) {
     return result;
 }
 
+// Fetch songs from Google Sheets API with timeout
+async function fetchFromGoogleSheetsWithTimeout(timeoutMs = 8000) {
+    return Promise.race([
+        fetchFromGoogleSheets(),
+        new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Google Sheets API request timed out')), timeoutMs)
+        )
+    ]);
+}
+
 // Fetch songs from Google Sheets API
 async function fetchFromGoogleSheets() {
     try {
         console.log('Fetching songs from Google Sheets API...');
         
-        // Initialize the Google Sheets API
-        const sheets = google.sheets({ version: 'v4', auth: GOOGLE_API_KEY });
+        // Initialize the Google Sheets API with custom agents to prevent keep-alive
+        const sheets = google.sheets({ 
+            version: 'v4', 
+            auth: GOOGLE_API_KEY,
+            timeout: 7000, // 7 second timeout for the API call itself
+            // Use custom agents that don't keep connections alive
+            transporterOptions: {
+                agent: httpsAgent,
+                httpAgent: httpAgent
+            }
+        });
         
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: GOOGLE_SHEETS_ID,
@@ -147,8 +172,7 @@ async function handler(req, res) {
         const now = Date.now();
         if (cachedSongs && (now - cacheTimestamp) < CACHE_DURATION) {
             console.log('Returning cached songs data');
-            res.status(200).json(cachedSongs);
-            return;
+            return res.status(200).json(cachedSongs);
         }
 
         let songs;
@@ -158,15 +182,14 @@ async function handler(req, res) {
             if (GOOGLE_SHEETS_ID && !GOOGLE_SHEETS_ID.includes('YOUR_SHEET_ID') && 
                 GOOGLE_API_KEY && !GOOGLE_API_KEY.includes('YOUR_API_KEY')) {
                 console.log('Google Sheets credentials found, attempting to fetch data...');
-                songs = await fetchFromGoogleSheets();
+                songs = await fetchFromGoogleSheetsWithTimeout(8000);
                 
                 // Update cache
                 cachedSongs = songs;
                 cacheTimestamp = now;
                 
                 console.log(`✅ Successfully returned ${songs.length} songs from Google Sheets`);
-                res.status(200).json(songs);
-                return;
+                return res.status(200).json(songs);
             } else {
                 console.log('Google Sheets API not configured, using local CSV');
                 throw new Error('Google Sheets API not configured');
@@ -181,12 +204,12 @@ async function handler(req, res) {
             cachedSongs = songs;
             cacheTimestamp = now;
             
-            res.status(200).json(songs);
+            return res.status(200).json(songs);
         }
         
     } catch (error) {
         console.error('Error loading songs:', error);
-        res.status(500).json({ 
+        return res.status(500).json({ 
             error: 'Internal Server Error',
             message: 'Unable to load songs from any source'
         });
