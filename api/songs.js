@@ -1,7 +1,6 @@
 require('dotenv').config(); // Load environment variables
 const express = require('express');
 const app = express();
-const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
@@ -162,5 +161,12 @@ async function handler(req, res) {
 
 // For Vercel serverless deployment
 app.get('/', handler);
+app.get('/api/songs', handler);
 
-module.exports = app;
+// Export for both local Express and Vercel serverless
+if (process.env.VERCEL) {
+    const serverless = require('serverless-http');
+    module.exports = serverless(app);
+} else {
+    module.exports = app;
+}
