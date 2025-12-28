@@ -1,5 +1,6 @@
 require('dotenv').config(); // Load environment variables
 const express = require('express');
+const serverless = require('serverless-http');
 const app = express();
 const fs = require('fs');
 const path = require('path');
@@ -165,7 +166,6 @@ app.get('/api/songs', handler);
 
 // Export for both local Express and Vercel serverless
 if (process.env.VERCEL) {
-    const serverless = require('serverless-http');
     module.exports = serverless(app);
 } else {
     module.exports = app;
