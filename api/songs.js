@@ -160,11 +160,16 @@ async function handler(req, res) {
     }
 }
 
-// For Vercel serverless deployment
+// Register routes
+// Note: Both routes are needed for compatibility:
+// - '/' is used by Vercel when the file is accessed directly as a serverless function
+// - '/api/songs' is used by the local Express server in server.js
 app.get('/', handler);
 app.get('/api/songs', handler);
 
 // Export for both local Express and Vercel serverless
+// When deployed to Vercel (VERCEL env var is set), wrap with serverless-http
+// When running locally, export as Express app for use in server.js
 if (process.env.VERCEL) {
     module.exports = serverless(app);
 } else {
