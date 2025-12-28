@@ -192,10 +192,10 @@ async function handler(req, res) {
         if (cachedSongs && (now - cacheTimestamp) < CACHE_DURATION) {
             console.log(`[DEBUG] Returning cached songs data at ${Date.now() - handlerStartTime}ms`);
             console.log(`[DEBUG] Cache age: ${Math.floor((now - cacheTimestamp) / 1000)}s`);
-            const response = res.status(200).json(cachedSongs);
+            res.status(200).json(cachedSongs);
             console.log(`[DEBUG] Response sent at ${Date.now() - handlerStartTime}ms`);
             console.log(`[DEBUG] ========== Handler completed (cached) at ${Date.now() - handlerStartTime}ms ==========`);
-            return response;
+            return;
         }
 
         console.log(`[DEBUG] Cache miss or expired, fetching fresh data at ${Date.now() - handlerStartTime}ms`);
@@ -215,12 +215,11 @@ async function handler(req, res) {
                 console.log(`[DEBUG] Cache updated at ${Date.now() - handlerStartTime}ms`);
                 console.log(`[DEBUG] Preparing response with ${songs.length} songs`);
                 
-                const response = res.status(200).json(songs);
+                res.status(200).json(songs);
                 
                 console.log(`[DEBUG] ✅ Response sent at ${Date.now() - handlerStartTime}ms`);
                 console.log(`[DEBUG] ========== Handler completed (success) at ${Date.now() - handlerStartTime}ms ==========`);
-                
-                return response;
+                return;
             } else {
                 console.log('Missing Google Sheets configuration:');
                 console.log('- GOOGLE_SHEETS_ID:', GOOGLE_SHEETS_ID ? 'Set' : 'Missing');
@@ -238,19 +237,19 @@ async function handler(req, res) {
             cacheTimestamp = now;
             
             console.log(`[DEBUG] Fallback CSV loaded, sending response at ${Date.now() - handlerStartTime}ms`);
-            const response = res.status(200).json(songs);
+            res.status(200).json(songs);
             console.log(`[DEBUG] ========== Handler completed (fallback) at ${Date.now() - handlerStartTime}ms ==========`);
-            return response;
+            return;
         }
         
     } catch (error) {
         console.error(`[DEBUG] Fatal error at ${Date.now() - handlerStartTime}ms:`, error);
-        const response = res.status(500).json({ 
+        res.status(500).json({ 
             error: 'Internal Server Error',
             message: 'Unable to load songs from any source'
         });
         console.log(`[DEBUG] ========== Handler completed (error) at ${Date.now() - handlerStartTime}ms ==========`);
-        return response;
+        return;
     }
 }
 
