@@ -1,22 +1,4 @@
 {
-  "functions": {
-    "api/songs.js": {
-      "maxDuration": 10
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/songs",
-      "destination": "/api/songs"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/server.js"
-    }
-  ]
-}
-
-{
   "version": 2,
   "routes": [
     {
@@ -35,5 +17,10 @@
       "src": "/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico|ttf|woff|woff2))",
       "dest": "/public/$1"
     }
-  ]
+  ],
+  "functions": {
+    "api/songs.js": {
+      "maxDuration": 15
+    }
+  }
 }
