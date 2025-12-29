@@ -253,6 +253,7 @@ async function handler(req, res) {
     }
 }
 
+<<<<<<< HEAD
 // Export for Vercel
 module.exports = handler;
 
@@ -263,3 +264,7 @@ module.exports.expressRouter = function() {
     router.get('/', handler);
     return router;
 };
+=======
+// Export the handler directly for Vercel serverless
+module.exports = handler;
+>>>>>>> 50521dc (Remove unused googleapis dependency to streamline code)
