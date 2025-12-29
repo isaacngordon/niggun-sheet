@@ -359,24 +359,3 @@ async function handler(req, res) {
 <<<<<<< HEAD
 // Export for Vercel
 module.exports = handler;
-
-// For local development with Express
-module.exports.expressRouter = function() {
-    const express = require('express');
-    const router = express.Router();
-    router.get('/', handler);
-    return router;
-};
-=======
-// For Vercel serverless deployment
-app.get('/', handler);
-app.get('/api/songs', handler);
-
-// Export for both local Express and Vercel serverless
-if (process.env.VERCEL) {
-    const serverless = require('serverless-http');
-    module.exports = serverless(app);
-} else {
-    module.exports = app;
-}
->>>>>>> 1c8a375 (Refactor app export for Vercel serverless compatibility)
