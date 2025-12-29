@@ -13,23 +13,13 @@ app.use((req, res, next) => {
 // Importing route handlers
 const songsHandler = require('./api/songs');
 
-// Use the route handlers - for local development only
-if (!process.env.VERCEL) {
-  // In local development, use the Express router
-  if (typeof songsHandler.expressRouter === 'function') {
-    app.use('/api/songs', songsHandler.expressRouter());
-  } else {
-    // Fallback to wrapping the handler
-    app.get('/api/songs', songsHandler);
-  }
-}
 // Use the route handlers - wrap the handler for Express
 app.get('/api/songs', songsHandler);
 
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Catch-all route to serve 404.html for any other route
+// Catch-all route to serve index.html for any other route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', '404.html'));
 });
