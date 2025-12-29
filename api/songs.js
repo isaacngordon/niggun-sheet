@@ -1,7 +1,6 @@
 require('dotenv').config(); // Load environment variables
 const fs = require('fs');
 const path = require('path');
-const { google } = require('googleapis');
 const https = require('https');
 const http = require('http');
 
