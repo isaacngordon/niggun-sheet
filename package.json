@@ -25,6 +25,7 @@
     "googleapis": "^159.0.0",
     "next": "^15.5.3",
     "node-gyp": "^12.1.0",
+    "packery": "^3.0.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "serverless-http": "^3.2.0",
