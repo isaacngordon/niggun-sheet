@@ -554,6 +554,8 @@
             body, html {
                 background: white !important;
                 height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
             .main-layout {
@@ -591,6 +593,7 @@
                 background-size: cover !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                overflow: hidden !important;
             }
             
             .sheet-page:last-child {
@@ -598,11 +601,12 @@
                 break-after: auto;
             }
             
-            /* Scale the grid to fit the larger print page */
+            /* Scale the grid content to match - 8.5in/612px = 1.33 at 96dpi */
             .packery-grid {
                 transform: scale(1.33) !important;
                 transform-origin: top left !important;
-                margin: 106px 0 0 66px !important;
+                margin: 80px 0 0 50px !important;
+                width: 512px !important;
                 height: auto !important;
                 overflow: visible !important;
             }
@@ -1011,7 +1015,7 @@
                 this.updateStatus(`Moved "${songData.title}" to page ${this.pages.indexOf(targetPage) + 1}`);
             }
             
-            createSongCard(song, page) {
+            createSongCard(song, page, preCalculatedOrder = null) {
                 const card = document.createElement('div');
                 card.className = 'song-card';
                 card.dataset.title = song.title;
@@ -1019,17 +1023,19 @@
                 // Calculate order number if needed
                 let orderNum = null;
                 if (this.showOrderNumbers) {
-                    orderNum = 1;
-                    for (const p of this.pages) {
-                        if (p === page) {
-                            orderNum += p.songs.indexOf(song);
-                            break;
+                    if (preCalculatedOrder !== null) {
+                        orderNum = preCalculatedOrder;
+                    } else {
+                        // Calculate on the fly
+                        orderNum = 1;
+                        for (const p of this.pages) {
+                            if (p === page) {
+                                const idx = p.songs.indexOf(song);
+                                orderNum += idx >= 0 ? idx : p.songs.length;
+                                break;
+                            }
+                            orderNum += p.songs.length;
                         }
-                        orderNum += p.songs.length;
-                    }
-                    // If song not found in page.songs yet (being added), use current count + 1
-                    if (orderNum <= 0) {
-                        orderNum = this.pages.reduce((sum, p) => sum + p.songs.length, 0) + 1;
                     }
                 }
                 
@@ -1039,9 +1045,9 @@
                     titleEl.className = 'song-card-title';
                     
                     if (this.showOrderNumbers && this.showTitles) {
-                        titleEl.textContent = `${orderNum}. ${song.title}`;
+                        titleEl.textContent = `${orderNum} ${song.title}`;
                     } else if (this.showOrderNumbers) {
-                        titleEl.textContent = `${orderNum}.`;
+                        titleEl.textContent = `${orderNum}`;
                     } else {
                         titleEl.textContent = song.title;
                     }
@@ -1660,17 +1666,28 @@
                     if (cols === 3) page.grid.classList.add('three-columns');
                 });
                 
-                // Rebuild all cards with new column settings
-                this.rebuildAllCards();
+                // Loop until layout stabilizes (no more page count changes)
+                let lastPageCount = this.pages.length;
+                let iterations = 0;
+                const maxIterations = 10; // Safety limit
                 
-                // Enforce original line breaks (reduce font if any line wraps)
-                this.checkAndEnforceLineBreaks();
-                
-                // Check for overflow on each page
-                this.pages.forEach(page => this.checkAndHandleOverflow(page));
-                
-                // Try to backflow songs to earlier pages
-                this.consolidatePages();
+                do {
+                    lastPageCount = this.pages.length;
+                    
+                    // Rebuild all cards with new column settings
+                    this.rebuildAllCards();
+                    
+                    // Enforce original line breaks (reduce font if any line wraps)
+                    this.checkAndEnforceLineBreaks();
+                    
+                    // Check for overflow on each page
+                    this.pages.forEach(page => this.checkAndHandleOverflow(page));
+                    
+                    // Try to backflow songs to earlier pages
+                    this.consolidatePages();
+                    
+                    iterations++;
+                } while (this.pages.length !== lastPageCount && iterations < maxIterations);
                 
                 this.updateStatus(`${cols} column${cols > 1 ? 's' : ''}`);
             }
@@ -1684,18 +1701,29 @@
                 });
                 document.getElementById('colAutobtn').classList.add('active');
                 
-                // Run auto-scale
-                this.autoScale();
+                // Loop until layout stabilizes (no more page count changes)
+                let lastPageCount = this.pages.length;
+                let iterations = 0;
+                const maxIterations = 10; // Safety limit
                 
-                // Rebuild all cards with new settings
-                this.rebuildAllCards();
-                
-                // Enforce original line breaks (reduce font if any line wraps)
-                this.checkAndEnforceLineBreaks();
-                
-                // Check for overflow and consolidate
-                this.pages.forEach(page => this.checkAndHandleOverflow(page));
-                this.consolidatePages();
+                do {
+                    lastPageCount = this.pages.length;
+                    
+                    // Run auto-scale
+                    this.autoScale();
+                    
+                    // Rebuild all cards with new settings
+                    this.rebuildAllCards();
+                    
+                    // Enforce original line breaks (reduce font if any line wraps)
+                    this.checkAndEnforceLineBreaks();
+                    
+                    // Check for overflow and consolidate
+                    this.pages.forEach(page => this.checkAndHandleOverflow(page));
+                    this.consolidatePages();
+                    
+                    iterations++;
+                } while (this.pages.length !== lastPageCount && iterations < maxIterations);
                 
                 this.updateStatus('Auto columns enabled');
             }
@@ -1823,6 +1851,15 @@
             }
             
             rebuildAllCards() {
+                // First, calculate global song order across all pages
+                const globalSongOrder = new Map();
+                let globalIndex = 1;
+                this.pages.forEach(page => {
+                    page.songs.forEach(song => {
+                        globalSongOrder.set(song.title, globalIndex++);
+                    });
+                });
+                
                 this.pages.forEach(page => {
                     const songsBackup = [...page.songs];
                     
@@ -1836,7 +1873,7 @@
                     
                     // Re-add
                     songsBackup.forEach(song => {
-                        const card = this.createSongCard(song, page);
+                        const card = this.createSongCard(song, page, globalSongOrder.get(song.title));
                         page.grid.appendChild(card);
                         page.songs.push(song);
                         
