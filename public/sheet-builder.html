@@ -598,25 +598,13 @@
                 break-after: auto;
             }
             
-            /* Scale grid margins proportionally for 8.5in page */
+            /* Scale the grid to fit the larger print page */
             .packery-grid {
-                margin: 0.98in 0.61in 1.47in 0.61in !important;
+                transform: scale(1.33) !important;
+                transform-origin: top left !important;
+                margin: 106px 0 0 66px !important;
                 height: auto !important;
                 overflow: visible !important;
-            }
-            
-            /* Scale song cards for print */
-            .song-card {
-                margin-bottom: 10px !important;
-            }
-            
-            .song-card-title {
-                font-size: 18px !important;
-            }
-            
-            .song-card-lyrics {
-                font-size: 16px !important;
-                line-height: 1.4 !important;
             }
             
             /* Hide remove buttons */
