@@ -17,6 +17,17 @@ let cachedSongs = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
+// Clean text by removing replacement characters (U+FFFD) which appear as question marks
+function cleanText(text) {
+    if (!text) return '';
+    return text
+        .trim()
+        // Remove Unicode replacement character (U+FFFD - appears as �)
+        .replace(/\uFFFD/g, '')
+        // Also remove any stray control characters that might cause issues
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+}
+
 // Enhanced CSV parsing function that handles quoted fields properly
 function parseCSV(csvText) {
     const lines = csvText.split('\n');
@@ -149,10 +160,10 @@ async function fetchFromGoogleSheets() {
             if (row.length >= 4) { // Ensure we have at least the required fields
                 const [search_title = '', title = '', lyrics = '', artist = '', drive = '', youtube = ''] = row;
                 songs.push({
-                    search_title: search_title.trim(),
-                    title: title.trim(),
-                    lyrics: lyrics.trim(),
-                    artist: artist.trim(),
+                    search_title: cleanText(search_title),
+                    title: cleanText(title),
+                    lyrics: cleanText(lyrics),
+                    artist: cleanText(artist),
                     drive: drive.trim(),
                     youtube: youtube.trim()
                 });
