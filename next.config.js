@@ -27,6 +27,40 @@ const nextConfig = {
       },
     ];
   },
+  
+  // Rewrites to serve static HTML files for complex pages
+  async rewrites() {
+    return [
+      {
+        source: '/songs',
+        destination: '/songs.html',
+      },
+      {
+        source: '/sheet-builder',
+        destination: '/sheet-builder.html',
+      },
+      {
+        source: '/song-details',
+        destination: '/song-details.html',
+      },
+      {
+        source: '/project-growth-page',
+        destination: '/project-growth-page.html',
+      },
+      {
+        source: '/smartboard-mode',
+        destination: '/smartboard-mode.html',
+      },
+      {
+        source: '/cookie',
+        destination: '/cookie.html',
+      },
+      {
+        source: '/tracking-disclosure',
+        destination: '/tracking-disclosure.html',
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
