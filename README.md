@@ -1,5 +1,16 @@
 # Niggun Sheet
 
+A Next.js 15 application for managing and building niggun (Jewish song) sheets with drag-and-drop functionality.
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **UI**: React 19
+- **Styling**: CSS-in-JS (styled-jsx), Tailwind-inspired utility classes
+- **API**: Next.js API Routes
+- **Data Source**: Google Sheets API with local CSV fallback
+- **Deployment**: Vercel
+
 ## Setup
 
 ### Local Development
@@ -20,6 +31,15 @@
    ```bash
    npm run dev
    ```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Building for Production
+
+```bash
+npm run build
+npm start
+```
 
 ### Deployment on Vercel
 
@@ -47,7 +67,53 @@
 5. Make your Google Sheet publicly viewable
 6. Copy the Sheet ID from the URL
 
-### Troubleshooting
+## Project Structure
+
+```
+niggun-sheet/
+├── app/                    # Next.js App Router directory
+│   ├── api/               # API routes
+│   │   └── songs/         # Songs API endpoint
+│   ├── components/        # Shared React components
+│   │   ├── Header.js      # Site header with navigation
+│   │   ├── Footer.js      # Site footer
+│   │   └── CornerBanner.js # Corner banner component
+│   ├── contact/           # Contact page
+│   ├── layout.js          # Root layout
+│   ├── page.js            # Homepage
+│   └── not-found.js       # 404 page
+├── public/                # Static assets and legacy HTML pages
+│   ├── assets/            # Images and static files
+│   ├── css/               # Stylesheets
+│   ├── js/                # Client-side JavaScript
+│   └── *.html             # Legacy HTML pages (songs, sheet-builder, etc.)
+├── data/                  # Database and data files
+│   ├── songs.csv          # Song data fallback
+│   └── migrations/        # Database migrations
+├── next.config.js         # Next.js configuration
+└── package.json           # Dependencies and scripts
+```
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run db-migrate` - Run database migrations
+- `npm run db-seed` - Seed database with songs
+- `npm run db-backup` - Backup database
+
+## Features
+
+- **Song Directory**: Browse and search through a comprehensive collection of niggunim
+- **Sheet Builder**: Drag-and-drop interface to create custom song sheets
+- **Contact Form**: Get in touch with suggestions or questions
+- **Google Sheets Integration**: Songs data can be managed via Google Sheets
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Offline Fallback**: Uses local CSV data if Google Sheets API is unavailable
+
+## Troubleshooting
 
 - Check that your Google Sheet is publicly readable
 - Verify API key is restricted to Google Sheets API only
