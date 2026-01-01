@@ -1,0 +1,4 @@
+/* Import the main CSS from public directory */
+@import url('/css/main.css');
+
+/* Additional global styles can go here */
