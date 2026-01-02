@@ -1,0 +1,102 @@
+'use client';
+
+import Link from 'next/link';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+
+export default function ProjectGrowthPage() {
+  return (
+    <>
+      <style jsx>{`
+        .hero {
+          background-color: #0d0d0d;
+          color: white;
+          text-align: center;
+          padding: 80px 20px;
+          position: relative;
+        }
+
+        .hero h1 {
+          font-size: 2.5rem;
+          margin-bottom: 20px;
+        }
+
+        .hero-accent {
+          background-color: rgb(255, 218, 42);
+          height: 5px;
+          width: 100px;
+          margin: 0 auto 30px;
+        }
+
+        .content {
+          max-width: 800px;
+          margin: 40px auto;
+          padding: 20px;
+          background-color: white;
+          border-radius: 4px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .content p {
+          font-size: 1.1rem;
+          line-height: 1.6;
+          color: #333;
+          margin-bottom: 30px;
+        }
+
+        .contact-button {
+          display: inline-block;
+          background-color: #0d0d0d;
+          color: rgb(255, 218, 42);
+          font-weight: bold;
+          padding: 12px 30px;
+          border-radius: 4px;
+          text-decoration: none;
+          transition: all 0.3s ease;
+        }
+
+        .contact-button:hover {
+          background-color: rgb(255, 218, 42);
+          color: #0d0d0d;
+        }
+
+        @media (max-width: 768px) {
+          .hero h1 {
+            font-size: 2rem;
+          }
+          
+          .content {
+            margin: 20px;
+          }
+        }
+      `}</style>
+
+      <Header />
+
+      <div className="hero">
+        <h1>Growing Our Project</h1>
+        <div className="hero-accent"></div>
+        <p>Bringing back the kumzitz</p>
+      </div>
+
+      <div className="content">
+        <p>
+          There are many lyrics and streaming websites out there. What sets this one apart from the rest is that it aims to be neither—simply to preserve the history of Jewish music and give it a place in the future. Every song in the list was added for a purpose. Most of them would have been at home in a yeshiva gym with the lights turned off and everyone in a circle singing. I find that these beautiful songs are slowly fading away, to be replaced with songs ever more strongly influenced by the outside world. My goal is to keep them where they belong. <br /><br />
+          This website has three functions:
+          The first is a run-of-the-mill lyrics website. Click on any song to see its author, name, and lyrics along with recordings to match. These were sung for us by the amazing ----------.<br /><br />
+          The second is the Smartboard Mode, activated by the switch on the right side of the song directory. This lets rebbeim, teachers, or anyone with a screen bring up the lyrics on-screen with nothing else but a play button to hear the example, and + and - buttons to adjust the size of the words on-screen.<br />
+          The final function is the Sheet Builder. Anywhere you see a song, there will be a button that reads "Add to Sheet." Click that and they will be saved on the sheet. The Sheet Builder page has a unique ability to auto-adjust to the songs and to finally print at the touch of a button—perfect for remembering those songs you wanted to sing at the sheva brachos, running a kumzitz at a bar mitzvah, or bringing along as a singer to know and remember your set list as more than just song names.<br />
+          This project didn't come along by itself. It took me and my friend Tzachi, who has a lot of experience coding. I've been working on this on and off for the last few years. I've finally made some breakthroughs and am near the end where this will be a complete and well-rounded experience.<br />
+        </p>
+        
+        <p>
+          If you have anything to contribute, Be it programming skills, feature suggestions or funding, drop us a line with the button below. <br /> Thank you for your support
+        </p>
+        
+        <Link href="/contact" className="contact-button">Contact Us</Link>
+      </div>
+
+      <Footer />
+    </>
+  );
+}
