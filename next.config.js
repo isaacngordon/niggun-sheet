@@ -27,20 +27,6 @@ const nextConfig = {
       },
     ];
   },
-  
-  // Rewrites to serve static HTML files for complex pages
-  async rewrites() {
-    return [
-      {
-        source: '/songs',
-        destination: '/songs.html',
-      },
-      {
-        source: '/sheet-builder',
-        destination: '/sheet-builder.html',
-      },
-    ];
-  },
 };
 
 module.exports = nextConfig;
