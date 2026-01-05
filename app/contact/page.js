@@ -221,9 +221,18 @@ export default function ContactPage() {
         }
       `}</style>
 
-      <Header />
+      <div style={{
+        backgroundImage: 'url(/assets/background_small.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <Header />
 
-      <div id="contact-content">
+        <div id="contact-content">
         <h1>Get In Touch</h1>
         <p className="subtitle">
           Have a question, suggestion, or just want to say hi? <br />
@@ -313,9 +322,10 @@ export default function ContactPage() {
             <a href="mailto:yehudahjacobswork@gmail.com">yehudahjacobswork@gmail.com</a>
           </p>
         </div>
-      </div>
+        </div>
 
-      <Footer />
+        <Footer />
+      </div>
     </>
   );
 }

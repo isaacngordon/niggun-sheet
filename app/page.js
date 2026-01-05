@@ -26,17 +26,25 @@ export default function Home() {
     <>
       <Header />
       
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-bg-secondary py-20 md:py-32">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="relative z-10 max-w-4xl mx-auto text-center">
+      {/* Hero Section with Background Image */}
+      <section className="relative overflow-hidden py-20 md:py-32" style={{
+        backgroundImage: 'url(/assets/background_small.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}>
+        {/* Dark overlay for better text contrast */}
+        <div className="absolute inset-0 bg-black/50"></div>
+        
+        <div className="container mx-auto px-4 max-w-7xl relative z-10">
+          <div className="max-w-4xl mx-auto text-center">
             {/* Hero Title - High Contrast */}
             <h1 className="text-hero text-shadow-lg mb-6">
               Discover Your Perfect Niggun
             </h1>
             
             {/* Hero Description - Improved Contrast */}
-            <p className="text-body-large mb-8 max-w-2xl mx-auto">
+            <p className="text-body-large mb-8 max-w-2xl mx-auto text-shadow">
               Goodbye Copy and Paste, Hello Drag and Drop<br />
               <span className="text-text-primary font-medium">The next generation of Kumzits Sheets has arrived</span>
             </p>
