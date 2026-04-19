@@ -11,6 +11,7 @@
 # Ignore build output
 /build
 /dist
+/.next
 data/backups/**
 
 # Ignore logs and temporary files
@@ -40,6 +41,9 @@ data/backups/**
 .DS_Store
 Thumbs.db
 .aider*
+
+# Ignore database files
+*.db
 
 # Ignore backup files
 /data/backups/**
