@@ -10,6 +10,8 @@ const SILENT_REAUTH_TIMEOUT = 8000; // ms — abort silent reauth if Google is s
 const FETCH_TIMEOUT = 15000;        // ms — abort any single fetch
 const TOKEN_REFRESH_MARGIN = 120;   // seconds before expiry to trigger proactive refresh
 const SESSION_EMAIL_KEY = 'niggunsheet-email'; // persisted for login_hint on reload
+const SESSION_TOKEN_KEY = 'niggunsheet-token';
+const SESSION_TOKEN_EXPIRY_KEY = 'niggunsheet-token-expiry';
 
 export type UserPreferences = Record<string, unknown>;
 
@@ -18,6 +20,7 @@ export interface PrivateSong {
   title: string;
   artist: string;
   lyrics: string;
+  audioUrl?: string;        // direct audio URL
   youtubeLinks?: string[];  // multiple YouTube URLs
   driveLink?: string;       // Google Drive link
   createdAt: string;        // ISO date
@@ -95,6 +98,7 @@ let storedClientId: string | null = null;
 let tokenExpiresAt = 0;         // epoch ms when current token expires
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let onTokenRefreshed: (() => void) | null = null; // callback for provider to reload data
+let pendingPopupErrorHandler: ((err: Error) => void) | null = null;
 
 export function setOnTokenRefreshed(cb: () => void) { onTokenRefreshed = cb; }
 
@@ -111,6 +115,9 @@ export async function initGoogleAuth(clientId: string): Promise<void> {
       client_id: clientId,
       scope: SCOPES,
       callback: () => {},
+      error_callback: (err: any) => {
+        pendingPopupErrorHandler?.(new Error(err?.type || 'Google sign-in failed'));
+      },
     });
     console.log('[GoogleAuth] tokenClient created');
   } catch (err) {
@@ -130,7 +137,7 @@ function scheduleTokenRefresh(expiresIn: number): void {
   const refreshMs = Math.max(0, (expiresIn - TOKEN_REFRESH_MARGIN) * 1000);
   refreshTimer = setTimeout(async () => {
     console.log('[GoogleAuth] Proactive token refresh');
-    const token = await trysilentReauth();
+    const token = await trysilentReauth(getStoredEmail() || undefined);
     if (token) onTokenRefreshed?.();
   }, refreshMs);
 }
@@ -138,7 +145,29 @@ function scheduleTokenRefresh(expiresIn: number): void {
 function setToken(accessToken: string, expiresIn: number): void {
   currentToken = accessToken;
   tokenExpiresAt = Date.now() + expiresIn * 1000;
+  try {
+    sessionStorage.setItem(SESSION_TOKEN_KEY, accessToken);
+    sessionStorage.setItem(SESSION_TOKEN_EXPIRY_KEY, String(tokenExpiresAt));
+  } catch { /* ok */ }
   scheduleTokenRefresh(expiresIn);
+}
+
+async function restoreCachedToken(): Promise<string | null> {
+  try {
+    const token = sessionStorage.getItem(SESSION_TOKEN_KEY);
+    const expiryRaw = sessionStorage.getItem(SESSION_TOKEN_EXPIRY_KEY);
+    const expiry = expiryRaw ? Number(expiryRaw) : 0;
+    if (!token || !expiry || Date.now() >= expiry - 30_000) return null;
+
+    currentToken = token;
+    tokenExpiresAt = expiry;
+    scheduleTokenRefresh(Math.max(1, Math.floor((expiry - Date.now()) / 1000)));
+    await ensureDriveApi();
+    (window as any).gapi.client.setToken({ access_token: token });
+    return token;
+  } catch {
+    return null;
+  }
 }
 
 /** Check if the current token is expired or about to expire */
@@ -155,8 +184,18 @@ export async function getValidToken(): Promise<string | null> {
 const SESSION_KEY = 'niggunsheet-auth';
 
 function clearSession(): void {
-  try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ok */ }
+  try { localStorage.removeItem(SESSION_KEY); } catch { /* ok */ }
   try { localStorage.removeItem(SESSION_EMAIL_KEY); } catch { /* ok */ }
+  try { sessionStorage.removeItem(SESSION_TOKEN_KEY); } catch { /* ok */ }
+  try { sessionStorage.removeItem(SESSION_TOKEN_EXPIRY_KEY); } catch { /* ok */ }
+}
+
+function markSessionActive(): void {
+  try { localStorage.setItem(SESSION_KEY, '1'); } catch { /* ok */ }
+}
+
+function hasSessionMarker(): boolean {
+  try { return localStorage.getItem(SESSION_KEY) === '1'; } catch { return false; }
 }
 
 /** Save just the email so we can pass login_hint on reload */
@@ -171,7 +210,10 @@ export function getStoredEmail(): string | null {
 
 /** Try to restore an existing session via silent re-auth. */
 export async function tryRestoreSession(): Promise<string | null> {
+  const cachedToken = await restoreCachedToken();
+  if (cachedToken) return cachedToken;
   // Only attempt if user was previously signed in
+  if (!hasSessionMarker()) return null;
   const email = getStoredEmail();
   if (!email) return null;
   return trysilentReauth(email);
@@ -207,7 +249,7 @@ function trysilentReauth(loginHint?: string): Promise<string | null> {
     };
     // Pass login_hint if we know the user's email — this makes silent reauth
     // much more reliable because Google knows which account to use
-    const opts: any = { prompt: '' };
+    const opts: any = { prompt: 'none' };
     if (loginHint) opts.login_hint = loginHint;
     tokenClient.requestAccessToken(opts);
   }).finally(() => { silentReauthPromise = null; });
@@ -228,10 +270,13 @@ export function signIn(): Promise<string> {
     } catch (err) {
       reject(err); return;
     }
+    pendingPopupErrorHandler = reject;
     tokenClient.callback = async (resp: any) => {
+      pendingPopupErrorHandler = null;
       if (resp.error) { reject(new Error(resp.error)); return; }
       const expiresIn = resp.expires_in ?? 3600;
       setToken(resp.access_token, expiresIn);
+      markSessionActive();
       try {
         await ensureDriveApi();
         (window as any).gapi.client.setToken({ access_token: resp.access_token });
@@ -240,8 +285,18 @@ export function signIn(): Promise<string> {
         reject(err);
       }
     };
-    tokenClient.requestAccessToken({ prompt: '' });
-  }).finally(() => { signInInProgress = false; });
+
+    // After first successful sign-in, prefer reusing that account without
+    // forcing the account chooser each time.
+    const storedEmail = getStoredEmail();
+    const opts: any = storedEmail
+      ? { prompt: '', login_hint: storedEmail }
+      : { prompt: 'select_account' };
+    tokenClient.requestAccessToken(opts);
+  }).finally(() => {
+    pendingPopupErrorHandler = null;
+    signInInProgress = false;
+  });
 }
 
 export function signOut(): void {
@@ -267,7 +322,10 @@ export async function getGoogleUser(accessToken: string): Promise<GoogleUser> {
   if (!res.ok) throw new Error('Failed to fetch user info');
   const data = await res.json();
   // Persist email for login_hint on next reload
-  if (data.email) saveSessionEmail(data.email);
+  if (data.email) {
+    markSessionActive();
+    saveSessionEmail(data.email);
+  }
   return { email: data.email };
 }
 

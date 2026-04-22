@@ -4,7 +4,8 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useGoogleAuth } from '@/components/GoogleAuthProvider';
 import AddSongModal from '@/components/AddSongModal';
-import { extractYouTubeId, extractAllYouTubeUrls, ensureYTApi, playbackBus, fmt } from '@/lib/youtube';
+import MediaPlayer from '@/components/MediaPlayer';
+import { extractAllYouTubeUrls } from '@/lib/youtube';
 
 function slugify(text: string): string {
   return text
@@ -20,141 +21,91 @@ interface Song {
   artist: string;
   drive: string;
   youtube: string;
+  audio: string;
 }
 
-function YouTubePlayer({ url }: { url: string }) {
-  const videoId = extractYouTubeId(url);
-  const playerRef = useRef<any>(null);
-  const playingRef = useRef(false);
-  const readyRef = useRef(false);
-  const [playing, setPlaying] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const hostRef = useRef<HTMLDivElement>(null);
-  const destroyedRef = useRef(false);
-  const idRef = useRef(`yt-${Math.random().toString(36).slice(2, 8)}`);
+interface TimingBounds {
+  inPoint: number | null;
+  outPoint: number | null;
+}
 
-  // Pause when another player starts
-  useEffect(() => {
-    const handler = (e: Event) => {
-      if ((e as CustomEvent).detail !== idRef.current && playerRef.current && readyRef.current) {
-        try { playerRef.current.pauseVideo(); } catch {}
-      }
-    };
-    playbackBus?.addEventListener('play', handler);
-    return () => {
-      playbackBus?.removeEventListener('play', handler);
-      destroyedRef.current = true;
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      try { playerRef.current?.destroy?.(); } catch {}
-    };
-  }, []);
+interface StoredTimingClip {
+  verseIndex: number;
+  start: number;
+}
 
-  // Track progress while playing
-  useEffect(() => {
-    if (playing) {
-      intervalRef.current = setInterval(() => {
-        const t = playerRef.current?.getCurrentTime?.() || 0;
-        setProgress(t);
-      }, 250);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [playing]);
+interface ClipTimingEntry {
+  version?: number;
+  clips?: StoredTimingClip[];
+  inPoint?: number | null;
+  outPoint?: number | null;
+  useClipEdgeBounds?: boolean;
+}
 
-  const initAndPlay = useCallback(async () => {
-    if (!videoId || destroyedRef.current) return;
+type RawTimingEntry = number[] | ClipTimingEntry;
 
-    // Already initialized — just toggle
-    if (playerRef.current && readyRef.current) {
-      if (playingRef.current) {
-        playerRef.current.pauseVideo();
-      } else {
-        playbackBus?.dispatchEvent(new CustomEvent('play', { detail: idRef.current }));
-        playerRef.current.playVideo();
-      }
-      return;
-    }
+const DEFAULT_CARD_LENGTH = 6;
 
-    // Still initializing from a previous click
-    if (playerRef.current) return;
+function normalizeBoundaryPoint(point: unknown): number | null {
+  if (typeof point !== 'number' || !Number.isFinite(point) || point < 0) return null;
+  return Number(point.toFixed(2));
+}
 
-    // Fast path: if API already preloaded, skip await to keep user gesture context
-    if (!(window as any).YT?.Player) {
-      setLoading(true);
-      try { await ensureYTApi(); } catch { setLoading(false); return; }
-      if (destroyedRef.current || !hostRef.current) return;
-    }
+function normalizeTimingBounds(inPoint: unknown, outPoint: unknown): TimingBounds {
+  const nextInPoint = normalizeBoundaryPoint(inPoint);
+  let nextOutPoint = normalizeBoundaryPoint(outPoint);
+  if (nextInPoint != null && nextOutPoint != null && nextOutPoint <= nextInPoint) {
+    nextOutPoint = null;
+  }
+  return { inPoint: nextInPoint, outPoint: nextOutPoint };
+}
 
-    // Create a fresh div for the player (YT.Player replaces it)
-    const el = document.createElement('div');
-    hostRef.current!.appendChild(el);
+function sanitizeClips(clips: unknown): StoredTimingClip[] {
+  if (!Array.isArray(clips)) return [];
+  return clips
+    .filter((clip): clip is StoredTimingClip =>
+      !!clip &&
+      typeof clip === 'object' &&
+      typeof (clip as StoredTimingClip).start === 'number' &&
+      Number.isFinite((clip as StoredTimingClip).start)
+    )
+    .map((clip) => ({
+      verseIndex: Number.isFinite(clip.verseIndex) ? Math.round(clip.verseIndex) : -1,
+      start: Number(clip.start.toFixed(2)),
+    }))
+    .sort((a, b) => a.start - b.start);
+}
 
-    playbackBus?.dispatchEvent(new CustomEvent('play', { detail: idRef.current }));
+function deriveBoundsFromClipEdges(clips: StoredTimingClip[], outPoint: number | null): TimingBounds {
+  if (clips.length === 0) return { inPoint: null, outPoint: null };
+  const first = clips[0].start;
+  const last = clips[clips.length - 1].start;
+  const defaultOutPoint = Number((last + DEFAULT_CARD_LENGTH).toFixed(2));
+  const normalizedOut = normalizeBoundaryPoint(outPoint);
+  const boundedOut = normalizedOut != null && normalizedOut > last
+    ? Math.min(normalizedOut, defaultOutPoint)
+    : defaultOutPoint;
+  return normalizeTimingBounds(first, boundedOut);
+}
 
-    playerRef.current = new (window as any).YT.Player(el, {
-      height: '1',
-      width: '1',
-      videoId,
-      playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, playsinline: 1, rel: 0, origin: window.location.origin },
-      events: {
-        onReady: () => {
-          if (destroyedRef.current) return;
-          readyRef.current = true;
-          setReady(true);
-          setLoading(false);
-          setDuration(playerRef.current?.getDuration?.() || 0);
-          // Explicitly play — autoplay may be blocked by browser
-          playbackBus?.dispatchEvent(new CustomEvent('play', { detail: idRef.current }));
-          try { playerRef.current?.playVideo(); } catch {}
-        },
-        onStateChange: (e: any) => {
-          if (destroyedRef.current) return;
-          const isPlaying = e.data === 1;
-          playingRef.current = isPlaying;
-          setPlaying(isPlaying);
-          if (isPlaying) setDuration(playerRef.current?.getDuration?.() || 0);
-        },
-        onError: () => {
-          if (destroyedRef.current) return;
-          setLoading(false);
-        },
-      },
-    });
-  }, [videoId]);
+function resolveBoundsFromEntry(entry: RawTimingEntry | undefined): TimingBounds {
+  if (!entry) return { inPoint: null, outPoint: null };
 
-  const seek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!playerRef.current || !duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    playerRef.current.seekTo(pct * duration, true);
-    setProgress(pct * duration);
-  }, [duration]);
+  if (Array.isArray(entry)) {
+    const clips = entry
+      .map((start, verseIndex) => ({ verseIndex, start }))
+      .filter((clip) => Number.isFinite(clip.start) && clip.start >= 0)
+      .sort((a, b) => a.start - b.start);
+    return deriveBoundsFromClipEdges(clips, null);
+  }
 
-  if (!videoId) return null;
-
-  return (
-    <div className="yt-audio-player">
-      <div ref={hostRef} style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }} />
-      <button className="yt-play-btn" onClick={initAndPlay} disabled={loading} aria-label={playing ? 'Pause' : 'Play'}>
-        {loading ? (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="20 40" /></svg>
-        ) : playing ? (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
-        ) : (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-        )}
-      </button>
-      <div className="yt-progress-bar" onClick={seek}>
-        <div className="yt-progress-fill" style={{ width: duration ? `${(progress / duration) * 100}%` : '0%' }} />
-      </div>
-      <span className="yt-time">{ready && duration ? fmt(progress) : '--:--'}</span>
-    </div>
-  );
+  const clips = sanitizeClips(entry.clips);
+  const manualBounds = normalizeTimingBounds(entry.inPoint, entry.outPoint);
+  const useClipEdgeBounds = typeof entry.useClipEdgeBounds === 'boolean' ? entry.useClipEdgeBounds : true;
+  if (useClipEdgeBounds) {
+    return deriveBoundsFromClipEdges(clips, manualBounds.outPoint);
+  }
+  return manualBounds;
 }
 
 interface SongsListProps {
@@ -164,6 +115,7 @@ interface SongsListProps {
 
 export default function SongsList({ songs, initialSearch }: SongsListProps) {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [timingBoundsBySlug, setTimingBoundsBySlug] = useState<Record<string, TimingBounds>>({});
   const { user, privateSongs, preferences, loading: authLoading, ready: authReady, signIn, signOut, addSong, addSongs, removeSong, setPref } = useGoogleAuth();
   const [filter, setFilterState] = useState<'all' | 'library' | 'mine'>((preferences.songsFilter as 'all' | 'library' | 'mine') || 'all');
   const [viewMode, setViewModeState] = useState<'grid' | 'list'>((preferences.songsViewMode as 'grid' | 'list') || 'grid');
@@ -194,6 +146,7 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
       lyrics: s.lyrics,
       drive: s.driveLink || '',
       youtube: s.youtubeLinks?.join(' ') || '',
+      audio: s.audioUrl || '',
       _privateId: s.id,
     })),
   [privateSongs]);
@@ -222,6 +175,28 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
   }, [songs, privateSongsAsSongs, searchQuery, filter]);
 
   const totalCount = filter === 'mine' ? privateSongsAsSongs.length : filter === 'library' ? songs.length : songs.length + privateSongsAsSongs.length;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/timings')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((raw: Record<string, RawTimingEntry> | null) => {
+        if (cancelled || !raw || typeof raw !== 'object') return;
+        const next: Record<string, TimingBounds> = {};
+        for (const [slug, entry] of Object.entries(raw)) {
+          next[slug] = resolveBoundsFromEntry(entry);
+        }
+        setTimingBoundsBySlug(next);
+      })
+      .catch(() => {
+        if (!cancelled) setTimingBoundsBySlug({});
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>
@@ -276,8 +251,12 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
           {filteredSongs.map((song, index) => {
             const isPrivate = '_privateId' in song && !!song._privateId;
             const href = isPrivate ? `/songs/my-${song._privateId}` : `/songs/${slugify(song.title)}`;
+            const songSlug = isPrivate ? `my-${song._privateId}` : slugify(song.title);
+            const fallbackSlug = isPrivate ? null : slugify(song.search_title || song.title);
+            const bounds = timingBoundsBySlug[songSlug] ?? (fallbackSlug ? timingBoundsBySlug[fallbackSlug] : undefined) ?? { inPoint: null, outPoint: null };
+            const cardKey = isPrivate ? `my-${song._privateId}` : `${href}-${song.artist || 'unknown-artist'}`;
             return (
-              <div key={isPrivate ? `my-${song._privateId}` : index} className={`song-card ${isPrivate ? 'private-song-card' : ''}`}>
+              <div key={cardKey} className={`song-card ${isPrivate ? 'private-song-card' : ''}`}>
                 <Link href={href} className="song-card-link">
                   {isPrivate && <div className="private-badge">My Song</div>}
                   <h3 className="song-title">{song.title}</h3>
@@ -295,17 +274,20 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg> Drive
                     </a>
                   )}
-                  {song.youtube && (() => {
+                  {(song.audio || song.youtube) && (() => {
                     const urls = extractAllYouTubeUrls(song.youtube);
-                    if (urls.length === 0) return null;
+                    if (!song.audio && urls.length === 0) return null;
+                    if (song.audio) {
+                      return <MediaPlayer audioUrl={song.audio} youtubeUrl={urls[0] || ''} inPoint={bounds.inPoint} outPoint={bounds.outPoint} />;
+                    }
                     return (
                       <div className={`yt-players-stack${urls.length > 1 ? ' double' : ''}`}>
-                        {urls.map((u, i) => <YouTubePlayer key={i} url={u} />)}
+                        {urls.map((u, i) => <MediaPlayer key={`${cardKey}-${u}-${i}`} youtubeUrl={u} inPoint={bounds.inPoint} outPoint={bounds.outPoint} />)}
                       </div>
                     );
                   })()}
                   <a
-                    href={`/smartboard-mode?lyrics=${encodeURIComponent(song.lyrics)}${song.youtube ? `&youtube=${encodeURIComponent(extractAllYouTubeUrls(song.youtube)[0] || '')}` : ''}`}
+                    href={`/smartboard-mode?slug=${encodeURIComponent(isPrivate ? `my-${song._privateId}` : slugify(song.title))}&lyrics=${encodeURIComponent(song.lyrics)}${song.audio ? `&audio=${encodeURIComponent(song.audio)}` : ''}${song.youtube ? `&youtube=${encodeURIComponent(extractAllYouTubeUrls(song.youtube)[0] || '')}` : ''}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="song-link"

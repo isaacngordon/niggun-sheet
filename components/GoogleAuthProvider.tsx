@@ -113,7 +113,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async () => {
     if (!CLIENT_ID) { console.warn('[GoogleAuth] No client ID'); return; }
-    if (loading) return; // prevent double-click
+    if (loading || restoring) return; // prevent overlapping restore + sign-in
     console.log('[GoogleAuth] Sign-in clicked, ready:', ready);
     setLoading(true);
     try {
@@ -132,7 +132,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [loading, ready]);
+  }, [loading, ready, restoring]);
 
   const signOut = useCallback(() => {
     gSignOut();

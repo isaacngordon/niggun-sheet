@@ -1,12 +1,55 @@
 {
-  "acheinu": [
-    73.2365301487732,
-    56.93655100190735,
-    64.24238480926513,
-    -1,
-    -1,
-    -1,
-    -1,
-    -1
-  ]
+  "acheinu": {
+    "version": 2,
+    "clips": [
+      {
+        "verseIndex": 0,
+        "start": 43.59
+      },
+      {
+        "verseIndex": 1,
+        "start": 56.56
+      },
+      {
+        "verseIndex": 2,
+        "start": 63.91
+      },
+      {
+        "verseIndex": 0,
+        "start": 73.12
+      },
+      {
+        "verseIndex": 1,
+        "start": 86.79
+      },
+      {
+        "verseIndex": 2,
+        "start": 95.12
+      },
+      {
+        "verseIndex": 3,
+        "start": 103.01
+      },
+      {
+        "verseIndex": 4,
+        "start": 110.03
+      },
+      {
+        "verseIndex": 5,
+        "start": 117.21
+      },
+      {
+        "verseIndex": 6,
+        "start": 120.23
+      },
+      {
+        "verseIndex": 7,
+        "start": 124.25
+      },
+      {
+        "verseIndex": -1,
+        "start": 133.09
+      }
+    ]
+  }
 }

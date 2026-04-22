@@ -407,8 +407,10 @@ export function useNiggunSheetDownload() {
 export function NiggunSheetDownloadProvider({ children }: { children: React.ReactNode }) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [state, setState] = useState<PreviewState>('closed');
-  const [pageImages, setPageImages] = useState<string[]>([]);
+  const [previewSource, setPreviewSource] = useState<string>('');
   const pdfRef = useRef<jsPDF | null>(null);
+  const printSourceRef = useRef<string>('');
+  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
   const [showTitles, setShowTitles] = useState(true);
   const [setList, setSetList] = useState(false);
 
@@ -425,11 +427,15 @@ export function NiggunSheetDownloadProvider({ children }: { children: React.Reac
       const pdf = await buildPDF(songs, opts);
       pdfRef.current = pdf;
       const blob = pdf.output('blob');
-      const url = URL.createObjectURL(blob);
-      setPageImages((prev) => {
-        prev.forEach((u) => { try { URL.revokeObjectURL(u); } catch {} });
-        return [url];
-      });
+      const blobUrl = URL.createObjectURL(blob);
+      const dataUrl = pdf.output('datauristring');
+
+      if (printSourceRef.current) {
+        try { URL.revokeObjectURL(printSourceRef.current); } catch {}
+      }
+
+      printSourceRef.current = blobUrl;
+      setPreviewSource(dataUrl);
       setState('ready');
     } catch (err) {
       console.error('PDF generation error:', err);
@@ -463,15 +469,58 @@ export function NiggunSheetDownloadProvider({ children }: { children: React.Reac
     }
   }, []);
 
+  const printPDF = useCallback(() => {
+    const source = printSourceRef.current || previewSource;
+    if (!source) return;
+
+    const frame = previewFrameRef.current ?? document.createElement('iframe');
+    const isTemporaryFrame = frame !== previewFrameRef.current;
+
+    if (isTemporaryFrame) {
+      frame.style.position = 'fixed';
+      frame.style.right = '0';
+      frame.style.bottom = '0';
+      frame.style.width = '0';
+      frame.style.height = '0';
+      frame.style.border = '0';
+      frame.style.opacity = '0';
+      document.body.appendChild(frame);
+    }
+
+    const triggerPrint = () => {
+      window.setTimeout(() => {
+        try {
+          frame.contentWindow?.focus();
+          frame.contentWindow?.print();
+        } finally {
+          if (isTemporaryFrame) {
+            window.setTimeout(() => frame.remove(), 1000);
+          }
+        }
+      }, 250);
+    };
+
+    if (frame.src !== source) {
+      frame.onload = () => {
+        frame.onload = null;
+        triggerPrint();
+      };
+      frame.src = source;
+      return;
+    }
+
+    triggerPrint();
+  }, [previewSource]);
+
   const closePreview = useCallback(() => {
-    // Revoke blob URLs
-    pageImages.forEach((url) => {
-      try { URL.revokeObjectURL(url); } catch {}
-    });
-    setPageImages([]);
+    if (printSourceRef.current) {
+      try { URL.revokeObjectURL(printSourceRef.current); } catch {}
+      printSourceRef.current = '';
+    }
+    setPreviewSource('');
     pdfRef.current = null;
     setState('closed');
-  }, [pageImages]);
+  }, []);
 
   const busy = state === 'loading' || state === 'generating';
 
@@ -508,6 +557,9 @@ export function NiggunSheetDownloadProvider({ children }: { children: React.Reac
                   <button className="ns-preview-btn ns-preview-btn-download" onClick={savePDF}>
                     ↓ Download PDF
                   </button>
+                  <button className="ns-preview-btn ns-preview-btn-download" onClick={printPDF}>
+                    Print
+                  </button>
                 </>
               )}
               <button
@@ -531,10 +583,11 @@ export function NiggunSheetDownloadProvider({ children }: { children: React.Reac
               </div>
             )}
 
-            {state === 'ready' && pageImages[0] && (
+            {state === 'ready' && previewSource && (
               <iframe
+                ref={previewFrameRef}
                 className="ns-preview-iframe"
-                src={pageImages[0]}
+                src={previewSource}
                 title="Niggun Sheet Preview"
               />
             )}

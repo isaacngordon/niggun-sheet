@@ -1,4 +1,10 @@
-// Polyfill TextEncoder/TextDecoder for jsdom (needed by jsPDF dependencies)
-const { TextEncoder, TextDecoder } = require('util');
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
+// Polyfill TextEncoder/TextDecoder for jsdom without shadowing global names.
+const nodeUtil = require('util');
+
+if (typeof global.TextEncoder === 'undefined') {
+	global.TextEncoder = nodeUtil.TextEncoder;
+}
+
+if (typeof global.TextDecoder === 'undefined') {
+	global.TextDecoder = nodeUtil.TextDecoder;
+}

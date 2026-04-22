@@ -13,7 +13,7 @@
    ```env
    GOOGLE_SHEETS_ID=your_sheet_id_here
    GOOGLE_API_KEY=your_api_key_here
-   SHEET_RANGE=Sheet1!A:F
+   SHEET_RANGE=Sheet1!A:G
    ```
 
 3. Run the development server:
@@ -47,9 +47,23 @@
 5. Make your Google Sheet publicly viewable
 6. Copy the Sheet ID from the URL
 
+### Song Sheet Columns
+
+Use this column order in your CSV or Google Sheet:
+
+1. `Search title`
+2. `Title`
+3. `lyrics`
+4. `artist`
+5. `google drive`
+6. `youtube link`
+7. `audio url`
+
+If `audio url` is present, the app will prefer native audio playback and only fall back to YouTube when the audio field is empty.
+
 ### Troubleshooting
 
 - Check that your Google Sheet is publicly readable
 - Verify API key is restricted to Google Sheets API only
 - Ensure Google Sheets API is enabled in your GCP project
-- Test the API directly: `https://sheets.googleapis.com/v4/spreadsheets/YOUR_SHEET_ID/values/Sheet1!A:F?key=YOUR_API_KEY`
+- Test the API directly: `https://sheets.googleapis.com/v4/spreadsheets/YOUR_SHEET_ID/values/Sheet1!A:G?key=YOUR_API_KEY`

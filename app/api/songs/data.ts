@@ -4,7 +4,7 @@ import https from 'https';
 
 const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID || 'YOUR_SHEET_ID';
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'YOUR_API_KEY';
-const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:F1000';
+const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:G1000';
 
 let cachedSongs: Song[] | null = null;
 let cacheTimestamp = 0;
@@ -17,6 +17,7 @@ export interface Song {
   artist: string;
   drive: string;
   youtube: string;
+  audio: string;
 }
 
 export function cleanText(text: string): string {
@@ -27,40 +28,75 @@ export function cleanText(text: string): string {
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
 }
 
+function parseCSVRows(csvText: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < csvText.length; index++) {
+    const char = csvText[index];
+    const nextChar = csvText[index + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        cell += '"';
+        index++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      row.push(cell.trim());
+      cell = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        index++;
+      }
+      row.push(cell.trim());
+      cell = '';
+
+      if (row.some((field) => field !== '')) {
+        rows.push(row);
+      }
+      row = [];
+      continue;
+    }
+
+    cell += char;
+  }
+
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell.trim());
+    if (row.some((field) => field !== '')) {
+      rows.push(row);
+    }
+  }
+
+  return rows;
+}
+
 export function parseCSV(csvText: string): Song[] {
-  const lines = csvText.split('\n');
+  const rows = parseCSVRows(csvText);
   const result: Song[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    const fields: string[] = [];
-    let current = '';
-    let inQuotes = false;
-
-    for (let j = 0; j < line.length; j++) {
-      const char = line[j];
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        fields.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    fields.push(current.trim());
-
+  for (let i = 1; i < rows.length; i++) {
+    const fields = rows[i];
     if (fields.length >= 4) {
-      const [search_title, title, lyrics, artist, drive = '', youtube = ''] = fields;
+      const [search_title, title, lyrics, artist, drive = '', youtube = '', audio = ''] = fields;
       result.push({
-        search_title: search_title.replace(/"/g, ''),
-        title: title.replace(/"/g, ''),
-        lyrics: lyrics.replace(/"/g, ''),
-        artist: artist.replace(/"/g, ''),
-        drive: drive.replace(/"/g, ''),
-        youtube: youtube.replace(/"/g, ''),
+        search_title,
+        title,
+        lyrics,
+        artist,
+        drive,
+        youtube,
+        audio,
       });
     }
   }
@@ -87,7 +123,7 @@ function fetchFromGoogleSheets(): Promise<Song[]> {
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             if (row.length >= 4) {
-              const [search_title = '', title = '', lyrics = '', artist = '', drive = '', youtube = ''] = row;
+              const [search_title = '', title = '', lyrics = '', artist = '', drive = '', youtube = '', audio = ''] = row;
               songs.push({
                 search_title: cleanText(search_title),
                 title: cleanText(title),
@@ -95,6 +131,7 @@ function fetchFromGoogleSheets(): Promise<Song[]> {
                 artist: cleanText(artist),
                 drive: drive.trim(),
                 youtube: youtube.trim(),
+                audio: audio.trim(),
               });
             }
           }

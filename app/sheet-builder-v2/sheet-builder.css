@@ -918,7 +918,7 @@
     break-after: auto;
   }
 
-  /* Scale grid to match — 8.5in/612px ≈ 1.33 at 96dpi */
+  /* Scale grid to match - 8.5in/612px ~= 1.33 at 96dpi */
   .sb2-packery-grid {
     transform: scale(1.33) !important;
     transform-origin: top left !important;

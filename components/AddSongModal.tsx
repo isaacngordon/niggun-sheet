@@ -12,7 +12,7 @@ interface AddSongModalProps {
   onSaveBulk?: (songs: NewSong[]) => Promise<void>;
 }
 
-const CSV_TEMPLATE = 'title,artist,lyrics,youtube_links,drive_link\n"Example Song","Artist Name","Line 1\\nLine 2\\nLine 3","https://youtube.com/watch?v=abc",""';
+const CSV_TEMPLATE = 'title,artist,lyrics,youtube_links,audio_url,drive_link\n"Example Song","Artist Name","Line 1\\nLine 2\\nLine 3","https://youtube.com/watch?v=abc","",""';
 
 function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
@@ -76,6 +76,7 @@ function csvToSongs(text: string): { songs: NewSong[]; errors: string[] } {
   const titleIdx = header.indexOf('title');
   const artistIdx = header.indexOf('artist');
   const lyricsIdx = header.indexOf('lyrics');
+  const audioIdx = header.findIndex((h) => h.includes('audio'));
   const ytIdx = header.findIndex((h) => h.includes('youtube'));
   const driveIdx = header.findIndex((h) => h.includes('drive'));
 
@@ -90,10 +91,11 @@ function csvToSongs(text: string): { songs: NewSong[]; errors: string[] } {
     if (!title) { errors.push(`Row ${r + 1}: missing title, skipped.`); continue; }
     const lyrics = lyricsIdx >= 0 ? (row[lyricsIdx] || '').trim().replace(/\\n/g, '\n') : '';
     const artist = artistIdx >= 0 ? (row[artistIdx] || '').trim() : '';
+    const audioUrl = audioIdx >= 0 ? (row[audioIdx] || '').trim() || undefined : undefined;
     const ytRaw = ytIdx >= 0 ? (row[ytIdx] || '').trim() : '';
     const ytLinks = ytRaw ? ytRaw.split(/\s+/).filter(Boolean) : undefined;
     const driveLink = driveIdx >= 0 ? (row[driveIdx] || '').trim() || undefined : undefined;
-    songs.push({ title, artist, lyrics, youtubeLinks: ytLinks, driveLink });
+    songs.push({ title, artist, lyrics, audioUrl, youtubeLinks: ytLinks, driveLink });
   }
 
   return { songs, errors };
@@ -106,6 +108,7 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [lyrics, setLyrics] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
   const [youtubeLinks, setYoutubeLinks] = useState<string[]>(['']);
   const [driveLink, setDriveLink] = useState('');
   const [saving, setSaving] = useState(false);
@@ -119,7 +122,7 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
 
   const reset = useCallback(() => {
     setTitle(''); setArtist(''); setLyrics('');
-    setYoutubeLinks(['']); setDriveLink('');
+    setAudioUrl(''); setYoutubeLinks(['']); setDriveLink('');
     setCsvFile(null); setCsvPreview(null); setCsvErrors([]);
   }, []);
 
@@ -132,6 +135,7 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
         title: title.trim(),
         artist: artist.trim(),
         lyrics: lyrics.trim(),
+        audioUrl: audioUrl.trim() || undefined,
         youtubeLinks: ytLinks.length > 0 ? ytLinks : undefined,
         driveLink: driveLink.trim() || undefined,
       });
@@ -140,7 +144,7 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
     } finally {
       setSaving(false);
     }
-  }, [title, artist, lyrics, youtubeLinks, driveLink, onSave, onClose, reset]);
+  }, [title, artist, lyrics, audioUrl, youtubeLinks, driveLink, onSave, onClose, reset]);
 
   const handleCsvSelect = useCallback((file: File) => {
     setCsvFile(file);
@@ -212,6 +216,7 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
               <textarea placeholder="Lyrics *" value={lyrics} onChange={(e) => setLyrics(e.target.value)} className="add-song-textarea" rows={6} />
               <div className="add-song-links-group">
                 <label>YouTube Links</label>
+                <p className="add-song-help">Primary playback source right now. Add one or more YouTube URLs.</p>
                 {youtubeLinks.map((link, i) => (
                   <div key={i} className="add-song-link-row">
                     <input type="url" placeholder="https://youtube.com/watch?v=..." value={link} onChange={(e) => { const a = [...youtubeLinks]; a[i] = e.target.value; setYoutubeLinks(a); }} className="add-song-input" />
@@ -219,6 +224,11 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
                   </div>
                 ))}
                 <button type="button" className="add-song-link-add" onClick={() => setYoutubeLinks([...youtubeLinks, ''])}>+ Add another link</button>
+              </div>
+              <div className="add-song-links-group">
+                <label>Direct Audio URL</label>
+                <p className="add-song-help">Optional advanced source. Leave blank if you only use YouTube.</p>
+                <input type="url" placeholder="https://example.com/song.mp3" value={audioUrl} onChange={(e) => setAudioUrl(e.target.value)} className="add-song-input" />
               </div>
               <div className="add-song-links-group">
                 <label>Google Drive Link</label>
@@ -237,6 +247,7 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
             <div className="add-song-modal-body">
               <div className="csv-instructions">
                 <p>Import multiple songs at once from a CSV file.</p>
+                <p className="add-song-help">Use `youtube_links` as the main playback field. `audio_url` is optional.</p>
                 <button className="csv-template-btn" onClick={downloadTemplate}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   Download Template

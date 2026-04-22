@@ -526,6 +526,32 @@ class SheetBuilderEngine {
     });
   }
 
+  repaginateAllPages() {
+    const orderedSongs: SongData[] = [];
+    this.pages.forEach((page) => {
+      page.songs.forEach((song) => orderedSongs.push(song));
+    });
+
+    while (this.pages.length > 1) {
+      const page = this.pages.pop()!;
+      page.draggies.forEach((d) => d.draggie.destroy());
+      page.wrapper.remove();
+    }
+
+    const firstPage = this.pages[0] ?? this.addNewPage();
+    firstPage.draggies.forEach((d) => d.draggie.destroy());
+    firstPage.draggies = [];
+    firstPage.songs = [...orderedSongs];
+    const cards = firstPage.grid.querySelectorAll('.sb2-song-card');
+    cards.forEach((card) => firstPage.packery.remove(card));
+    firstPage.packery.layout();
+
+    this.rebuildPage(firstPage);
+    this.checkAndEnforceLineBreaks();
+    this.checkAndHandleOverflow(firstPage);
+    this.consolidatePages();
+  }
+
   checkAndHandleOverflow(page: PageState) {
     page.packery.layout();
     const cards = Array.from(page.grid.querySelectorAll('.sb2-song-card')) as HTMLDivElement[];
@@ -680,40 +706,19 @@ class SheetBuilderEngine {
       if (cols === 2) page.grid.classList.add('two-columns');
       if (cols === 3) page.grid.classList.add('three-columns');
     });
-    let lastPageCount = this.pages.length;
-    let iterations = 0;
-    do {
-      lastPageCount = this.pages.length;
-      this.rebuildAllCards();
-      this.checkAndEnforceLineBreaks();
-      this.pages.forEach((page) => this.checkAndHandleOverflow(page));
-      this.consolidatePages();
-      iterations++;
-    } while (this.pages.length !== lastPageCount && iterations < 10);
+    this.repaginateAllPages();
   }
 
   setAutoColumns() {
     this.autoFit = true;
-    let lastPageCount = this.pages.length;
-    let iterations = 0;
-    do {
-      lastPageCount = this.pages.length;
-      this.autoScale();
-      this.rebuildAllCards();
-      this.checkAndEnforceLineBreaks();
-      this.pages.forEach((page) => this.checkAndHandleOverflow(page));
-      this.consolidatePages();
-      iterations++;
-    } while (this.pages.length !== lastPageCount && iterations < 10);
+    this.autoScale();
+    this.repaginateAllPages();
   }
 
   toggleTitles() {
     this.showTitles = !this.showTitles;
     if (this.autoFit) this.autoScale();
-    this.rebuildAllCards();
-    this.checkAndEnforceLineBreaks();
-    this.pages.forEach((page) => this.checkAndHandleOverflow(page));
-    this.consolidatePages();
+    this.repaginateAllPages();
   }
 
   togglePageNumbers() {
