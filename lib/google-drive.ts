@@ -476,3 +476,31 @@ export async function savePreferences(prefs: UserPreferences): Promise<void> {
 export function generateId(): string {
   return crypto.randomUUID();
 }
+
+// ─── Test helpers (tree-shaken in production builds) ────────────
+
+/** Reset all module-level state for test isolation. */
+export function _resetForTesting(overrides?: {
+  tokenClient?: any;
+  currentToken?: string | null;
+  tokenExpiresAt?: number;
+  storedClientId?: string | null;
+  driveApiLoaded?: boolean;
+  gisLoaded?: boolean;
+  gapiLoaded?: boolean;
+}): void {
+  gisLoaded = overrides?.gisLoaded ?? false;
+  gisPromise = null;
+  gapiLoaded = overrides?.gapiLoaded ?? false;
+  gapiPromise = null;
+  driveApiLoaded = overrides?.driveApiLoaded ?? false;
+  tokenClient = overrides?.tokenClient ?? null;
+  currentToken = overrides?.currentToken ?? null;
+  tokenExpiresAt = overrides?.tokenExpiresAt ?? 0;
+  storedClientId = overrides?.storedClientId ?? null;
+  if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
+  onTokenRefreshed = null;
+  pendingPopupErrorHandler = null;
+  signInInProgress = false;
+  silentReauthPromise = null;
+}
