@@ -1,5 +1,6 @@
 'use client';
 
+import AnalyticsPreferences from '@/components/AnalyticsPreferences';
 import { NiggunSheetDownloadProvider } from '@/components/NiggunSheetDownload';
 import { GoogleAuthProvider } from '@/components/GoogleAuthProvider';
 import { preloadYTApi } from '@/lib/youtube';
@@ -14,6 +15,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <NiggunSheetDownloadProvider>
       <GoogleAuthProvider>
         {children}
+        <AnalyticsPreferences />
       </GoogleAuthProvider>
     </NiggunSheetDownloadProvider>
   );

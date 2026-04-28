@@ -38,6 +38,10 @@ export default function Footer() {
           <div className="footer-section">
             <h4>Legal</h4>
             <Link href="/contact">Contact Us</Link>
+            <a href="/tracking-disclosure.html">Tracking Disclosure</a>
+            <p className="footer-helper-text">
+              Choose cookie-based or fallback analytics from the privacy control.
+            </p>
           </div>
         </div>
         

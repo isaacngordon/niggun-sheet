@@ -19,6 +19,14 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+.sb2-root,
+.sb2-root *,
+.sb2-root *::before,
+.sb2-root *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
 .sb2-header-wrap {
   position: sticky;
   top: 0;
@@ -507,32 +515,71 @@
   height: 592px;
   overflow: hidden;
   width: 512px;
+  direction: ltr;
+  display: grid;
+  grid-template-columns: repeat(var(--sb2-columns, 1), minmax(0, 1fr));
+  column-gap: 15px;
+  align-items: start;
 }
 
 /* Packery sizer elements */
 .sb2-grid-sizer {
-  width: 100%;
+  display: none;
 }
 
 .sb2-gutter-sizer {
-  width: 15px;
+  display: none;
 }
 
 /* Two-column layout */
-.sb2-packery-grid.two-columns .sb2-grid-sizer,
-.sb2-packery-grid.two-columns .sb2-song-card {
-  width: calc(50% - 8px);
+.sb2-packery-grid.two-columns .sb2-grid-sizer {
+  width: 100%;
 }
 
 /* Three-column layout */
-.sb2-packery-grid.three-columns .sb2-grid-sizer,
-.sb2-packery-grid.three-columns .sb2-song-card {
-  width: calc(33.333% - 10px);
+.sb2-packery-grid.three-columns .sb2-grid-sizer {
+  width: 100%;
 }
 
-/* Allow overflow during drag so card can leave grid bounds */
-.sb2-packery-grid:has(.is-dragging) {
-  overflow: visible;
+.sb2-sheet-column {
+  min-width: 0;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sb2-slot-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.sb2-drop-slot {
+  position: relative;
+  flex: 0 0 auto;
+  height: 0;
+  padding: 4px 0;
+  margin: -2px 0;
+}
+
+.sb2-drop-slot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(242, 203, 5, 0.3);
+  transform: translateY(-50%) scaleX(0.25);
+  opacity: 0;
+  transition: opacity 0.12s ease, transform 0.12s ease, background 0.12s ease;
+}
+
+.sb2-drop-slot.active::before {
+  opacity: 1;
+  transform: translateY(-50%) scaleX(1);
+  background: #f2cb05;
 }
 
 /* ─── Song Card (on sheet — matches original exactly) ─────── */
@@ -542,7 +589,7 @@
   padding: 4px 6px;
   background: white;
   cursor: grab;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   font-family: 'Frank Ruhl Libre', 'Hebrew Font', Arial, Helvetica, sans-serif;
   direction: rtl;
   text-align: center;
@@ -576,6 +623,15 @@
   opacity: 0.95;
   background: #fff9c4;
   transition: none; /* Don't animate the hidden original during drag */
+}
+
+.sb2-song-card.sb2-manual-drag-hidden,
+.sb2-song-card.sb2-drag-source-hidden {
+  visibility: hidden;
+}
+
+.sb2-song-card.sb2-drag-source-active {
+  opacity: 0.32;
 }
 
 .sb2-song-card-title {
@@ -638,6 +694,50 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   opacity: 0.95;
   width: 200px;
+}
+
+.sb2-drag-overlay-card {
+  margin: 0;
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
+  pointer-events: none;
+}
+
+.sb2-drag-overlay-card .sb2-song-card-title,
+.sb2-drag-overlay-card .sb2-song-card-lyrics {
+  opacity: 0.45;
+}
+
+.sb2-drag-overlay-card .sb2-remove-btn {
+  display: none;
+}
+
+.sb2-song-item.is-dragging {
+  opacity: 0.45;
+}
+
+.sb2-measure-root {
+  position: fixed;
+  left: -10000px;
+  top: -10000px;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.sb2-measure-set {
+  position: absolute;
+}
+
+.sb2-measure-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sb2-measure-card {
+  width: 100%;
 }
 
 /* ─── Scrollbar ───────────────────────────────────────────── */

@@ -12,11 +12,6 @@ export default function HomePage() {
     <>
       <Header />
       
-      {/* Corner Banner */}
-      <Link href="/project-growth-page" className="corner-banner">
-        <span>Find out how you can help</span>
-      </Link>
-
       {/* Hero Section */}
       <section className="hero-section">
         <div className="container">
@@ -97,16 +92,16 @@ export default function HomePage() {
         <div className="container">
           <div className="stats-grid">
             <div className="stat-item">
-              <div className="stat-number">200+</div>
-              <div className="stat-label">Niggunim</div>
+              <div className="stat-number">Drag + Drop</div>
+              <div className="stat-label">Sheet Builder</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number">∞</div>
-              <div className="stat-label">Custom Sheets</div>
+              <div className="stat-number">Smartboard</div>
+              <div className="stat-label">Friendly</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number">0</div>
-              <div className="stat-label">Cost</div>
+              <div className="stat-number">Use Your Own</div>
+              <div className="stat-label">Songs</div>
             </div>
           </div>
         </div>

@@ -1,13 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import {
+  DndContext,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragMoveEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Header from '@/components/Header';
 import AddSongModal from '@/components/AddSongModal';
 import { useDevice } from '@/hooks/useDevice';
 import { useGoogleAuth } from '@/components/GoogleAuthProvider';
 import './sheet-builder.css';
-
-// ─── Types ───────────────────────────────────────────────────────
 
 interface Song {
   search_title?: string;
@@ -24,22 +34,98 @@ interface SongData {
   lyrics: string;
 }
 
-interface PageState {
-  wrapper: HTMLDivElement;
-  grid: HTMLDivElement;
-  footer: HTMLDivElement;
-  packery: any;
-  songs: SongData[];
-  draggies: { element: HTMLDivElement; draggie: any }[];
+interface SheetConfig {
+  cols: number;
+  fontSize: number;
 }
 
-// ─── Constants ───────────────────────────────────────────────────
+interface PositionedSong {
+  song: SongData;
+  globalIndex: number;
+  orderNumber: number;
+  pageIndex: number;
+  columnIndex: number;
+}
+
+interface PageLayout {
+  pageIndex: number;
+  pageStartIndex: number;
+  columns: PositionedSong[][];
+  columnCounts: number[];
+  slotInsertIndices: number[][];
+}
+
+interface ConfigMeasurement {
+  heights: Record<string, number>;
+  hasOverflow: boolean;
+}
+
+interface SlotDragData {
+  type: 'slot';
+  pageIndex: number;
+  columnIndex: number;
+  slotIndex: number;
+  insertIndex: number;
+}
+
+interface SheetSongDragData {
+  type: 'sheet-song';
+  song: SongData;
+  globalIndex: number;
+  pageIndex: number;
+  columnIndex: number;
+  orderNumber: number;
+}
+
+interface LibrarySongDragData {
+  type: 'library-song';
+  song: SongData;
+}
+
+type DragData = SlotDragData | SheetSongDragData | LibrarySongDragData;
+
+interface ActiveDragPreview {
+  width: number | null;
+  height: number | null;
+  fallbackCenterX: number | null;
+  fallbackCenterY: number | null;
+}
+
+interface PointerPosition {
+  x: number;
+  y: number;
+}
+
+function getActivatorClientCoordinates(event: Event | null) {
+  if (!event) return null;
+
+  const pointerLikeEvent = event as Event & {
+    clientX?: number;
+    clientY?: number;
+    touches?: ArrayLike<{ clientX: number; clientY: number }>;
+    changedTouches?: ArrayLike<{ clientX: number; clientY: number }>;
+  };
+
+  if (typeof pointerLikeEvent.clientX === 'number' && typeof pointerLikeEvent.clientY === 'number') {
+    return { clientX: pointerLikeEvent.clientX, clientY: pointerLikeEvent.clientY };
+  }
+
+  const firstTouch = pointerLikeEvent.touches?.[0] ?? pointerLikeEvent.changedTouches?.[0];
+  if (firstTouch) {
+    return { clientX: firstTouch.clientX, clientY: firstTouch.clientY };
+  }
+
+  return null;
+}
 
 const PAGE_CONTENT_HEIGHT = 592;
+const PAGE_GRID_WIDTH = 512;
+const GRID_GUTTER_WIDTH = 15;
+const CARD_VERTICAL_GAP = 8;
 const STORAGE_KEY = 'sheetSongsV2';
-const FONT_SIZES = [14, 12, 10, 9, 8];
+const DEFAULT_STATUS = 'Drag songs to the sheet';
 
-const CONFIGS = [
+const CONFIGS: SheetConfig[] = [
   { cols: 1, fontSize: 14 },
   { cols: 2, fontSize: 14 },
   { cols: 2, fontSize: 12 },
@@ -49,755 +135,556 @@ const CONFIGS = [
   { cols: 3, fontSize: 10 },
 ];
 
-// ─── Script Loader ───────────────────────────────────────────────
-
-let scriptsLoaded = false;
-let scriptsPromise: Promise<void> | null = null;
-
-function loadPackeryScripts(): Promise<void> {
-  if (scriptsLoaded) return Promise.resolve();
-  if (scriptsPromise) return scriptsPromise;
-
-  scriptsPromise = new Promise((resolve, reject) => {
-    const packeryScript = document.createElement('script');
-    packeryScript.src = 'https://unpkg.com/packery@3/dist/packery.pkgd.min.js';
-    packeryScript.onload = () => {
-      const draggabillyScript = document.createElement('script');
-      draggabillyScript.src = 'https://unpkg.com/draggabilly@3/dist/draggabilly.pkgd.min.js';
-      draggabillyScript.onload = () => {
-        scriptsLoaded = true;
-        resolve();
-      };
-      draggabillyScript.onerror = reject;
-      document.head.appendChild(draggabillyScript);
-    };
-    packeryScript.onerror = reject;
-    document.head.appendChild(packeryScript);
-  });
-
-  return scriptsPromise;
+function songKey(song: SongData) {
+  return `${song.title}|${song.artist}`;
 }
 
-// ─── SheetBuilder Engine (imperative, uses real Packery + Draggabilly) ────
+function configKey(config: SheetConfig) {
+  return `${config.cols}-${config.fontSize}`;
+}
 
-class SheetBuilderEngine {
-  pages: PageState[] = [];
-  columns = 1;
-  fontSize = 14;
-  autoFit = true;
-  showTitles = true;
-  showPageNumbers = true;
-  showOrderNumbers = false;
-  containerEl: HTMLDivElement | null = null;
+function getColumnWidth(columns: number) {
+  return (PAGE_GRID_WIDTH - GRID_GUTTER_WIDTH * Math.max(columns - 1, 0)) / Math.max(columns, 1);
+}
 
-  private onStatusChange: (msg: string) => void = () => {};
-  onSongsChange: () => void = () => {};
-  private statusTimer: ReturnType<typeof setTimeout> | null = null;
+function estimateSongHeight(song: SongData, fontSize: number, showTitles: boolean, showOrderNumbers: boolean) {
+  const lyricLines = (song.lyrics || '').split('\n').length;
+  const titleHeight = showTitles || showOrderNumbers ? fontSize * 1.4 + 4 : 0;
+  const lyricHeight = lyricLines * fontSize * 1.35;
+  return Math.ceil(titleHeight + lyricHeight + 8);
+}
 
-  setCallbacks(onStatus: (msg: string) => void, onSongsChange: () => void) {
-    this.onStatusChange = onStatus;
-    this.onSongsChange = onSongsChange;
-  }
+function getSongHeight(
+  song: SongData,
+  config: SheetConfig,
+  measurements: Record<string, ConfigMeasurement>,
+  showTitles: boolean,
+  showOrderNumbers: boolean,
+) {
+  const measurement = measurements[configKey(config)];
+  return measurement?.heights[songKey(song)] ?? estimateSongHeight(song, config.fontSize, showTitles, showOrderNumbers);
+}
 
-  updateStatus(message: string) {
-    this.onStatusChange(message);
-    if (this.statusTimer) clearTimeout(this.statusTimer);
-    this.statusTimer = setTimeout(() => {
-      this.onStatusChange('Drag songs to the sheet');
-    }, 3000);
-  }
+function finalizePageLayout(pageIndex: number, pageStartIndex: number, columns: PositionedSong[][], totalColumns: number): PageLayout {
+  const normalizedColumns = Array.from({ length: totalColumns }, (_, columnIndex) => columns[columnIndex] ?? []);
+  const columnCounts = normalizedColumns.map((column) => column.length);
+  const slotInsertIndices = normalizedColumns.map((column, columnIndex) => {
+    const startIndex = pageStartIndex + columnCounts.slice(0, columnIndex).reduce((sum, count) => sum + count, 0);
+    return Array.from({ length: column.length + 1 }, (_, slotIndex) => startIndex + slotIndex);
+  });
 
-  getAllSongs(): SongData[] {
-    const all: SongData[] = [];
-    this.pages.forEach((page) => page.songs.forEach((s) => all.push(s)));
-    return all;
-  }
+  return {
+    pageIndex,
+    pageStartIndex,
+    columns: normalizedColumns,
+    columnCounts,
+    slotInsertIndices,
+  };
+}
 
-  syncToLocalStorage() {
-    const allSongs = this.getAllSongs();
-    if (allSongs.length === 0) {
-      localStorage.removeItem(STORAGE_KEY);
-    } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(allSongs));
+function getColumnHeightForSongs(
+  songs: SongData[],
+  config: SheetConfig,
+  measurements: Record<string, ConfigMeasurement>,
+  showTitles: boolean,
+  showOrderNumbers: boolean,
+) {
+  return songs.reduce((totalHeight, song, index) => {
+    const songHeight = getSongHeight(song, config, measurements, showTitles, showOrderNumbers);
+    return totalHeight + songHeight + (index > 0 ? CARD_VERTICAL_GAP : 0);
+  }, 0);
+}
+
+function buildBalancedColumns(
+  pageSongs: SongData[],
+  pageIndex: number,
+  pageStartIndex: number,
+  config: SheetConfig,
+  measurements: Record<string, ConfigMeasurement>,
+  showTitles: boolean,
+  showOrderNumbers: boolean,
+) {
+  const columnCount = config.cols;
+  const bestResult = {
+    columns: [] as SongData[][],
+    spread: Number.POSITIVE_INFINITY,
+    tallest: Number.POSITIVE_INFINITY,
+  };
+
+  function finalizeCandidate(candidateColumns: SongData[][]) {
+    const paddedColumns = Array.from({ length: columnCount }, (_, columnIndex) => candidateColumns[columnIndex] ?? []);
+    const heights = paddedColumns.map((columnSongs) =>
+      getColumnHeightForSongs(columnSongs, config, measurements, showTitles, showOrderNumbers),
+    );
+    const tallest = Math.max(...heights);
+    if (tallest > PAGE_CONTENT_HEIGHT) {
+      return;
     }
-    this.onSongsChange();
+
+    const nonEmptyHeights = heights.filter((height, index) => paddedColumns[index].length > 0);
+    const spread = nonEmptyHeights.length > 0 ? Math.max(...nonEmptyHeights) - Math.min(...nonEmptyHeights) : 0;
+
+    if (spread < bestResult.spread || (spread === bestResult.spread && tallest < bestResult.tallest)) {
+      bestResult.columns = paddedColumns;
+      bestResult.spread = spread;
+      bestResult.tallest = tallest;
+    }
   }
 
-  // ─── Page Management ─────────────────────────────────────────
+  function walk(columnIndex: number, songIndex: number, candidateColumns: SongData[][]) {
+    const columnsRemaining = columnCount - columnIndex;
+    const songsRemaining = pageSongs.length - songIndex;
 
-  addNewPage(): PageState {
-    const Packery = (window as any).Packery;
-    const pageIndex = this.pages.length;
+    if (columnIndex === columnCount - 1) {
+      finalizeCandidate([...candidateColumns, pageSongs.slice(songIndex)]);
+      return;
+    }
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'sb2-sheet-page';
-    wrapper.dataset.pageIndex = String(pageIndex);
+    const minTake = songsRemaining >= columnsRemaining ? 1 : 0;
+    const maxTake = songsRemaining - Math.max(columnsRemaining - 1, 0);
 
-    const header = document.createElement('div');
-    header.className = 'sb2-page-header';
-    wrapper.appendChild(header);
+    for (let takeCount = minTake; takeCount <= maxTake; takeCount += 1) {
+      const nextColumnSongs = pageSongs.slice(songIndex, songIndex + takeCount);
+      const nextHeight = getColumnHeightForSongs(nextColumnSongs, config, measurements, showTitles, showOrderNumbers);
+      if (nextHeight > PAGE_CONTENT_HEIGHT) {
+        continue;
+      }
 
-    const grid = document.createElement('div');
-    grid.className = 'sb2-packery-grid';
-    if (this.columns === 2) grid.classList.add('two-columns');
-    if (this.columns === 3) grid.classList.add('three-columns');
-
-    const gridSizer = document.createElement('div');
-    gridSizer.className = 'sb2-grid-sizer';
-    grid.appendChild(gridSizer);
-
-    const gutterSizer = document.createElement('div');
-    gutterSizer.className = 'sb2-gutter-sizer';
-    grid.appendChild(gutterSizer);
-
-    wrapper.appendChild(grid);
-
-    const footer = document.createElement('div');
-    footer.className = 'sb2-page-footer';
-    footer.textContent = this.showPageNumbers ? `${pageIndex + 1}` : '';
-    wrapper.appendChild(footer);
-
-    this.containerEl?.appendChild(wrapper);
-
-    const packery = new Packery(grid, {
-      itemSelector: '.sb2-song-card',
-      columnWidth: '.sb2-grid-sizer',
-      gutter: '.sb2-gutter-sizer',
-      percentPosition: false,
-      originLeft: true,
-      transitionDuration: 0,
-      resize: false,
-    });
-
-    const page: PageState = { wrapper, grid, packery, footer, songs: [], draggies: [] };
-    this.pages.push(page);
-    this.setupPageDropZone(wrapper, page);
-    return page;
+      walk(columnIndex + 1, songIndex + takeCount, [...candidateColumns, nextColumnSongs]);
+    }
   }
 
-  setupPageDropZone(wrapper: HTMLDivElement, page: PageState) {
-    wrapper.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-      wrapper.classList.add('drag-over');
-    });
-    wrapper.addEventListener('dragleave', (e) => {
-      if (!wrapper.contains(e.relatedTarget as Node)) wrapper.classList.remove('drag-over');
-    });
-    wrapper.addEventListener('drop', (e) => {
-      e.preventDefault();
-      wrapper.classList.remove('drag-over');
-      try {
-        const songData = JSON.parse(e.dataTransfer?.getData('application/json') || '{}');
-        if (songData?.title) this.addSongFromSidebar(songData, page);
-      } catch { /* ignore */ }
-    });
+  walk(0, 0, []);
+
+  const chosenColumns = bestResult.columns.length > 0
+    ? bestResult.columns
+    : Array.from({ length: columnCount }, (_, columnIndex) => (columnIndex === 0 ? [...pageSongs] : []));
+
+  return chosenColumns.map((columnSongs, columnIndex) =>
+    columnSongs.map((song, offset) => ({
+      song,
+      globalIndex: pageStartIndex + chosenColumns.slice(0, columnIndex).reduce((sum, column) => sum + column.length, 0) + offset,
+      orderNumber: pageStartIndex + chosenColumns.slice(0, columnIndex).reduce((sum, column) => sum + column.length, 0) + offset + 1,
+      pageIndex,
+      columnIndex,
+    })),
+  );
+}
+
+function findBestAutoPageSongCount(
+  remainingSongs: SongData[],
+  config: SheetConfig,
+  measurements: Record<string, ConfigMeasurement>,
+  showTitles: boolean,
+  showOrderNumbers: boolean,
+) {
+  for (let count = remainingSongs.length; count >= 1; count -= 1) {
+    const pageSongs = remainingSongs.slice(0, count);
+    const columns = buildBalancedColumns(pageSongs, 0, 0, config, measurements, showTitles, showOrderNumbers);
+    const fits = columns.every((column) =>
+      getColumnHeightForSongs(column.map((entry) => entry.song), config, measurements, showTitles, showOrderNumbers) <= PAGE_CONTENT_HEIGHT,
+    );
+    if (fits) {
+      return count;
+    }
   }
 
-  // ─── Card Creation ───────────────────────────────────────────
+  return 1;
+}
 
-  createSongCard(song: SongData, page: PageState, preCalculatedOrder: number | null = null): HTMLDivElement {
-    const card = document.createElement('div');
-    card.className = 'sb2-song-card';
-    card.dataset.title = song.title;
-    card.dataset.artist = song.artist;
+function paginateAutoSongs(
+  songs: SongData[],
+  config: SheetConfig,
+  measurements: Record<string, ConfigMeasurement>,
+  showTitles: boolean,
+  showOrderNumbers: boolean,
+) {
+  const pages: PageLayout[] = [];
+  let cursor = 0;
+  let pageIndex = 0;
 
-    let orderNum: number | null = null;
-    if (this.showOrderNumbers) {
-      if (preCalculatedOrder !== null) {
-        orderNum = preCalculatedOrder;
-      } else {
-        orderNum = 1;
-        for (const p of this.pages) {
-          if (p === page) {
-            const idx = p.songs.indexOf(song);
-            orderNum += idx >= 0 ? idx : p.songs.length;
-            break;
-          }
-          orderNum += p.songs.length;
+  while (cursor < songs.length || pages.length === 0) {
+    const pageStartIndex = cursor;
+    const pageSongCount = songs.length === 0 ? 0 : findBestAutoPageSongCount(
+      songs.slice(cursor),
+      config,
+      measurements,
+      showTitles,
+      showOrderNumbers,
+    );
+    const pageSongs = songs.slice(cursor, cursor + Math.max(pageSongCount, songs.length === 0 ? 0 : 1));
+    const columns = buildBalancedColumns(
+      pageSongs,
+      pageIndex,
+      pageStartIndex,
+      config,
+      measurements,
+      showTitles,
+      showOrderNumbers,
+    );
+
+    pages.push(finalizePageLayout(pageIndex, pageStartIndex, columns, config.cols));
+    cursor += pageSongs.length;
+    pageIndex += 1;
+  }
+
+  return pages;
+}
+
+function paginateManualSongs(
+  songs: SongData[],
+  config: SheetConfig,
+  manualLocks: number[][],
+  measurements: Record<string, ConfigMeasurement>,
+  showTitles: boolean,
+  showOrderNumbers: boolean,
+) {
+  const pages: PageLayout[] = [];
+  let cursor = 0;
+  let pageIndex = 0;
+
+  while (cursor < songs.length || pages.length === 0) {
+    const pageStartIndex = cursor;
+    const columns = Array.from({ length: config.cols }, () => [] as PositionedSong[]);
+    const lockedCounts = manualLocks[pageIndex] ?? [];
+
+    for (let columnIndex = 0; columnIndex < config.cols; columnIndex += 1) {
+      if (columnIndex < lockedCounts.length) {
+        const lockedCount = lockedCounts[columnIndex] ?? 0;
+        for (let slot = 0; slot < lockedCount && cursor < songs.length; slot += 1) {
+          columns[columnIndex].push({
+            song: songs[cursor],
+            globalIndex: cursor,
+            orderNumber: cursor + 1,
+            pageIndex,
+            columnIndex,
+          });
+          cursor += 1;
         }
+        continue;
       }
-    }
 
-    if (this.showTitles || this.showOrderNumbers) {
-      const titleEl = document.createElement('div');
-      titleEl.className = 'sb2-song-card-title';
-      if (this.showOrderNumbers && this.showTitles) {
-        const numSpan = document.createElement('span');
-        numSpan.className = 'sb2-order-number';
-        numSpan.textContent = `${orderNum}.`;
-        titleEl.appendChild(numSpan);
-        titleEl.appendChild(document.createTextNode(` ${song.title}`));
-      } else if (this.showOrderNumbers) {
-        const numSpan = document.createElement('span');
-        numSpan.className = 'sb2-order-number';
-        numSpan.textContent = `${orderNum}.`;
-        titleEl.appendChild(numSpan);
-      } else {
-        titleEl.textContent = song.title;
-      }
-      titleEl.style.fontSize = `${this.fontSize}px`;
-      card.appendChild(titleEl);
-    }
+      let usedHeight = 0;
 
-    const lyricsEl = document.createElement('div');
-    lyricsEl.className = 'sb2-song-card-lyrics';
-    lyricsEl.textContent = song.lyrics || '';
-    lyricsEl.style.fontSize = `${this.fontSize}px`;
-    card.appendChild(lyricsEl);
+      while (cursor < songs.length) {
+        const song = songs[cursor];
+        const songHeight = getSongHeight(song, config, measurements, showTitles, showOrderNumbers);
+        const nextHeight = columns[columnIndex].length === 0 ? songHeight : usedHeight + CARD_VERTICAL_GAP + songHeight;
 
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'sb2-remove-btn';
-    removeBtn.textContent = '×';
-    removeBtn.onclick = (e) => { e.stopPropagation(); this.removeSong(page, song, card); };
-    removeBtn.onpointerdown = (e) => e.stopPropagation();
-    card.appendChild(removeBtn);
+        if (columns[columnIndex].length > 0 && nextHeight > PAGE_CONTENT_HEIGHT) {
+          break;
+        }
 
-    return card;
-  }
+        columns[columnIndex].push({
+          song,
+          globalIndex: cursor,
+          orderNumber: cursor + 1,
+          pageIndex,
+          columnIndex,
+        });
 
-  // ─── Add / Remove / Move ─────────────────────────────────────
+        usedHeight = columns[columnIndex].length === 1 ? songHeight : nextHeight;
+        cursor += 1;
 
-  addSongToSheet(song: Song | SongData) {
-    const isDuplicate = this.pages.some((p) => p.songs.some((s) => s.title === song.title && s.artist === song.artist));
-    if (isDuplicate) { this.updateStatus(`"${song.title}" is already on the sheet`); return; }
-
-    let targetPage = this.pages[this.pages.length - 1];
-    if (!targetPage) targetPage = this.addNewPage();
-
-    const songData: SongData = { title: song.title, artist: song.artist, lyrics: song.lyrics };
-    targetPage.songs.push(songData);
-
-    if (this.autoFit) this.autoScale();
-    this.rebuildPage(targetPage);
-    this.checkAndHandleOverflow(targetPage);
-    this.checkAndEnforceLineBreaks();
-    this.consolidatePages();
-    this.syncToLocalStorage();
-    this.updateStatus(`Added "${song.title}"`);
-  }
-
-  addSongFromSidebar(song: SongData, targetPage: PageState) {
-    const isDuplicate = this.pages.some((p) => p.songs.some((s) => s.title === song.title && s.artist === song.artist));
-    if (isDuplicate) { this.updateStatus(`"${song.title}" is already on the sheet`); return; }
-
-    targetPage.songs.push(song);
-    if (this.autoFit) this.autoScale();
-    this.rebuildPage(targetPage);
-    this.checkAndHandleOverflow(targetPage);
-    this.checkAndEnforceLineBreaks();
-    this.consolidatePages();
-    this.syncToLocalStorage();
-    this.updateStatus(`Added "${song.title}" to page ${this.pages.indexOf(targetPage) + 1}`);
-  }
-
-  addCardToPage(songData: SongData, page: PageState) {
-    const Draggabilly = (window as any).Draggabilly;
-    const card = this.createSongCard(songData, page);
-    page.grid.appendChild(card);
-    page.songs.push(songData);
-    page.packery.appended(card);
-
-    const draggie = new Draggabilly(card);
-    page.draggies.push({ element: card, draggie });
-    page.packery.bindDraggabillyEvents(draggie);
-    this.setupCardDragHandlers(card, draggie, page);
-    page.packery.layout();
-
-    card.offsetHeight;
-    const item = page.packery.getItem(card);
-    const cardBottom = item ? item.position.y + card.offsetHeight : 0;
-    return { card, draggie, overflow: cardBottom > PAGE_CONTENT_HEIGHT };
-  }
-
-  removeCardFromPage(card: HTMLDivElement, draggie: any, page: PageState, songData: SongData) {
-    draggie.destroy();
-    page.draggies = page.draggies.filter((d) => d.element !== card);
-    const songIndex = page.songs.findIndex((s) => s.title === songData.title && s.artist === songData.artist);
-    if (songIndex > -1) page.songs.splice(songIndex, 1);
-    page.packery.remove(card);
-    page.packery.layout();
-  }
-
-  removeSong(page: PageState, song: SongData, card: HTMLDivElement) {
-    page.packery.remove(card);
-    page.packery.layout();
-
-    const index = page.songs.findIndex((s) => s.title === song.title && s.artist === song.artist);
-    if (index > -1) page.songs.splice(index, 1);
-
-    const draggieIndex = page.draggies.findIndex((d) => d.element === card);
-    if (draggieIndex > -1) {
-      page.draggies[draggieIndex].draggie.destroy();
-      page.draggies.splice(draggieIndex, 1);
-    }
-
-    this.consolidatePages();
-    if (this.autoFit) {
-      this.autoScale();
-      this.rebuildAllCards();
-      this.checkAndEnforceLineBreaks();
-      this.pages.forEach((p) => this.checkAndHandleOverflow(p));
-      this.consolidatePages();
-    }
-    this.syncToLocalStorage();
-    this.updateStatus(`Removed "${song.title}"`);
-  }
-
-  // ─── Drag Handlers (Draggabilly + Packery native) ────────────
-
-  setupCardDragHandlers(card: HTMLDivElement, draggie: any, page: PageState) {
-    let currentTargetPage: PageState | null = null;
-    let lastPointer: any = null;
-
-    draggie.on('dragStart', () => {
-      card.classList.add('is-dragging');
-      currentTargetPage = null;
-    });
-
-    draggie.on('dragMove', (_event: any, pointer: any) => {
-      lastPointer = pointer;
-      const px = pointer.pageX;
-      const py = pointer.pageY;
-
-      let hoveredPage: PageState | null = null;
-      for (const p of this.pages) {
-        const r = p.wrapper.getBoundingClientRect();
-        const sx = window.scrollX;
-        const sy = window.scrollY;
-        if (px >= r.left + sx && px <= r.right + sx && py >= r.top + sy && py <= r.bottom + sy) {
-          hoveredPage = p;
+        if (usedHeight >= PAGE_CONTENT_HEIGHT) {
           break;
         }
       }
-
-      this.pages.forEach((p) => p.wrapper.classList.remove('drag-over'));
-      if (hoveredPage && hoveredPage !== page) hoveredPage.wrapper.classList.add('drag-over');
-      currentTargetPage = hoveredPage;
-    });
-
-    draggie.on('dragEnd', (_event: any, pointer: any) => {
-      card.classList.remove('is-dragging');
-      this.pages.forEach((p) => p.wrapper.classList.remove('drag-over'));
-      const dropPointer = lastPointer || pointer;
-
-      if (currentTargetPage && currentTargetPage !== page) {
-        const songData = page.songs.find((s) => s.title === card.dataset.title);
-        if (songData) {
-          const insertIndex = this.findInsertIndex(currentTargetPage, dropPointer.pageX, dropPointer.pageY);
-          const de = page.draggies.find((d) => d.element === card);
-          if (de) this.removeCardFromPage(card, de.draggie, page, songData);
-          this.addCardAtPosition(songData, currentTargetPage, insertIndex);
-          this.checkPageOverflow(currentTargetPage);
-          this.consolidatePages();
-          if (this.showOrderNumbers) this.rebuildAllCards();
-          this.syncToLocalStorage();
-          this.updateStatus(`Moved "${songData.title}"`);
-          return;
-        }
-      }
-
-      // Same page — Packery handles reordering natively
-      this.updateSongOrder(page);
-      this.checkPageOverflow(page);
-      this.consolidatePages();
-      this.syncToLocalStorage();
-    });
-  }
-
-  findInsertIndex(targetPage: PageState, dropX: number, dropY: number): number {
-    const gridRect = targetPage.grid.getBoundingClientRect();
-    const relativeX = dropX - gridRect.left;
-    const relativeY = dropY - gridRect.top + targetPage.grid.scrollTop;
-    const cards = Array.from(targetPage.grid.querySelectorAll('.sb2-song-card')) as HTMLDivElement[];
-    let insertIndex = cards.length;
-
-    for (let i = 0; i < cards.length; i++) {
-      const item = targetPage.packery.getItem(cards[i]);
-      if (!item) continue;
-      const cardY = item.position.y;
-      const cardHeight = cards[i].offsetHeight;
-      if (relativeY < cardY + cardHeight / 2) { insertIndex = i; break; }
-      if (Math.abs(relativeY - cardY) < cardHeight / 2) {
-        const cardX = item.position.x;
-        const cardWidth = cards[i].offsetWidth;
-        if (relativeX > cardX + cardWidth / 2) { insertIndex = i; break; }
-      }
-    }
-    return insertIndex;
-  }
-
-  addCardAtPosition(songData: SongData, page: PageState, insertIndex: number) {
-    const Draggabilly = (window as any).Draggabilly;
-    const card = this.createSongCard(songData, page);
-
-    const existingCards = Array.from(page.grid.querySelectorAll('.sb2-song-card'));
-    if (insertIndex < existingCards.length) {
-      page.grid.insertBefore(card, existingCards[insertIndex]);
-      page.songs.splice(insertIndex, 0, songData);
-    } else {
-      page.grid.appendChild(card);
-      page.songs.push(songData);
     }
 
-    page.packery.prepended(card);
-    page.packery.layout();
-
-    const draggie = new Draggabilly(card);
-    page.draggies.push({ element: card, draggie });
-    page.packery.bindDraggabillyEvents(draggie);
-    this.setupCardDragHandlers(card, draggie, page);
-  }
-
-  updateSongOrder(page: PageState) {
-    const items = page.packery.getItemElements();
-    const newOrder: SongData[] = [];
-    items.forEach((item: HTMLElement) => {
-      const title = item.dataset.title;
-      const song = page.songs.find((s) => s.title === title);
-      if (song) newOrder.push(song);
-    });
-    page.songs = newOrder;
-    if (this.showOrderNumbers) this.rebuildAllCards();
-    this.syncToLocalStorage();
-  }
-
-  // ─── Layout & Overflow ───────────────────────────────────────
-
-  rebuildPage(page: PageState) {
-    const songsBackup = [...page.songs];
-    page.draggies.forEach((d) => d.draggie.destroy());
-    page.draggies = [];
-    page.songs = [];
-    const cards = page.grid.querySelectorAll('.sb2-song-card');
-    cards.forEach((card) => page.packery.remove(card));
-
-    page.grid.classList.remove('two-columns', 'three-columns');
-    if (this.columns === 2) page.grid.classList.add('two-columns');
-    if (this.columns === 3) page.grid.classList.add('three-columns');
-
-    const Draggabilly = (window as any).Draggabilly;
-    songsBackup.forEach((song) => {
-      const card = this.createSongCard(song, page);
-      page.grid.appendChild(card);
-      page.songs.push(song);
-      page.packery.appended(card);
-      const draggie = new Draggabilly(card);
-      page.draggies.push({ element: card, draggie });
-      page.packery.bindDraggabillyEvents(draggie);
-      this.setupCardDragHandlers(card, draggie, page);
-    });
-    page.packery.layout();
-  }
-
-  rebuildAllCards() {
-    const globalSongOrder = new Map<string, number>();
-    let globalIndex = 1;
-    this.pages.forEach((page) => {
-      page.songs.forEach((song) => {
-        globalSongOrder.set(`${song.title}|${song.artist}`, globalIndex++);
+    if (cursor === pageStartIndex && cursor < songs.length) {
+      columns[0].push({
+        song: songs[cursor],
+        globalIndex: cursor,
+        orderNumber: cursor + 1,
+        pageIndex,
+        columnIndex: 0,
       });
-    });
-
-    const Draggabilly = (window as any).Draggabilly;
-    this.pages.forEach((page) => {
-      const songsBackup = [...page.songs];
-      page.draggies.forEach((d) => d.draggie.destroy());
-      page.draggies = [];
-      page.songs = [];
-      const cards = page.grid.querySelectorAll('.sb2-song-card');
-      cards.forEach((card) => page.packery.remove(card));
-
-      page.grid.classList.remove('two-columns', 'three-columns');
-      if (this.columns === 2) page.grid.classList.add('two-columns');
-      if (this.columns === 3) page.grid.classList.add('three-columns');
-
-      songsBackup.forEach((song) => {
-        const card = this.createSongCard(song, page, globalSongOrder.get(`${song.title}|${song.artist}`) ?? null);
-        page.grid.appendChild(card);
-        page.songs.push(song);
-        page.packery.appended(card);
-        const draggie = new Draggabilly(card);
-        page.draggies.push({ element: card, draggie });
-        page.packery.bindDraggabillyEvents(draggie);
-        this.setupCardDragHandlers(card, draggie, page);
-      });
-      page.packery.layout();
-    });
-  }
-
-  repaginateAllPages() {
-    const orderedSongs: SongData[] = [];
-    this.pages.forEach((page) => {
-      page.songs.forEach((song) => orderedSongs.push(song));
-    });
-
-    while (this.pages.length > 1) {
-      const page = this.pages.pop()!;
-      page.draggies.forEach((d) => d.draggie.destroy());
-      page.wrapper.remove();
+      cursor += 1;
     }
 
-    const firstPage = this.pages[0] ?? this.addNewPage();
-    firstPage.draggies.forEach((d) => d.draggie.destroy());
-    firstPage.draggies = [];
-    firstPage.songs = [...orderedSongs];
-    const cards = firstPage.grid.querySelectorAll('.sb2-song-card');
-    cards.forEach((card) => firstPage.packery.remove(card));
-    firstPage.packery.layout();
-
-    this.rebuildPage(firstPage);
-    this.checkAndEnforceLineBreaks();
-    this.checkAndHandleOverflow(firstPage);
-    this.consolidatePages();
+    pages.push(finalizePageLayout(pageIndex, pageStartIndex, columns, config.cols));
+    pageIndex += 1;
   }
 
-  checkAndHandleOverflow(page: PageState) {
-    page.packery.layout();
-    const cards = Array.from(page.grid.querySelectorAll('.sb2-song-card')) as HTMLDivElement[];
-    const overflowCards: HTMLDivElement[] = [];
-
-    for (const card of cards) {
-      const item = page.packery.getItem(card);
-      if (!item) continue;
-      if (item.position.y + card.offsetHeight > PAGE_CONTENT_HEIGHT) overflowCards.push(card);
-    }
-
-    for (const card of overflowCards) {
-      const title = card.dataset.title!;
-      const songData = page.songs.find((s) => s.title === title);
-      if (!songData) continue;
-
-      const de = page.draggies.find((d) => d.element === card);
-      if (de) { de.draggie.destroy(); page.draggies = page.draggies.filter((d) => d.element !== card); }
-      page.songs = page.songs.filter((s) => s.title !== title);
-      page.packery.remove(card);
-
-      const pageIndex = this.pages.indexOf(page);
-      let nextPage = this.pages[pageIndex + 1];
-      if (!nextPage) nextPage = this.addNewPage();
-      nextPage.songs.push(songData);
-      this.rebuildPage(nextPage);
-    }
-
-    if (overflowCards.length > 0) {
-      page.packery.layout();
-      const pageIndex = this.pages.indexOf(page);
-      for (let i = pageIndex + 1; i < this.pages.length; i++) {
-        this.checkAndHandleOverflow(this.pages[i]);
-      }
-    }
-  }
-
-  checkPageOverflow(page: PageState) {
-    page.packery.layout();
-    const cards = Array.from(page.grid.querySelectorAll('.sb2-song-card')) as HTMLDivElement[];
-    const overflowCards: HTMLDivElement[] = [];
-    cards.forEach((card) => {
-      const item = page.packery.getItem(card);
-      if (item && item.position.y + card.offsetHeight > PAGE_CONTENT_HEIGHT) overflowCards.push(card);
-    });
-    overflowCards.reverse().forEach((card) => {
-      const title = card.dataset.title!;
-      const songData = page.songs.find((s) => s.title === title);
-      if (!songData) return;
-      const de = page.draggies.find((d) => d.element === card);
-      if (de) {
-        this.removeCardFromPage(card, de.draggie, page, songData);
-        const pageIndex = this.pages.indexOf(page);
-        let nextPage = this.pages[pageIndex + 1];
-        if (!nextPage) nextPage = this.addNewPage();
-        this.addCardToPage(songData, nextPage);
-        this.checkPageOverflow(nextPage);
-      }
-    });
-  }
-
-  consolidatePages() {
-    for (let i = 1; i < this.pages.length; i++) {
-      const currentPage = this.pages[i];
-      const prevPage = this.pages[i - 1];
-      const songsToTry = [...currentPage.songs];
-
-      for (const songData of songsToTry) {
-        const card = currentPage.grid.querySelector(`[data-title="${CSS.escape(songData.title)}"]`) as HTMLDivElement;
-        if (!card) continue;
-        const de = currentPage.draggies.find((d) => d.element === card);
-        if (!de) continue;
-
-        const testResult = this.addCardToPage(songData, prevPage);
-        const item = prevPage.packery.getItem(testResult.card);
-        const cardBottom = item ? item.position.y + testResult.card.offsetHeight : 0;
-
-        if (cardBottom <= PAGE_CONTENT_HEIGHT) {
-          this.removeCardFromPage(card, de.draggie, currentPage, songData);
-        } else {
-          this.removeCardFromPage(testResult.card, testResult.draggie, prevPage, songData);
-        }
-      }
-    }
-
-    for (let i = this.pages.length - 1; i > 0; i--) {
-      if (this.pages[i].songs.length === 0) {
-        this.pages[i].wrapper.remove();
-        this.pages.splice(i, 1);
-      }
-    }
-    this.pages.forEach((page, index) => {
-      page.footer.textContent = this.showPageNumbers ? `${index + 1}` : '';
-    });
-  }
-
-  // ─── Auto-Scale & Line-Break Enforcement ─────────────────────
-
-  autoScale() {
-    if (!this.autoFit) return;
-    let totalLines = 0;
-    let totalSongs = 0;
-    this.pages.forEach((page) => {
-      page.songs.forEach((song) => {
-        totalLines += (song.lyrics ? song.lyrics.split('\n').length : 0) + 2;
-        totalSongs++;
-      });
-    });
-    if (totalSongs === 0) return;
-
-    let bestConfig = CONFIGS[CONFIGS.length - 1];
-    for (const config of CONFIGS) {
-      const lineHeight = config.fontSize * 1.35;
-      const paddingPerSong = 16 + 8;
-      const totalContentHeight = totalLines * lineHeight + totalSongs * paddingPerSong;
-      if (totalContentHeight / config.cols <= PAGE_CONTENT_HEIGHT) { bestConfig = config; break; }
-    }
-
-    this.columns = bestConfig.cols;
-    this.fontSize = bestConfig.fontSize;
-    this.pages.forEach((page) => {
-      page.grid.classList.remove('two-columns', 'three-columns');
-      if (this.columns === 2) page.grid.classList.add('two-columns');
-      if (this.columns === 3) page.grid.classList.add('three-columns');
-    });
-  }
-
-  checkAndEnforceLineBreaks(): boolean {
-    for (let i = 0; i < FONT_SIZES.length; i++) {
-      this.fontSize = FONT_SIZES[i];
-      this.rebuildAllCards();
-      this.pages.forEach((page) => page.packery.layout());
-      let anyTruncated = false;
-      for (const page of this.pages) {
-        for (const el of Array.from(page.grid.querySelectorAll('.sb2-song-card-lyrics'))) {
-          if ((el as HTMLElement).scrollWidth > (el as HTMLElement).clientWidth) { anyTruncated = true; break; }
-        }
-        if (anyTruncated) break;
-      }
-      if (!anyTruncated) return true;
-    }
-    return false;
-  }
-
-  // ─── Controls ────────────────────────────────────────────────
-
-  setColumnsManual(cols: number) {
-    this.columns = cols;
-    this.autoFit = false;
-    this.pages.forEach((page) => {
-      page.grid.classList.remove('two-columns', 'three-columns');
-      if (cols === 2) page.grid.classList.add('two-columns');
-      if (cols === 3) page.grid.classList.add('three-columns');
-    });
-    this.repaginateAllPages();
-  }
-
-  setAutoColumns() {
-    this.autoFit = true;
-    this.autoScale();
-    this.repaginateAllPages();
-  }
-
-  toggleTitles() {
-    this.showTitles = !this.showTitles;
-    if (this.autoFit) this.autoScale();
-    this.repaginateAllPages();
-  }
-
-  togglePageNumbers() {
-    this.showPageNumbers = !this.showPageNumbers;
-    this.pages.forEach((page, index) => {
-      page.footer.textContent = this.showPageNumbers ? `${index + 1}` : '';
-    });
-  }
-
-  toggleOrderNumbers() {
-    this.showOrderNumbers = !this.showOrderNumbers;
-    this.rebuildAllCards();
-  }
-
-  clearAll() {
-    while (this.pages.length > 1) {
-      const page = this.pages.pop()!;
-      page.draggies.forEach((d) => d.draggie.destroy());
-      page.wrapper.remove();
-    }
-    const firstPage = this.pages[0];
-    if (firstPage) {
-      firstPage.songs = [];
-      firstPage.draggies.forEach((d) => d.draggie.destroy());
-      firstPage.draggies = [];
-      firstPage.grid.querySelectorAll('.sb2-song-card').forEach((card) => firstPage.packery.remove(card));
-      firstPage.packery.layout();
-    }
-    localStorage.removeItem(STORAGE_KEY);
-    this.onSongsChange();
-    this.updateStatus('Sheet cleared');
-  }
-
-  loadSavedSongs(allApiSongs: Song[]) {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
-    try {
-      const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed) || parsed.length === 0) return;
-      parsed.forEach((s: SongData) => {
-        const apiSong = allApiSongs.find((a) => a.title === s.title && a.artist === s.artist);
-        this.addSongToSheet({ title: s.title, artist: s.artist, lyrics: apiSong?.lyrics ?? s.lyrics });
-      });
-    } catch { /* ignore */ }
-  }
-
-  destroy() {
-    this.pages.forEach((page) => {
-      page.draggies.forEach((d) => d.draggie.destroy());
-      page.packery.destroy();
-      page.wrapper.remove();
-    });
-    this.pages = [];
-  }
+  return pages;
 }
 
-// ─── React Component ─────────────────────────────────────────────
+function chooseAutoFitConfig(
+  songs: SongData[],
+  measurements: Record<string, ConfigMeasurement>,
+  showTitles: boolean,
+  showOrderNumbers: boolean,
+) {
+  if (songs.length === 0) {
+    return CONFIGS[0];
+  }
+
+  let bestConfig = CONFIGS[0];
+  let bestOverflowPenalty = Number.POSITIVE_INFINITY;
+  let bestPageCount = Number.POSITIVE_INFINITY;
+
+  CONFIGS.forEach((config, index) => {
+    const measurement = measurements[configKey(config)];
+    const overflowPenalty = measurement?.hasOverflow ? 1 : 0;
+    const pageCount = paginateAutoSongs(songs, config, measurements, showTitles, showOrderNumbers).length;
+
+    const isBetter =
+      overflowPenalty < bestOverflowPenalty ||
+      (overflowPenalty === bestOverflowPenalty && pageCount < bestPageCount) ||
+      (overflowPenalty === bestOverflowPenalty && pageCount === bestPageCount && index < CONFIGS.indexOf(bestConfig));
+
+    if (isBetter) {
+      bestConfig = config;
+      bestOverflowPenalty = overflowPenalty;
+      bestPageCount = pageCount;
+    }
+  });
+
+  return bestConfig;
+}
+
+function dedupeConfigs(configs: SheetConfig[]) {
+  const seen = new Set<string>();
+  return configs.filter((config) => {
+    const key = configKey(config);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function arraysEqual(a: number[] | undefined, b: number[] | undefined) {
+  if (!a && !b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  return a.every((value, index) => value === b[index]);
+}
+
+function trimManualLocks(locks: number[][], keepUntilPageIndex: number) {
+  return locks.slice(0, keepUntilPageIndex + 1).map((pageLocks) => [...pageLocks]);
+}
+
+function cloneSong(song: SongData): SongData {
+  return { title: song.title, artist: song.artist, lyrics: song.lyrics };
+}
+
+function SheetCardContent({
+  song,
+  fontSize,
+  showTitles,
+  showOrderNumbers,
+  orderNumber,
+  onRemove,
+}: {
+  song: SongData;
+  fontSize: number;
+  showTitles: boolean;
+  showOrderNumbers: boolean;
+  orderNumber: number;
+  onRemove?: () => void;
+}) {
+  return (
+    <>
+      {(showTitles || showOrderNumbers) && (
+        <div className="sb2-song-card-title" style={{ fontSize }}>
+          {showOrderNumbers && <span className="sb2-order-number">{orderNumber}.</span>}
+          {showTitles && <span>{showTitles && showOrderNumbers ? ` ${song.title}` : song.title}</span>}
+        </div>
+      )}
+      <div className="sb2-song-card-lyrics" style={{ fontSize }}>
+        {song.lyrics || ''}
+      </div>
+      {onRemove && (
+        <button
+          className="sb2-remove-btn"
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove();
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          type="button"
+        >
+          ×
+        </button>
+      )}
+    </>
+  );
+}
+
+function SidebarSongDraggable({
+  song,
+  used,
+  onDoubleClick,
+  privateItem = false,
+}: {
+  song: SongData;
+  used: boolean;
+  onDoubleClick: () => void;
+  privateItem?: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `library:${songKey(song)}`,
+    data: {
+      type: 'library-song',
+      song,
+    } satisfies LibrarySongDragData,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`sb2-song-item ${used ? 'used' : ''} ${privateItem ? 'sb2-private-item' : ''} ${isDragging ? 'is-dragging' : ''}`}
+      onDoubleClick={() => {
+        if (!used) onDoubleClick();
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      <div className="sb2-song-item-title">{song.title}</div>
+      <div className="sb2-song-item-artist">{song.artist || 'Unknown'}</div>
+    </div>
+  );
+}
+
+function DropSlot({ slotData, active }: { slotData: SlotDragData; active: boolean }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `slot:${slotData.pageIndex}:${slotData.columnIndex}:${slotData.slotIndex}:${slotData.insertIndex}`,
+    data: slotData,
+  });
+
+  return <div ref={setNodeRef} className={`sb2-drop-slot ${active || isOver ? 'active' : ''}`} />;
+}
+
+function SheetSongDraggable({
+  positionedSong,
+  fontSize,
+  showTitles,
+  showOrderNumbers,
+  onRemove,
+}: {
+  positionedSong: PositionedSong;
+  fontSize: number;
+  showTitles: boolean;
+  showOrderNumbers: boolean;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `sheet:${songKey(positionedSong.song)}`,
+    data: {
+      type: 'sheet-song',
+      song: positionedSong.song,
+      globalIndex: positionedSong.globalIndex,
+      pageIndex: positionedSong.pageIndex,
+      columnIndex: positionedSong.columnIndex,
+      orderNumber: positionedSong.orderNumber,
+    } satisfies SheetSongDragData,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`sb2-song-card ${isDragging ? 'sb2-drag-source-active' : ''}`}
+      {...attributes}
+      {...listeners}
+    >
+      <SheetCardContent
+        song={positionedSong.song}
+        fontSize={fontSize}
+        showTitles={showTitles}
+        showOrderNumbers={showOrderNumbers}
+        orderNumber={positionedSong.orderNumber}
+        onRemove={onRemove}
+      />
+    </div>
+  );
+}
+
+function MeasurementBank({
+  configs,
+  songs,
+  showTitles,
+  showOrderNumbers,
+  setMeasureRef,
+}: {
+  configs: SheetConfig[];
+  songs: SongData[];
+  showTitles: boolean;
+  showOrderNumbers: boolean;
+  setMeasureRef: (key: string, node: HTMLDivElement | null) => void;
+}) {
+  return (
+    <div className="sb2-measure-root" aria-hidden>
+      {configs.map((config) => {
+        const key = configKey(config);
+        return (
+          <div key={key} className="sb2-measure-set" ref={(node) => setMeasureRef(key, node)}>
+            <div className="sb2-measure-column" style={{ width: getColumnWidth(config.cols) }}>
+              {songs.map((song, index) => (
+                <div key={`${key}-${songKey(song)}`} className="sb2-song-card sb2-measure-card" data-song-key={songKey(song)}>
+                  <SheetCardContent
+                    song={song}
+                    fontSize={config.fontSize}
+                    showTitles={showTitles}
+                    showOrderNumbers={showOrderNumbers}
+                    orderNumber={index + 1}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function SheetBuilderApp() {
   const { isPhone, width } = useDevice();
-  const { user, privateSongs, preferences, signIn, signOut, addSong, addSongs, setPref, loading: authLoading, ready: authReady } = useGoogleAuth();
+  const { user, privateSongs, preferences, addSong, addSongs, setPref } = useGoogleAuth();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [allSongs, setAllSongs] = useState<Song[]>([]);
+  const [sheetSongs, setSheetSongs] = useState<SongData[]>([]);
+  const [manualLocks, setManualLocks] = useState<number[][]>([]);
   const [sidebarTab, setSidebarTabState] = useState<'library' | 'my'>((preferences.sbSidebarTab as 'library' | 'my') || 'library');
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('Drag songs to the sheet');
+  const [status, setStatus] = useState(DEFAULT_STATUS);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showTitles, setShowTitles] = useState(preferences.sbShowTitles !== undefined ? !!preferences.sbShowTitles : true);
   const [showPageNumbers, setShowPageNumbers] = useState(preferences.sbShowPageNumbers !== undefined ? !!preferences.sbShowPageNumbers : true);
   const [showOrderNumbers, setShowOrderNumbers] = useState(!!preferences.sbShowOrderNumbers);
   const [autoFit, setAutoFit] = useState(preferences.sbAutoFit !== undefined ? !!preferences.sbAutoFit : true);
   const [manualColumns, setManualColumns] = useState(typeof preferences.sbManualColumns === 'number' ? preferences.sbManualColumns : 1);
-  const [loaded, setLoaded] = useState(false);
-  const [usedSongKeys, setUsedSongKeys] = useState<Set<string>>(new Set());
+  const [manualFontSize, setManualFontSize] = useState(14);
+  const [measurements, setMeasurements] = useState<Record<string, ConfigMeasurement>>({});
+  const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
+  const [activeDragPreview, setActiveDragPreview] = useState<ActiveDragPreview | null>(null);
+  const [pointerPosition, setPointerPosition] = useState<PointerPosition | null>(null);
+  const [overSlotData, setOverSlotData] = useState<SlotDragData | null>(null);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const engineRef = useRef<SheetBuilderEngine | null>(null);
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const measurementRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const measurementSignatureRef = useRef('');
+  const loadedSavedSongsRef = useRef(false);
 
-  // Sync prefs when they load after sign-in
+  const updateStatus = useCallback((message: string) => {
+    setStatus(message);
+    if (statusTimerRef.current) {
+      clearTimeout(statusTimerRef.current);
+    }
+    statusTimerRef.current = setTimeout(() => {
+      setStatus(DEFAULT_STATUS);
+    }, 3000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (statusTimerRef.current) {
+        clearTimeout(statusTimerRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (preferences.sbSidebarTab) setSidebarTabState(preferences.sbSidebarTab as 'library' | 'my');
     if (preferences.sbShowTitles !== undefined) setShowTitles(!!preferences.sbShowTitles);
@@ -805,29 +692,17 @@ export default function SheetBuilderApp() {
     if (preferences.sbShowOrderNumbers !== undefined) setShowOrderNumbers(!!preferences.sbShowOrderNumbers);
     if (preferences.sbAutoFit !== undefined) setAutoFit(!!preferences.sbAutoFit);
     if (typeof preferences.sbManualColumns === 'number') setManualColumns(preferences.sbManualColumns);
-
-    // Apply to engine too
-    const e = engineRef.current;
-    if (e) {
-      if (preferences.sbShowTitles !== undefined && e.showTitles !== !!preferences.sbShowTitles) e.toggleTitles();
-      if (preferences.sbShowPageNumbers !== undefined && e.showPageNumbers !== !!preferences.sbShowPageNumbers) e.togglePageNumbers();
-      if (preferences.sbShowOrderNumbers !== undefined && e.showOrderNumbers !== !!preferences.sbShowOrderNumbers) e.toggleOrderNumbers();
-      if (preferences.sbAutoFit === false && typeof preferences.sbManualColumns === 'number') {
-        e.setColumnsManual(preferences.sbManualColumns);
-      } else if (preferences.sbAutoFit === true) {
-        e.setAutoColumns();
-      }
-    }
   }, [preferences]);
 
-  const setSidebarTab = useCallback((v: 'library' | 'my') => {
-    setSidebarTabState(v);
-    if (user) setPref('sbSidebarTab', v);
-  }, [user, setPref]);
+  const setSidebarTab = useCallback((value: 'library' | 'my') => {
+    setSidebarTabState(value);
+    if (user) setPref('sbSidebarTab', value);
+  }, [setPref, user]);
 
-  useEffect(() => { if (!isPhone) setSidebarOpen(false); }, [isPhone]);
+  useEffect(() => {
+    if (!isPhone) setSidebarOpen(false);
+  }, [isPhone]);
 
-  // Load songs from API
   useEffect(() => {
     async function load() {
       try {
@@ -836,235 +711,564 @@ export default function SheetBuilderApp() {
         setAllSongs(await res.json());
       } catch {
         setAllSongs([
-          { title: '\u05D0\u05D3\u05D9\u05E8 \u05D4\u05D5\u05D0', artist: 'Traditional', lyrics: '\u05D0\u05D3\u05D9\u05E8 \u05D4\u05D5\u05D0\n\u05D9\u05D1\u05E0\u05D4 \u05D1\u05D9\u05EA\u05D5 \u05D1\u05E7\u05E8\u05D5\u05D1\n\u05D1\u05DE\u05D4\u05E8\u05D4 \u05D1\u05D9\u05DE\u05D9\u05E0\u05D5 \u05D1\u05E7\u05E8\u05D5\u05D1' },
-          { title: '\u05E2\u05D5\u05D3 \u05D9\u05E9\u05DE\u05E2', artist: 'Traditional', lyrics: '\u05E2\u05D5\u05D3 \u05D9\u05E9\u05DE\u05E2 \u05D1\u05E2\u05E8\u05D9 \u05D9\u05D4\u05D5\u05D3\u05D4\n\u05D5\u05D1\u05D7\u05D5\u05E6\u05D5\u05EA \u05D9\u05E8\u05D5\u05E9\u05DC\u05D9\u05DD' },
-          { title: '\u05D5\u05E9\u05DE\u05D7\u05EA', artist: 'Traditional', lyrics: '\u05D5\u05E9\u05DE\u05D7\u05EA \u05D1\u05D7\u05D2\u05DA\n\u05D5\u05D4\u05D9\u05D9\u05EA \u05D0\u05DA \u05E9\u05DE\u05D7' },
+          { title: 'אדיר הוא', artist: 'Traditional', lyrics: 'אדיר הוא\nיבנה ביתו בקרוב\nבמהרה בימינו בקרוב' },
+          { title: 'עוד ישמע', artist: 'Traditional', lyrics: 'עוד ישמע בערי יהודה\nובחוצות ירושלים' },
+          { title: 'ושמחת', artist: 'Traditional', lyrics: 'ושמחת בחגך\nוהיית אך שמח' },
         ]);
       }
     }
+
     load();
   }, []);
 
-  // Initialize engine
-  useEffect(() => {
-    if (allSongs.length === 0 || !containerRef.current) return;
-    let engine: SheetBuilderEngine | null = null;
-
-    loadPackeryScripts().then(() => {
-      if (!containerRef.current) return;
-      engine = new SheetBuilderEngine();
-      engine.containerEl = containerRef.current;
-      engine.setCallbacks(
-        (msg) => setStatus(msg),
-        () => {
-          if (!engine) return;
-          const keys = new Set<string>();
-          engine.pages.forEach((p) => p.songs.forEach((s) => keys.add(`${s.title}|${s.artist}`)));
-          setUsedSongKeys(keys);
-        },
-      );
-      engine.addNewPage();
-      engine.loadSavedSongs(allSongs);
-      engine.onSongsChange();
-      engineRef.current = engine;
-      setLoaded(true);
-    });
-
-    return () => { if (engine) { engine.destroy(); engineRef.current = null; } };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allSongs]);
-
-  const filteredSongs = useMemo(() => {
-    const q = search.toLowerCase();
-    if (!q) return allSongs;
-    return allSongs.filter((s) => s.title.toLowerCase().includes(q) || (s.artist || '').toLowerCase().includes(q));
-  }, [allSongs, search]);
-
-  const privateSongsAsSongs: Song[] = useMemo(() =>
-    privateSongs.map((s) => ({
-      title: s.title, artist: s.artist, lyrics: s.lyrics,
-      youtube: s.youtubeLinks?.join(' ') || '',
-      drive: s.driveLink || '',
+  const privateSongsAsSongs = useMemo<Song[]>(() =>
+    privateSongs.map((song) => ({
+      title: song.title,
+      artist: song.artist,
+      lyrics: song.lyrics,
+      youtube: song.youtubeLinks?.join(' ') || '',
+      drive: song.driveLink || '',
     })),
   [privateSongs]);
 
+  const availableSongsMap = useMemo(() => {
+    const map = new Map<string, SongData>();
+    [...allSongs, ...privateSongsAsSongs].forEach((song) => {
+      map.set(`${song.title}|${song.artist}`, cloneSong(song));
+    });
+    return map;
+  }, [allSongs, privateSongsAsSongs]);
+
+  useEffect(() => {
+    if (loadedSavedSongsRef.current) return;
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
+      loadedSavedSongsRef.current = true;
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) {
+        loadedSavedSongsRef.current = true;
+        return;
+      }
+
+      const restoredSongs = parsed
+        .filter((song): song is SongData => !!song?.title && !!song?.artist)
+        .map((song) => availableSongsMap.get(`${song.title}|${song.artist}`) ?? cloneSong(song));
+
+      setSheetSongs(restoredSongs);
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+    } finally {
+      loadedSavedSongsRef.current = true;
+    }
+  }, [availableSongsMap]);
+
+  useEffect(() => {
+    if (!loadedSavedSongsRef.current) return;
+    if (sheetSongs.length === 0) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sheetSongs));
+  }, [sheetSongs]);
+
+  const filteredSongs = useMemo(() => {
+    const query = search.toLowerCase();
+    if (!query) return allSongs;
+    return allSongs.filter((song) => song.title.toLowerCase().includes(query) || (song.artist || '').toLowerCase().includes(query));
+  }, [allSongs, search]);
+
   const filteredPrivateSongs = useMemo(() => {
-    const q = search.toLowerCase();
-    if (!q) return privateSongsAsSongs;
-    return privateSongsAsSongs.filter((s) => s.title.toLowerCase().includes(q) || (s.artist || '').toLowerCase().includes(q));
+    const query = search.toLowerCase();
+    if (!query) return privateSongsAsSongs;
+    return privateSongsAsSongs.filter((song) => song.title.toLowerCase().includes(query) || (song.artist || '').toLowerCase().includes(query));
   }, [privateSongsAsSongs, search]);
 
-  const handleAddSong = useCallback((song: Song) => {
-    engineRef.current?.addSongToSheet(song);
-    if (isPhone) setSidebarOpen(false);
-  }, [isPhone]);
+  const usedSongKeys = useMemo(() => new Set(sheetSongs.map((song) => songKey(song))), [sheetSongs]);
+
+  const measurementConfigs = useMemo(() => {
+    return dedupeConfigs([...CONFIGS, { cols: manualColumns, fontSize: manualFontSize }]);
+  }, [manualColumns, manualFontSize]);
+
+  const setMeasureRef = useCallback((key: string, node: HTMLDivElement | null) => {
+    measurementRefs.current[key] = node;
+  }, []);
+
+  useLayoutEffect(() => {
+    const nextMeasurements: Record<string, ConfigMeasurement> = {};
+
+    measurementConfigs.forEach((config) => {
+      const key = configKey(config);
+      const root = measurementRefs.current[key];
+      if (!root) return;
+
+      const cards = Array.from(root.querySelectorAll('.sb2-measure-card')) as HTMLDivElement[];
+      const heights: Record<string, number> = {};
+      let hasOverflow = false;
+
+      cards.forEach((card) => {
+        const cardKey = card.dataset.songKey;
+        if (!cardKey) return;
+        heights[cardKey] = card.offsetHeight;
+        const title = card.querySelector('.sb2-song-card-title') as HTMLElement | null;
+        const lyrics = card.querySelector('.sb2-song-card-lyrics') as HTMLElement | null;
+        if ((title && title.scrollWidth > title.clientWidth) || (lyrics && lyrics.scrollWidth > lyrics.clientWidth)) {
+          hasOverflow = true;
+        }
+      });
+
+      nextMeasurements[key] = { heights, hasOverflow };
+    });
+
+    const signature = JSON.stringify(nextMeasurements);
+    if (signature !== measurementSignatureRef.current) {
+      measurementSignatureRef.current = signature;
+      setMeasurements(nextMeasurements);
+    }
+  }, [measurementConfigs, sheetSongs, showOrderNumbers, showTitles]);
+
+  const autoConfig = useMemo(() => chooseAutoFitConfig(sheetSongs, measurements, showTitles, showOrderNumbers), [
+    measurements,
+    sheetSongs,
+    showOrderNumbers,
+    showTitles,
+  ]);
+
+  useEffect(() => {
+    if (autoFit) {
+      setManualFontSize(autoConfig.fontSize);
+    }
+  }, [autoConfig.fontSize, autoFit]);
+
+  const activeConfig = useMemo<SheetConfig>(() => {
+    return autoFit ? autoConfig : { cols: manualColumns, fontSize: manualFontSize };
+  }, [autoConfig, autoFit, manualColumns, manualFontSize]);
+
+  const pageLayouts = useMemo(() => {
+    return autoFit
+      ? paginateAutoSongs(sheetSongs, activeConfig, measurements, showTitles, showOrderNumbers)
+      : paginateManualSongs(sheetSongs, activeConfig, manualLocks, measurements, showTitles, showOrderNumbers);
+  }, [activeConfig, autoFit, manualLocks, measurements, sheetSongs, showOrderNumbers, showTitles]);
+
+  const overPageIndex = overSlotData?.pageIndex ?? null;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+  );
+
+  const handleAddSong = useCallback((song: SongData) => {
+    if (usedSongKeys.has(songKey(song))) {
+      updateStatus(`"${song.title}" is already on the sheet`);
+      return;
+    }
+
+    setSheetSongs((prev) => [...prev, cloneSong(song)]);
+    updateStatus(`Added "${song.title}"`);
+  }, [updateStatus, usedSongKeys]);
 
   const handleClearAll = useCallback(() => {
     if (!confirm('Clear all songs from the sheet?')) return;
-    engineRef.current?.clearAll();
-  }, []);
+    setSheetSongs([]);
+    setManualLocks([]);
+    updateStatus('Sheet cleared');
+  }, [updateStatus]);
 
   const handleToggleTitles = useCallback(() => {
-    const e = engineRef.current; if (!e) return;
-    e.toggleTitles(); setShowTitles(e.showTitles);
-    if (user) setPref('sbShowTitles', e.showTitles);
-  }, [user, setPref]);
+      const next = !showTitles;
+      setShowTitles(next);
+      if (user) setPref('sbShowTitles', next);
+    }, [setPref, showTitles, user]);
 
   const handleTogglePageNumbers = useCallback(() => {
-    const e = engineRef.current; if (!e) return;
-    e.togglePageNumbers(); setShowPageNumbers(e.showPageNumbers);
-    if (user) setPref('sbShowPageNumbers', e.showPageNumbers);
-  }, [user, setPref]);
+      const next = !showPageNumbers;
+      setShowPageNumbers(next);
+      if (user) setPref('sbShowPageNumbers', next);
+    }, [setPref, showPageNumbers, user]);
 
   const handleToggleOrderNumbers = useCallback(() => {
-    const e = engineRef.current; if (!e) return;
-    e.toggleOrderNumbers(); setShowOrderNumbers(e.showOrderNumbers);
-    if (user) setPref('sbShowOrderNumbers', e.showOrderNumbers);
-  }, [user, setPref]);
+      const next = !showOrderNumbers;
+      setShowOrderNumbers(next);
+      if (user) setPref('sbShowOrderNumbers', next);
+    }, [setPref, showOrderNumbers, user]);
 
-  const handleSetColumns = useCallback((cols: number) => {
-    const e = engineRef.current; if (!e) return;
-    e.setColumnsManual(cols); setAutoFit(false); setManualColumns(cols);
-    if (user) { setPref('sbAutoFit', false); setPref('sbManualColumns', cols); }
-  }, [user, setPref]);
+  const handleSetColumns = useCallback((columns: number) => {
+    setAutoFit(false);
+    setManualColumns(columns);
+    setManualLocks([]);
+    if (user) {
+      setPref('sbAutoFit', false);
+      setPref('sbManualColumns', columns);
+    }
+  }, [setPref, user]);
 
   const handleSetAuto = useCallback(() => {
-    const e = engineRef.current; if (!e) return;
-    e.setAutoColumns(); setAutoFit(true);
+    setAutoFit(true);
     if (user) setPref('sbAutoFit', true);
-  }, [user, setPref]);
+  }, [setPref, user]);
+
+  const handleRemoveSong = useCallback((targetSong: SongData) => {
+    const sourcePageIndex = pageLayouts.findIndex((page) =>
+      page.columns.some((column) => column.some((positionedSong) => songKey(positionedSong.song) === songKey(targetSong))),
+    );
+
+    setSheetSongs((prev) => prev.filter((song) => songKey(song) !== songKey(targetSong)));
+    if (!autoFit && sourcePageIndex >= 0) {
+      setManualLocks((prev) => trimManualLocks(prev, sourcePageIndex));
+    }
+    updateStatus(`Removed "${targetSong.title}"`);
+  }, [autoFit, pageLayouts, updateStatus]);
 
   const handlePrint = useCallback(() => window.print(), []);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'p') { e.preventDefault(); handlePrint(); }
+    const handler = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'p') {
+        event.preventDefault();
+        handlePrint();
+      }
     };
+
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [handlePrint]);
 
-  const columns = autoFit ? (engineRef.current?.columns ?? 1) : manualColumns;
+  const applyManualLockUpdate = useCallback((
+    previousLocks: number[][],
+    targetPageIndex: number,
+    targetColumnIndex: number,
+    anchorPageIndex: number,
+  ) => {
+    const nextLocks = trimManualLocks(previousLocks, anchorPageIndex);
+    const targetPage = pageLayouts[targetPageIndex];
+    const currentCounts = targetPage?.columnCounts ?? [];
+    const existingLocks = nextLocks[targetPageIndex] ?? [];
+    const lockCount = Math.max(existingLocks.length, targetColumnIndex);
+
+    while (nextLocks.length <= targetPageIndex) {
+      nextLocks.push([]);
+    }
+
+    nextLocks[targetPageIndex] = currentCounts.slice(0, lockCount);
+    return nextLocks;
+  }, [pageLayouts]);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const initialRect = event.active.rect.current.initial;
+    const activatorCoordinates = getActivatorClientCoordinates(event.activatorEvent);
+
+    setActiveDragData((event.active.data.current as DragData | null) ?? null);
+    setActiveDragPreview({
+      width: event.active.rect.current.initial?.width ?? null,
+      height: event.active.rect.current.initial?.height ?? null,
+      fallbackCenterX: initialRect ? initialRect.left + initialRect.width / 2 : null,
+      fallbackCenterY: initialRect ? initialRect.top + initialRect.height / 2 : null,
+    });
+    setPointerPosition(
+      activatorCoordinates
+        ? { x: activatorCoordinates.clientX, y: activatorCoordinates.clientY }
+        : (initialRect
+          ? { x: initialRect.left + initialRect.width / 2, y: initialRect.top + initialRect.height / 2 }
+          : null),
+    );
+  }, []);
+
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const overData = event.over?.data.current as DragData | undefined;
+    setOverSlotData(overData?.type === 'slot' ? overData : null);
+  }, []);
+
+  const handleDragMove = useCallback((event: DragMoveEvent) => {
+    if (!activeDragPreview?.fallbackCenterX || !activeDragPreview?.fallbackCenterY) {
+      return;
+    }
+
+    setPointerPosition({
+      x: activeDragPreview.fallbackCenterX + event.delta.x,
+      y: activeDragPreview.fallbackCenterY + event.delta.y,
+    });
+  }, [activeDragPreview]);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const activeData = event.active.data.current as DragData | undefined;
+    const overData = event.over?.data.current as DragData | undefined;
+
+    setActiveDragData(null);
+    setActiveDragPreview(null);
+    setPointerPosition(null);
+    setOverSlotData(null);
+
+    if (!activeData || !overData || overData.type !== 'slot') {
+      return;
+    }
+
+    if (activeData.type === 'library-song') {
+      if (usedSongKeys.has(songKey(activeData.song))) {
+        updateStatus(`"${activeData.song.title}" is already on the sheet`);
+        return;
+      }
+
+      setSheetSongs((prev) => {
+        const next = [...prev];
+        next.splice(overData.insertIndex, 0, cloneSong(activeData.song));
+        return next;
+      });
+
+      if (!autoFit) {
+        setManualLocks((prev) => applyManualLockUpdate(prev, overData.pageIndex, overData.columnIndex, overData.pageIndex));
+      }
+
+      updateStatus(`Added "${activeData.song.title}"`);
+      return;
+    }
+
+    if (activeData.type === 'sheet-song') {
+      if (activeData.globalIndex === overData.insertIndex || activeData.globalIndex + 1 === overData.insertIndex) {
+        if (!autoFit) {
+          setManualLocks((prev) => applyManualLockUpdate(
+            prev,
+            overData.pageIndex,
+            overData.columnIndex,
+            Math.min(activeData.pageIndex, overData.pageIndex),
+          ));
+        }
+        return;
+      }
+
+      setSheetSongs((prev) => {
+        const next = [...prev];
+        const [movedSong] = next.splice(activeData.globalIndex, 1);
+        if (!movedSong) return prev;
+        const targetIndex = overData.insertIndex > activeData.globalIndex ? overData.insertIndex - 1 : overData.insertIndex;
+        next.splice(targetIndex, 0, movedSong);
+        return next;
+      });
+
+      if (!autoFit) {
+        setManualLocks((prev) => applyManualLockUpdate(
+          prev,
+          overData.pageIndex,
+          overData.columnIndex,
+          Math.min(activeData.pageIndex, overData.pageIndex),
+        ));
+      }
+
+      updateStatus(`Moved "${activeData.song.title}"`);
+    }
+  }, [applyManualLockUpdate, autoFit, updateStatus, usedSongKeys]);
+
+  const columns = activeConfig.cols;
   const mobileSheetScale = isPhone ? Math.min((width - 16) / 612, 0.95) : 1;
 
   return (
-    <div
-      className="sb2-root"
-      style={isPhone ? { '--mobile-sheet-scale': mobileSheetScale } as React.CSSProperties : undefined}
-    >
-      <div className="sb2-header-wrap"><Header /></div>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+      <div
+        className="sb2-root"
+        style={isPhone ? ({ '--mobile-sheet-scale': mobileSheetScale } as React.CSSProperties) : undefined}
+      >
+        <MeasurementBank
+          configs={measurementConfigs}
+          songs={sheetSongs}
+          showTitles={showTitles}
+          showOrderNumbers={showOrderNumbers}
+          setMeasureRef={setMeasureRef}
+        />
 
-      <div className="sb2-main-layout">
-        <div className={`sb2-sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
+        <div className="sb2-header-wrap"><Header /></div>
 
-        <div className={`sb2-sidebar ${sidebarOpen ? 'open' : ''}`}>
-          <div className="sb2-sidebar-header">
-            <div className="sb2-sidebar-tabs">
-              <button className={`sb2-sidebar-tab ${sidebarTab === 'library' ? 'active' : ''}`} onClick={() => setSidebarTab('library')}>Song Library</button>
-              <button className={`sb2-sidebar-tab ${sidebarTab === 'my' ? 'active' : ''}`} onClick={() => setSidebarTab('my')}>My Songs{privateSongs.length > 0 ? ` (${privateSongs.length})` : ''}</button>
-            </div>
-            <input type="text" className="sb2-search-box" placeholder="Search songs..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <div className="sb2-sidebar-hint"><strong>Tip:</strong> Drag songs to the sheet or double-click to add them. Drag cards on the sheet to reorder.</div>
+        <div className="sb2-main-layout">
+          <div className={`sb2-sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
 
-          {sidebarTab === 'library' ? (
-            <div className="sb2-songs-list">
-              {filteredSongs.map((song) => {
-                const key = `${song.title}|${song.artist}`;
-                const isUsed = usedSongKeys.has(key);
-                return (
-                  <div key={key} className={`sb2-song-item ${isUsed ? 'used' : ''}`}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.effectAllowed = 'copy';
-                      e.dataTransfer.setData('application/json', JSON.stringify({ title: song.title, artist: song.artist, lyrics: song.lyrics }));
-                    }}
-                    onDoubleClick={() => { if (!isUsed) handleAddSong(song); }}
-                  >
-                    <div className="sb2-song-item-title">{song.title}</div>
-                    <div className="sb2-song-item-artist">{song.artist || 'Unknown'}</div>
-                  </div>
-                );
-              })}
-              {allSongs.length === 0 && <div className="sb2-loading">Loading songs...</div>}
-            </div>
-          ) : (
-            <div className="sb2-songs-list">
-              {!user ? (
-                <div className="sb2-my-songs-signin">
-                  <p>Sign in from the header to access your private songs.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="sb2-my-songs-toolbar">
-                    <button className="sb2-my-songs-add-btn" onClick={() => setShowAddForm(true)}>+ Add Song</button>
-                  </div>
-                  <AddSongModal open={showAddForm} onClose={() => setShowAddForm(false)} onSave={addSong} onSaveBulk={addSongs} />
-                  {filteredPrivateSongs.length === 0 ? (
-                    <div className="sb2-loading">{search ? 'No matches' : 'No private songs yet. Add songs from the Song Directory.'}</div>
-                  ) : (
-                    filteredPrivateSongs.map((song) => {
-                      const key = `my|${song.title}|${song.artist}`;
-                      const isUsed = usedSongKeys.has(`${song.title}|${song.artist}`);
-                      return (
-                        <div key={key} className={`sb2-song-item sb2-private-item ${isUsed ? 'used' : ''}`}
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.effectAllowed = 'copy';
-                            e.dataTransfer.setData('application/json', JSON.stringify({ title: song.title, artist: song.artist, lyrics: song.lyrics }));
-                          }}
-                          onDoubleClick={() => { if (!isUsed) handleAddSong(song); }}
-                        >
-                          <div className="sb2-song-item-title">{song.title}</div>
-                          <div className="sb2-song-item-artist">{song.artist || 'Unknown'}</div>
-                        </div>
-                      );
-                    })
-                  )}
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="sb2-main-area">
-          <div className="sb2-toolbar">
-            <div className="sb2-toolbar-group"><button onClick={handleClearAll}>Clear All</button></div>
-            <div className="sb2-toolbar-group">
-              <button onClick={handleToggleTitles}>{showTitles ? 'Hide Titles' : 'Show Titles'}</button>
-              <button onClick={handleTogglePageNumbers}>{showPageNumbers ? 'Hide Page #' : 'Show Page #'}</button>
-              <button onClick={handleToggleOrderNumbers}>{showOrderNumbers ? 'Hide Order #' : 'Show Order #'}</button>
-            </div>
-            <div className="sb2-toolbar-group">
-              <span className="sb2-toolbar-label">Columns:</span>
-              <div className="sb2-column-controls">
-                <button className={!autoFit && columns === 1 ? 'active' : ''} onClick={() => handleSetColumns(1)}>1</button>
-                <button className={!autoFit && columns === 2 ? 'active' : ''} onClick={() => handleSetColumns(2)}>2</button>
-                <button className={!autoFit && columns === 3 ? 'active' : ''} onClick={() => handleSetColumns(3)}>3</button>
-                <button className={autoFit ? 'active' : ''} onClick={handleSetAuto}>Auto</button>
+          <div className={`sb2-sidebar ${sidebarOpen ? 'open' : ''}`}>
+            <div className="sb2-sidebar-header">
+              <div className="sb2-sidebar-tabs">
+                <button className={`sb2-sidebar-tab ${sidebarTab === 'library' ? 'active' : ''}`} onClick={() => setSidebarTab('library')}>
+                  Song Library
+                </button>
+                <button className={`sb2-sidebar-tab ${sidebarTab === 'my' ? 'active' : ''}`} onClick={() => setSidebarTab('my')}>
+                  My Songs{privateSongs.length > 0 ? ` (${privateSongs.length})` : ''}
+                </button>
               </div>
+              <input
+                type="text"
+                className="sb2-search-box"
+                placeholder="Search songs..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
             </div>
-            <div className="sb2-toolbar-group spacer" />
-            <div className="sb2-toolbar-group">
-              <button className="sb2-print-btn" onClick={handlePrint}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 6 2 18 2 18 9" />
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                  <rect x="6" y="14" width="12" height="8" />
-                </svg>
-                Print
-              </button>
-            </div>
-            <div className="sb2-toolbar-group"><span className="sb2-status">{status}</span></div>
+            <div className="sb2-sidebar-hint"><strong>Tip:</strong> Drag songs to the sheet or double-click to add them. Drag cards on the sheet to reorder.</div>
+
+            {sidebarTab === 'library' ? (
+              <div className="sb2-songs-list">
+                {filteredSongs.map((song) => {
+                  const normalizedSong = cloneSong(song);
+                  const key = songKey(normalizedSong);
+                  return (
+                    <SidebarSongDraggable
+                      key={key}
+                      song={normalizedSong}
+                      used={usedSongKeys.has(key)}
+                      onDoubleClick={() => {
+                        handleAddSong(normalizedSong);
+                        if (isPhone) setSidebarOpen(false);
+                      }}
+                    />
+                  );
+                })}
+                {allSongs.length === 0 && <div className="sb2-loading">Loading songs...</div>}
+              </div>
+            ) : (
+              <div className="sb2-songs-list">
+                {!user ? (
+                  <div className="sb2-my-songs-signin">
+                    <p>Sign in from the header to access your private songs.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="sb2-my-songs-toolbar">
+                      <button className="sb2-my-songs-add-btn" onClick={() => setShowAddForm(true)}>+ Add Song</button>
+                    </div>
+                    <AddSongModal open={showAddForm} onClose={() => setShowAddForm(false)} onSave={addSong} onSaveBulk={addSongs} />
+                    {filteredPrivateSongs.length === 0 ? (
+                      <div className="sb2-loading">{search ? 'No matches' : 'No private songs yet. Add songs from the Song Directory.'}</div>
+                    ) : (
+                      filteredPrivateSongs.map((song) => {
+                        const normalizedSong = cloneSong(song);
+                        const key = songKey(normalizedSong);
+                        return (
+                          <SidebarSongDraggable
+                            key={`my-${key}`}
+                            song={normalizedSong}
+                            used={usedSongKeys.has(key)}
+                            privateItem
+                            onDoubleClick={() => {
+                              handleAddSong(normalizedSong);
+                              if (isPhone) setSidebarOpen(false);
+                            }}
+                          />
+                        );
+                      })
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="sb2-page-container" ref={containerRef} />
+          <div className="sb2-main-area">
+            <div className="sb2-toolbar">
+              <div className="sb2-toolbar-group"><button onClick={handleClearAll}>Clear All</button></div>
+              <div className="sb2-toolbar-group">
+                <button onClick={handleToggleTitles}>{showTitles ? 'Hide Titles' : 'Show Titles'}</button>
+                <button onClick={handleTogglePageNumbers}>{showPageNumbers ? 'Hide Page #' : 'Show Page #'}</button>
+                <button onClick={handleToggleOrderNumbers}>{showOrderNumbers ? 'Hide Order #' : 'Show Order #'}</button>
+              </div>
+              <div className="sb2-toolbar-group">
+                <span className="sb2-toolbar-label">Columns:</span>
+                <div className="sb2-column-controls">
+                  <button className={!autoFit && columns === 1 ? 'active' : ''} onClick={() => handleSetColumns(1)}>1</button>
+                  <button className={!autoFit && columns === 2 ? 'active' : ''} onClick={() => handleSetColumns(2)}>2</button>
+                  <button className={!autoFit && columns === 3 ? 'active' : ''} onClick={() => handleSetColumns(3)}>3</button>
+                  <button className={autoFit ? 'active' : ''} onClick={handleSetAuto}>Auto</button>
+                </div>
+              </div>
+              <div className="sb2-toolbar-group spacer" />
+              <div className="sb2-toolbar-group">
+                <button className="sb2-print-btn" onClick={handlePrint}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="6 9 6 2 18 2 18 9" />
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                    <rect x="6" y="14" width="12" height="8" />
+                  </svg>
+                  Print
+                </button>
+              </div>
+              <div className="sb2-toolbar-group"><span className="sb2-status">{status}</span></div>
+            </div>
+
+            <div className="sb2-page-container">
+              {pageLayouts.map((page) => (
+                <div key={`page-${page.pageIndex}`} className={`sb2-sheet-page ${overPageIndex === page.pageIndex ? 'drag-over' : ''}`}>
+                  <div className="sb2-page-header" />
+                  <div
+                    className={`sb2-packery-grid ${columns === 2 ? 'two-columns' : ''} ${columns === 3 ? 'three-columns' : ''}`}
+                    style={{ '--sb2-columns': columns } as React.CSSProperties}
+                  >
+                    {page.columns.map((column, columnIndex) => (
+                      <div key={`page-${page.pageIndex}-column-${columnIndex}`} className="sb2-sheet-column">
+                        {page.slotInsertIndices[columnIndex].map((insertIndex, slotIndex) => {
+                          const positionedSong = column[slotIndex];
+                          const slotData: SlotDragData = {
+                            type: 'slot',
+                            pageIndex: page.pageIndex,
+                            columnIndex,
+                            slotIndex,
+                            insertIndex,
+                          };
+
+                          return (
+                            <div key={`page-${page.pageIndex}-column-${columnIndex}-slot-${slotIndex}`} className="sb2-slot-stack">
+                              <DropSlot
+                                slotData={slotData}
+                                active={
+                                  overSlotData?.pageIndex === slotData.pageIndex &&
+                                  overSlotData.columnIndex === slotData.columnIndex &&
+                                  overSlotData.slotIndex === slotData.slotIndex
+                                }
+                              />
+                              {positionedSong && (
+                                <SheetSongDraggable
+                                  positionedSong={positionedSong}
+                                  fontSize={activeConfig.fontSize}
+                                  showTitles={showTitles}
+                                  showOrderNumbers={showOrderNumbers}
+                                  onRemove={() => handleRemoveSong(positionedSong.song)}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="sb2-page-footer">{showPageNumbers ? `${page.pageIndex + 1}` : ''}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+
+        <button className="sb2-sidebar-toggle" onClick={() => setSidebarOpen((value) => !value)} aria-label={sidebarOpen ? 'Close song library' : 'Open song library'}>
+          {sidebarOpen ? 'Close' : 'Songs'}
+        </button>
       </div>
 
-      <button className="sb2-sidebar-toggle" onClick={() => setSidebarOpen((v) => !v)} aria-label={sidebarOpen ? 'Close song library' : 'Open song library'}>
-        {sidebarOpen ? 'Close' : 'Songs'}
-      </button>
-    </div>
+      {activeDragData && activeDragData.type !== 'slot' && (pointerPosition || activeDragPreview) ? (
+        <div
+          className="sb2-song-card sb2-drag-overlay-card"
+          style={{
+            width: activeDragPreview?.width ? `${activeDragPreview.width}px` : undefined,
+            minHeight: activeDragPreview?.height ? `${activeDragPreview.height}px` : undefined,
+            position: 'fixed',
+            left: `${(pointerPosition?.x ?? activeDragPreview?.fallbackCenterX ?? 0) - (activeDragPreview?.width ?? 0) / 2}px`,
+            top: `${(pointerPosition?.y ?? activeDragPreview?.fallbackCenterY ?? 0) - (activeDragPreview?.height ?? 0) / 2}px`,
+            zIndex: 10000,
+          }}
+        >
+          <SheetCardContent
+            song={activeDragData.song}
+            fontSize={activeConfig.fontSize}
+            showTitles={showTitles}
+            showOrderNumbers={showOrderNumbers && activeDragData.type === 'sheet-song'}
+            orderNumber={activeDragData.type === 'sheet-song' ? activeDragData.orderNumber : 0}
+          />
+        </div>
+      ) : null}
+    </DndContext>
   );
 }

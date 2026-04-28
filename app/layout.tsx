@@ -1,5 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
+import Analytics from '@/components/Analytics';
 import Providers from '@/components/Providers';
 
 export const metadata: Metadata = {
@@ -22,21 +24,14 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300..900&family=Noto+Serif+Hebrew:wght@100..900&display=swap"
           rel="stylesheet"
         />
-        {/* Google Analytics */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-N0MP01KGSP" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-N0MP01KGSP');
-            `,
-          }}
-        />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Suspense fallback={null}>
+            <Analytics />
+          </Suspense>
+        </Providers>
       </body>
     </html>
   );

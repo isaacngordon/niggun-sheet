@@ -17,14 +17,52 @@
     </style>
 </head>
 
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-N0MP01KGSP"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    (function () {
+        var measurementId = 'G-N0MP01KGSP';
+        var storageKey = 'niggunsheet-analytics-mode';
+        var cookieName = 'niggunsheet_analytics_mode=';
+        var mode = 'fallback';
 
-  gtag('config', 'G-N0MP01KGSP');
+        try {
+            var localMode = window.localStorage.getItem(storageKey);
+            if (localMode === 'cookie' || localMode === 'fallback') {
+                mode = localMode;
+            }
+        } catch (err) {
+            mode = 'fallback';
+        }
+
+        if (mode !== 'cookie') {
+            document.cookie.split(';').forEach(function (part) {
+                var cleaned = part.trim();
+                if (cleaned.indexOf(cookieName + 'cookie') === 0) {
+                    mode = 'cookie';
+                }
+            });
+        }
+
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { window.dataLayer.push(arguments); };
+
+        window.gtag('consent', 'default', {
+            ad_storage: 'denied',
+            ad_user_data: 'denied',
+            ad_personalization: 'denied',
+            analytics_storage: mode === 'cookie' ? 'granted' : 'denied'
+        });
+
+        window.gtag('js', new Date());
+        window.gtag('config', measurementId, {
+            anonymize_ip: true,
+            send_page_view: true
+        });
+
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=' + measurementId;
+        document.head.appendChild(script);
+    })();
 </script>
 
 <body>

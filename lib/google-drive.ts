@@ -12,6 +12,10 @@ const TOKEN_REFRESH_MARGIN = 120;   // seconds before expiry to trigger proactiv
 const SESSION_EMAIL_KEY = 'niggunsheet-email'; // persisted for login_hint on reload
 const SESSION_TOKEN_KEY = 'niggunsheet-token';
 const SESSION_TOKEN_EXPIRY_KEY = 'niggunsheet-token-expiry';
+const LOCAL_TOKEN_KEY = 'niggunsheet-token-local';
+const LOCAL_TOKEN_EXPIRY_KEY = 'niggunsheet-token-expiry-local';
+const TOKEN_COOKIE_KEY = 'niggunsheet_token';
+const TOKEN_EXPIRY_COOKIE_KEY = 'niggunsheet_token_expiry';
 
 export type UserPreferences = Record<string, unknown>;
 
@@ -149,25 +153,95 @@ function setToken(accessToken: string, expiresIn: number): void {
     sessionStorage.setItem(SESSION_TOKEN_KEY, accessToken);
     sessionStorage.setItem(SESSION_TOKEN_EXPIRY_KEY, String(tokenExpiresAt));
   } catch { /* ok */ }
+  try {
+    localStorage.setItem(LOCAL_TOKEN_KEY, accessToken);
+    localStorage.setItem(LOCAL_TOKEN_EXPIRY_KEY, String(tokenExpiresAt));
+  } catch { /* ok */ }
+  try {
+    const maxAge = Math.max(0, Math.floor((tokenExpiresAt - Date.now()) / 1000));
+    document.cookie = `${TOKEN_COOKIE_KEY}=${encodeURIComponent(accessToken)}; Path=/; Max-Age=${maxAge}; SameSite=Lax; Secure`;
+    document.cookie = `${TOKEN_EXPIRY_COOKIE_KEY}=${tokenExpiresAt}; Path=/; Max-Age=${maxAge}; SameSite=Lax; Secure`;
+  } catch { /* ok */ }
   scheduleTokenRefresh(expiresIn);
 }
 
-async function restoreCachedToken(): Promise<string | null> {
+function getCookieValue(key: string): string | null {
   try {
-    const token = sessionStorage.getItem(SESSION_TOKEN_KEY);
-    const expiryRaw = sessionStorage.getItem(SESSION_TOKEN_EXPIRY_KEY);
-    const expiry = expiryRaw ? Number(expiryRaw) : 0;
-    if (!token || !expiry || Date.now() >= expiry - 30_000) return null;
-
-    currentToken = token;
-    tokenExpiresAt = expiry;
-    scheduleTokenRefresh(Math.max(1, Math.floor((expiry - Date.now()) / 1000)));
-    await ensureDriveApi();
-    (window as any).gapi.client.setToken({ access_token: token });
-    return token;
+    const parts = document.cookie.split(';').map((part) => part.trim());
+    const found = parts.find((part) => part.startsWith(`${key}=`));
+    if (!found) return null;
+    return decodeURIComponent(found.slice(key.length + 1));
   } catch {
     return null;
   }
+}
+
+function clearPersistedTokenCache(): void {
+  try { sessionStorage.removeItem(SESSION_TOKEN_KEY); } catch { /* ok */ }
+  try { sessionStorage.removeItem(SESSION_TOKEN_EXPIRY_KEY); } catch { /* ok */ }
+  try { localStorage.removeItem(LOCAL_TOKEN_KEY); } catch { /* ok */ }
+  try { localStorage.removeItem(LOCAL_TOKEN_EXPIRY_KEY); } catch { /* ok */ }
+  try { document.cookie = `${TOKEN_COOKIE_KEY}=; Path=/; Max-Age=0; SameSite=Lax; Secure`; } catch { /* ok */ }
+  try { document.cookie = `${TOKEN_EXPIRY_COOKIE_KEY}=; Path=/; Max-Age=0; SameSite=Lax; Secure`; } catch { /* ok */ }
+}
+
+function readCachedTokenCandidate(storage: {
+  getToken: () => string | null;
+  getExpiry: () => string | null;
+}): { token: string; expiry: number } | null {
+  const token = storage.getToken();
+  const expiryRaw = storage.getExpiry();
+  const expiry = expiryRaw ? Number(expiryRaw) : 0;
+  if (!token || !expiry || Number.isNaN(expiry)) return null;
+  if (Date.now() >= expiry - 30_000) return null;
+  return { token, expiry };
+}
+
+async function restoreCachedToken(): Promise<string | null> {
+  const candidates = [
+    () => readCachedTokenCandidate({
+      getToken: () => {
+        try { return sessionStorage.getItem(SESSION_TOKEN_KEY); } catch { return null; }
+      },
+      getExpiry: () => {
+        try { return sessionStorage.getItem(SESSION_TOKEN_EXPIRY_KEY); } catch { return null; }
+      },
+    }),
+    () => readCachedTokenCandidate({
+      getToken: () => {
+        try { return localStorage.getItem(LOCAL_TOKEN_KEY); } catch { return null; }
+      },
+      getExpiry: () => {
+        try { return localStorage.getItem(LOCAL_TOKEN_EXPIRY_KEY); } catch { return null; }
+      },
+    }),
+    () => readCachedTokenCandidate({
+      getToken: () => getCookieValue(TOKEN_COOKIE_KEY),
+      getExpiry: () => getCookieValue(TOKEN_EXPIRY_COOKIE_KEY),
+    }),
+  ];
+
+  for (const getCandidate of candidates) {
+    const candidate = getCandidate();
+    if (!candidate) continue;
+    try {
+      currentToken = candidate.token;
+      tokenExpiresAt = candidate.expiry;
+      scheduleTokenRefresh(Math.max(1, Math.floor((candidate.expiry - Date.now()) / 1000)));
+      await ensureDriveApi();
+      (window as any).gapi.client.setToken({ access_token: candidate.token });
+
+      // Normalize all caches to keep storages consistent.
+      const remainingSeconds = Math.max(1, Math.floor((candidate.expiry - Date.now()) / 1000));
+      setToken(candidate.token, remainingSeconds);
+      return candidate.token;
+    } catch {
+      continue;
+    }
+  }
+
+  clearPersistedTokenCache();
+  return null;
 }
 
 /** Check if the current token is expired or about to expire */
@@ -186,8 +260,7 @@ const SESSION_KEY = 'niggunsheet-auth';
 function clearSession(): void {
   try { localStorage.removeItem(SESSION_KEY); } catch { /* ok */ }
   try { localStorage.removeItem(SESSION_EMAIL_KEY); } catch { /* ok */ }
-  try { sessionStorage.removeItem(SESSION_TOKEN_KEY); } catch { /* ok */ }
-  try { sessionStorage.removeItem(SESSION_TOKEN_EXPIRY_KEY); } catch { /* ok */ }
+  clearPersistedTokenCache();
 }
 
 function markSessionActive(): void {
