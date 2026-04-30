@@ -30,6 +30,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
   const pendingPlayRef = useRef(false);
 
   const [playing, setPlaying] = useState(false);
+  const [optimisticPlaying, setOptimisticPlaying] = useState(false);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(prefersAudio ? false : true);
   const [apiReady, setApiReady] = useState(prefersAudio);
@@ -58,6 +59,10 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
       if (playerRef.current && readyRef.current) {
         try { playerRef.current.pauseVideo(); } catch {}
       }
+      pendingPlayRef.current = false;
+      playingRef.current = false;
+      setOptimisticPlaying(false);
+      setPlaying(false);
     };
 
     playbackBus?.addEventListener('play', handler);
@@ -183,6 +188,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
     playingRef.current = false;
     setReady(false);
     setPlaying(false);
+    setOptimisticPlaying(false);
     setProgress(0);
     setDuration(0);
     setLoading(true);
@@ -235,6 +241,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
             try { playerRef.current.pauseVideo(); } catch {}
             playingRef.current = false;
             setPlaying(false);
+            setOptimisticPlaying(false);
             setLoading(false);
             setProgress(endTime);
             onTick?.(endTime, total, false);
@@ -243,6 +250,9 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
 
           playingRef.current = isPlaying;
           setPlaying(isPlaying);
+          if (isPlaying || !isBuffering) {
+            setOptimisticPlaying(false);
+          }
           setLoading(isBuffering);
           if (total > 0) setDuration(total);
           setProgress(current);
@@ -251,6 +261,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
         onError: (e: any) => {
           if (cancelled || destroyedRef.current) return;
           pendingPlayRef.current = false;
+          setOptimisticPlaying(false);
           setError(`YouTube error ${e?.data ?? ''}`.trim());
           setLoading(false);
         },
@@ -278,6 +289,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
         try { playerRef.current.pauseVideo(); } catch {}
         setProgress(endTime);
         setPlaying(false);
+        setOptimisticPlaying(false);
         onTick?.(endTime, total, false);
         return;
       }
@@ -293,6 +305,8 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
       const audio = audioRef.current;
       if (!audio) return;
       if (!audio.paused) {
+        setOptimisticPlaying(false);
+        setPlaying(false);
         audio.pause();
         return;
       }
@@ -303,8 +317,12 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
         setProgress(audio.currentTime);
       }
       setLoading(!readyRef.current);
+      setOptimisticPlaying(true);
       playbackBus?.dispatchEvent(new CustomEvent('play', { detail: idRef.current }));
-      void audio.play().catch(() => setLoading(false));
+      void audio.play().catch(() => {
+        setOptimisticPlaying(false);
+        setLoading(false);
+      });
       return;
     }
 
@@ -312,6 +330,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
 
     if (error) {
       pendingPlayRef.current = true;
+      setOptimisticPlaying(true);
       setError(null);
       setReady(false);
       setLoading(true);
@@ -325,6 +344,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
 
     if (!shouldInitYoutube) {
       pendingPlayRef.current = true;
+      setOptimisticPlaying(true);
       setShouldInitYoutube(true);
       setLoading(true);
       return;
@@ -332,11 +352,17 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
 
     if (!apiReady || !playerRef.current || !readyRef.current) {
       pendingPlayRef.current = true;
+      setOptimisticPlaying(true);
       setLoading(true);
       return;
     }
 
     if (playingRef.current) {
+      pendingPlayRef.current = false;
+      playingRef.current = false;
+      setOptimisticPlaying(false);
+      setPlaying(false);
+      setLoading(false);
       playerRef.current.pauseVideo();
       return;
     }
@@ -348,6 +374,10 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
     }
 
     playbackBus?.dispatchEvent(new CustomEvent('play', { detail: idRef.current }));
+  playingRef.current = true;
+  setOptimisticPlaying(true);
+  setPlaying(true);
+  setLoading(false);
     playerRef.current.playVideo();
   }, [prefersAudio, youtubeId, apiReady, error, shouldInitYoutube, duration, windowStart, effectiveWindowEnd, clampToWindow]);
 
@@ -371,6 +401,8 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
   const displaySpan = Math.max(0.001, displayEnd - displayStart);
   const displayProgress = Math.max(0, Math.min(displaySpan, progress - displayStart));
   const progressPercent = duration ? Math.max(0, Math.min(100, (displayProgress / displaySpan) * 100)) : 0;
+  const displayPlaying = playing || optimisticPlaying;
+  const displayLoading = loading && !optimisticPlaying;
 
   if (!audioUrl && !youtubeId) return null;
 
@@ -395,11 +427,11 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
         className="yt-play-btn"
         onClick={togglePlay}
         disabled={prefersAudio ? false : false}
-        aria-label={playing ? 'Pause' : 'Play'}
+        aria-label={displayPlaying ? 'Pause' : 'Play'}
       >
-        {loading ? (
+        {displayLoading ? (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="20 40" /></svg>
-        ) : playing ? (
+        ) : displayPlaying ? (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
         ) : (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>

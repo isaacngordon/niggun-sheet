@@ -334,6 +334,7 @@ function SmartboardYouTubePlayer({
   const playingRef = useRef(false);
   const readyRef = useRef(false);
   const [playing, setPlaying] = useState(false);
+  const [optimisticPlaying, setOptimisticPlaying] = useState(false);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -381,6 +382,9 @@ function SmartboardYouTubePlayer({
             const isBuffering = e.data === 3;
             playingRef.current = isPlaying;
             setPlaying(isPlaying);
+            if (isPlaying || !isBuffering) {
+              setOptimisticPlaying(false);
+            }
             setLoading(isBuffering);
             const t = playerRef.current?.getCurrentTime?.() || 0;
             setProgress(t);
@@ -391,6 +395,7 @@ function SmartboardYouTubePlayer({
                 try { playerRef.current?.seekTo(capped, true); } catch {}
                 try { playerRef.current?.pauseVideo(); } catch {}
                 setPlaying(false);
+                setOptimisticPlaying(false);
                 playingRef.current = false;
                 onTick?.(capped, d, false);
                 return;
@@ -405,6 +410,7 @@ function SmartboardYouTubePlayer({
             if (cancelled) return;
             console.error('[Smartboard] YouTube player error:', e?.data);
             setLoading(false);
+            setOptimisticPlaying(false);
             setError(`Player error (code ${e?.data})`);
           },
         },
@@ -431,6 +437,7 @@ function SmartboardYouTubePlayer({
           try { playerRef.current.pauseVideo(); } catch {}
           playingRef.current = false;
           setPlaying(false);
+          setOptimisticPlaying(false);
           setProgress(capped);
           onTick?.(capped, d, false);
           return;
@@ -458,6 +465,10 @@ function SmartboardYouTubePlayer({
   const togglePlay = useCallback(() => {
     if (!readyRef.current) return;
     if (playingRef.current) {
+      playingRef.current = false;
+      setOptimisticPlaying(false);
+      setPlaying(false);
+      setLoading(false);
       playerRef.current?.pauseVideo();
     } else {
       const current = playerRef.current?.getCurrentTime?.() || 0;
@@ -465,6 +476,10 @@ function SmartboardYouTubePlayer({
       if (current < windowStart || (windowEnd != null && current >= windowEnd)) {
         playerRef.current?.seekTo(Math.min(windowStart, total || windowStart), true);
       }
+      playingRef.current = true;
+      setOptimisticPlaying(true);
+      setPlaying(true);
+      setLoading(false);
       playerRef.current?.playVideo();
     }
   }, [duration, windowEnd, windowStart]);
@@ -485,6 +500,8 @@ function SmartboardYouTubePlayer({
   const displayEnd = windowEnd != null ? Math.min(windowEnd, duration || windowEnd) : duration;
   const displaySpan = Math.max(0.001, displayEnd - displayStart);
   const displayProgress = Math.max(0, Math.min(displaySpan, progress - displayStart));
+  const displayPlaying = playing || optimisticPlaying;
+  const displayLoading = loading && !optimisticPlaying;
 
   return (
     <div style={{
@@ -507,17 +524,17 @@ function SmartboardYouTubePlayer({
       <button
         onClick={togglePlay}
         disabled={!ready || Boolean(error)}
-        aria-label={playing ? 'Pause' : 'Play'}
+        aria-label={displayPlaying ? 'Pause' : 'Play'}
         style={{
           background: 'none', border: 'none', color: '#f2cb05',
-          cursor: loading ? 'wait' : 'pointer', padding: 4,
+          cursor: displayLoading ? 'wait' : 'pointer', padding: 4,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}
       >
-        {loading ? (
+        {displayLoading ? (
           <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="20 40" /></svg>
-        ) : playing ? (
+        ) : displayPlaying ? (
           <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
         ) : (
           <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>

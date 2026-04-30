@@ -513,11 +513,11 @@
 
 .sb2-packery-grid {
   position: relative;
-  margin: 80px 50px 120px 50px;
-  height: 592px;
+  margin: 80px 50px 80px 50px;
+  height: 632px;
   overflow: hidden;
   width: 512px;
-  direction: ltr;
+  direction: rtl;
   display: grid;
   grid-template-columns: repeat(var(--sb2-columns, 1), minmax(0, 1fr));
   column-gap: 15px;

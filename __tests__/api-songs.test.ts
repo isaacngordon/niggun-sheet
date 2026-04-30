@@ -48,5 +48,6 @@ describe('GET /api/songs', () => {
 
     const body = await res.json();
     expect(body).toHaveProperty('error', 'Internal Server Error');
+    expect(body).toHaveProperty('message', 'Unable to load songs from any source');
   });
 });

@@ -66,7 +66,7 @@ export default function AnalyticsPreferences() {
             <span className="analytics-pref-caption">
               {isCookieMode ? 'Used only to count visits — no personal data is collected or shared.' : 'Analytics cookies are turned off.'}
             </span>
-            <a href="/tracking-disclosure.html" className="analytics-pref-link">
+            <a href="/tracking-disclosure" className="analytics-pref-link">
               Cookie policy
             </a>
           </div>

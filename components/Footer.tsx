@@ -13,12 +13,13 @@ export default function Footer() {
         <div className="footer-links">
           <div className="footer-section">
             <h4>Downloads</h4>
-            <a
-              href="#"
-              onClick={(e) => { e.preventDefault(); download(); }}
+            <button
+              type="button"
+              className="footer-link-button"
+              onClick={download}
             >
               Niggun Sheet
-            </a>
+            </button>
             <a
               href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
               target="_blank"
@@ -38,7 +39,7 @@ export default function Footer() {
           <div className="footer-section">
             <h4>Legal</h4>
             <Link href="/contact">Contact Us</Link>
-            <a href="/tracking-disclosure.html">Tracking Disclosure</a>
+            <Link href="/tracking-disclosure">Tracking Disclosure</Link>
             <p className="footer-helper-text">
               Choose cookie-based or fallback analytics from the privacy control.
             </p>

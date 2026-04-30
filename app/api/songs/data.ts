@@ -9,6 +9,7 @@ const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:G1000';
 let cachedSongs: Song[] | null = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 5 * 60 * 1000;
+const GOOGLE_SHEETS_TIMEOUT_MS = 4000;
 
 export interface Song {
   search_title: string;
@@ -24,6 +25,7 @@ export function cleanText(text: string): string {
   if (!text) return '';
   return text
     .trim()
+    .replace(/\r\n?/g, '\n')
     .replace(/\uFFFD/g, '')
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
 }
@@ -146,6 +148,23 @@ function fetchFromGoogleSheets(): Promise<Song[]> {
   });
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 function readLocalCSV(): Song[] {
   const songsFilePath = path.join(process.cwd(), 'data/songs.csv');
   const data = fs.readFileSync(songsFilePath, 'utf8');
@@ -161,7 +180,11 @@ export async function getSongs(): Promise<Song[]> {
   try {
     if (GOOGLE_SHEETS_ID && !GOOGLE_SHEETS_ID.includes('YOUR_SHEET_ID') &&
         GOOGLE_API_KEY && !GOOGLE_API_KEY.includes('YOUR_API_KEY')) {
-      const songs = await fetchFromGoogleSheets();
+      const songs = await withTimeout(
+        fetchFromGoogleSheets(),
+        GOOGLE_SHEETS_TIMEOUT_MS,
+        'Google Sheets request timed out',
+      );
       cachedSongs = songs;
       cacheTimestamp = now;
       return songs;

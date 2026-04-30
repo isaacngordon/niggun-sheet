@@ -5,7 +5,7 @@ import { ContactFormBackground } from '@/components/ContactFormBackground';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Get in Touch | Niggun Sheet',
+  title: 'Get in Touch',
   description: 'Help us build the perfect niggun library for rebbeim and communities. Share feedback, suggest songs, or report issues.',
   openGraph: {
     title: 'Get in Touch | Niggun Sheet',
@@ -22,7 +22,7 @@ export default function ContactPage() {
         <div className="contact-card">
           <ContactFormBackground />
           <div className="contact-header">
-            <h1>Get in Touch 🎵</h1>
+            <h1>Get in Touch</h1>
             <p className="subtitle">
               Help us build the perfect niggun library for rebbeim and communities.<br />
               Share lyrics, suggest songs, report issues, or just say hello!

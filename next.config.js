@@ -2,6 +2,9 @@
 const isDev = process.env.NODE_ENV !== 'production';
 
 const nextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   // CORS headers for API routes + security headers
   async headers() {
     const cspScriptSrc = [
@@ -20,7 +23,7 @@ const nextConfig = {
       `script-src ${cspScriptSrc}`,
       "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'",
       "font-src 'self' https://fonts.gstatic.com",
-      "connect-src 'self' https://www.googleapis.com https://sheets.googleapis.com https://accounts.google.com https://formsubmit.co https://www.google-analytics.com https://region1.google-analytics.com",
+      "connect-src 'self' https://www.googleapis.com https://sheets.googleapis.com https://accounts.google.com https://formsubmit.co https://www.google-analytics.com https://region1.google-analytics.com https://www.google.com https://stats.g.doubleclick.net",
       "frame-src 'self' blob: data: https://accounts.google.com https://content.googleapis.com https://www.youtube.com",
       "img-src 'self' data: https: https://www.google-analytics.com https://stats.g.doubleclick.net",
       "object-src 'none'",

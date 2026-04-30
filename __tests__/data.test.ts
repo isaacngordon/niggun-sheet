@@ -24,6 +24,10 @@ describe('cleanText', () => {
   it('preserves newlines (\\n)', () => {
     expect(cleanText('line1\nline2')).toBe('line1\nline2');
   });
+
+  it('normalizes carriage returns into newlines', () => {
+    expect(cleanText('line1\rline2')).toBe('line1\nline2');
+  });
 });
 
 describe('parseCSV', () => {
@@ -54,6 +58,23 @@ describe('parseCSV', () => {
     expect(songs).toHaveLength(1);
     expect(songs[0].title).toBe('Title, with comma');
     expect(songs[0].lyrics).toBe('line1, line2');
+  });
+
+  it('handles escaped double quotes inside quoted fields', () => {
+    const csv = `${header}\nsearchQuote,"Title ""Quoted""","lyrics ""here""",artist Q,,`;
+    const songs = parseCSV(csv);
+
+    expect(songs).toHaveLength(1);
+    expect(songs[0].title).toBe('Title "Quoted"');
+    expect(songs[0].lyrics).toBe('lyrics "here"');
+  });
+
+  it('handles CRLF line endings', () => {
+    const csv = `${header}\r\nsearchCRLF,Title CRLF,lyrics CRLF,artist CRLF,,`;
+    const songs = parseCSV(csv);
+
+    expect(songs).toHaveLength(1);
+    expect(songs[0].title).toBe('Title CRLF');
   });
 
   it('keeps multiline lyrics and later columns on the same row', () => {

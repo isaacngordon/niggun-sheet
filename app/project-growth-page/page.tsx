@@ -3,7 +3,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Growing Our Project | Niggun Sheet',
+  title: 'Growing Our Project',
 };
 
 export default function ProjectGrowthPage() {

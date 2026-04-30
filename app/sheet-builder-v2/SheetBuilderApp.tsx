@@ -118,7 +118,7 @@ function getActivatorClientCoordinates(event: Event | null) {
   return null;
 }
 
-const PAGE_CONTENT_HEIGHT = 592;
+const PAGE_CONTENT_HEIGHT = 632;
 const PAGE_GRID_WIDTH = 512;
 const GRID_GUTTER_WIDTH = 15;
 const CARD_VERTICAL_GAP = 8;
@@ -420,23 +420,61 @@ function chooseAutoFitConfig(
     return CONFIGS[0];
   }
 
-  let bestConfig = CONFIGS[0];
+  // Auto-fit must follow CONFIGS exactly as the source of truth for
+  // the column/font-size progression.
+  // It should not create a second page while a later config can keep the sheet on one page.
+  for (const config of CONFIGS) {
+    const measurement = measurements[configKey(config)];
+    if (measurement?.hasOverflow) continue;
+
+    const pages = paginateAutoSongs(songs, config, measurements, showTitles, showOrderNumbers);
+    if (pages.length <= 1) {
+      return config;
+    }
+  }
+
+  // Only after the progression reaches 3 columns do we allow additional pages.
+  const threeColumnConfigs = CONFIGS.filter((config) => config.cols === 3);
+  let bestConfig = threeColumnConfigs[0] ?? CONFIGS[CONFIGS.length - 1];
   let bestOverflowPenalty = Number.POSITIVE_INFINITY;
+  let bestDensityPenalty = Number.POSITIVE_INFINITY;
   let bestPageCount = Number.POSITIVE_INFINITY;
 
-  CONFIGS.forEach((config, index) => {
+  threeColumnConfigs.forEach((config, index) => {
     const measurement = measurements[configKey(config)];
+    const pages = paginateAutoSongs(songs, config, measurements, showTitles, showOrderNumbers);
     const overflowPenalty = measurement?.hasOverflow ? 1 : 0;
-    const pageCount = paginateAutoSongs(songs, config, measurements, showTitles, showOrderNumbers).length;
+    const pageCount = pages.length;
+
+    // Evaluate how cramped or sparse the tightest column is for this config.
+    let tightestColumnFill = 0;
+    for (const page of pages) {
+      for (const column of page.columns) {
+        const columnHeight = getColumnHeightForSongs(
+          column.map((entry) => entry.song),
+          config,
+          measurements,
+          showTitles,
+          showOrderNumbers,
+        );
+        tightestColumnFill = Math.max(tightestColumnFill, columnHeight / PAGE_CONTENT_HEIGHT);
+      }
+    }
+
+    // Target a comfortably full column so scale readjusts as layout gets tighter/looser.
+    const TARGET_FILL = 0.86;
+    const densityPenalty = Math.abs(tightestColumnFill - TARGET_FILL);
 
     const isBetter =
       overflowPenalty < bestOverflowPenalty ||
       (overflowPenalty === bestOverflowPenalty && pageCount < bestPageCount) ||
-      (overflowPenalty === bestOverflowPenalty && pageCount === bestPageCount && index < CONFIGS.indexOf(bestConfig));
+      (overflowPenalty === bestOverflowPenalty && pageCount === bestPageCount && densityPenalty < bestDensityPenalty) ||
+      (overflowPenalty === bestOverflowPenalty && pageCount === bestPageCount && densityPenalty === bestDensityPenalty && index < threeColumnConfigs.indexOf(bestConfig));
 
     if (isBetter) {
       bestConfig = config;
       bestOverflowPenalty = overflowPenalty;
+      bestDensityPenalty = densityPenalty;
       bestPageCount = pageCount;
     }
   });
@@ -638,7 +676,7 @@ function MeasurementBank({
   );
 }
 
-export default function SheetBuilderApp() {
+export function SheetBuilderApp() {
   const { isPhone, width } = useDevice();
   const { user, privateSongs, preferences, addSong, addSongs, setPref } = useGoogleAuth();
 
@@ -705,8 +743,11 @@ export default function SheetBuilderApp() {
 
   useEffect(() => {
     async function load() {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
       try {
-        const res = await fetch('/api/songs');
+        const res = await fetch('/api/songs', { signal: controller.signal });
         if (!res.ok) throw new Error('Failed');
         setAllSongs(await res.json());
       } catch {
@@ -715,6 +756,8 @@ export default function SheetBuilderApp() {
           { title: 'עוד ישמע', artist: 'Traditional', lyrics: 'עוד ישמע בערי יהודה\nובחוצות ירושלים' },
           { title: 'ושמחת', artist: 'Traditional', lyrics: 'ושמחת בחגך\nוהיית אך שמח' },
         ]);
+      } finally {
+        clearTimeout(timeout);
       }
     }
 
@@ -1272,3 +1315,5 @@ export default function SheetBuilderApp() {
     </DndContext>
   );
 }
+
+export default SheetBuilderApp;

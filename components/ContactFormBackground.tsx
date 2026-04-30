@@ -7,7 +7,7 @@ export function ContactFormBackground() {
   const hebrewLetters = ['א', 'ד', 'ש', 'י', 'ר'];
 
   return (
-    <div className="contact-background-decorations">
+    <div className="contact-background-decorations" aria-hidden="true">
       {/* Floating musical notes - left side */}
       <div className="musical-notes-left">
         {musicalNotes.map((note, i) => (

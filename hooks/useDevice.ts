@@ -32,19 +32,7 @@ function isTouchCapable(): boolean {
 
 export function useDevice(): DeviceInfo {
   const [device, setDevice] = useState<DeviceInfo>(() => {
-    if (typeof window === 'undefined') {
-      return { type: 'desktop', isPhone: false, isTablet: false, isDesktop: true, isTouchDevice: false, width: 1024 };
-    }
-    const w = window.innerWidth;
-    const type = getDeviceType(w);
-    return {
-      type,
-      isPhone: type === 'phone',
-      isTablet: type === 'tablet',
-      isDesktop: type === 'desktop',
-      isTouchDevice: isTouchCapable(),
-      width: w,
-    };
+    return { type: 'desktop', isPhone: false, isTablet: false, isDesktop: true, isTouchDevice: false, width: 1024 };
   });
 
   const handleResize = useCallback(() => {

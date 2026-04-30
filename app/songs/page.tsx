@@ -2,6 +2,20 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SongsList from './SongsList';
 import { getSongs } from '@/app/api/songs/data';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Song Directory',
+  description: 'Browse niggunim with lyrics, artist info, and playback links. Search and organize songs for your kumzitz.',
+  alternates: {
+    canonical: '/songs',
+  },
+  openGraph: {
+    title: 'Song Directory | Niggun Sheet',
+    description: 'Browse niggunim with lyrics, artist info, and playback links.',
+    type: 'website',
+  },
+};
 
 export default async function SongsPage({
   searchParams,

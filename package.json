@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "description": "Discover Your Perfect Niggun - the next generation of Kumzits Sheets",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

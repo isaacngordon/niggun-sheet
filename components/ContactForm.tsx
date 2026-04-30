@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useState, useRef } from 'react';
-import { motion, Variants } from 'framer-motion';
+import { motion, Transition, Variants } from 'framer-motion';
 import { submitContact } from '@/app/actions/contact';
 
 export function ContactForm() {
@@ -41,7 +41,7 @@ export function ContactForm() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.5, type: 'spring', stiffness: 100, damping: 15 } as any,
+      transition: { duration: 0.5, type: 'spring', stiffness: 100, damping: 15 } as Transition,
     },
   };
 
@@ -77,8 +77,9 @@ export function ContactForm() {
 
       {/* Form fields */}
       <motion.div className="form-group" variants={itemVariants}>
-        <label className="form-label">Your Name or Yeshiva</label>
+        <label className="form-label" htmlFor="contact-name">Your Name or Yeshiva</label>
         <motion.input
+          id="contact-name"
           type="text"
           name="name"
           required
@@ -92,8 +93,9 @@ export function ContactForm() {
       </motion.div>
 
       <motion.div className="form-group" variants={itemVariants}>
-        <label className="form-label">Email</label>
+        <label className="form-label" htmlFor="contact-email">Email</label>
         <motion.input
+          id="contact-email"
           type="email"
           name="email"
           required
@@ -107,8 +109,9 @@ export function ContactForm() {
       </motion.div>
 
       <motion.div className="form-group" variants={itemVariants}>
-        <label className="form-label">What's This About?</label>
+        <label className="form-label" htmlFor="contact-subject">What's This About?</label>
         <motion.select
+          id="contact-subject"
           name="subject"
           required
           className="form-select"
@@ -129,8 +132,9 @@ export function ContactForm() {
       </motion.div>
 
       <motion.div className="form-group" variants={itemVariants}>
-        <label className="form-label">Message</label>
+        <label className="form-label" htmlFor="contact-message">Message</label>
         <motion.textarea
+          id="contact-message"
           name="message"
           required
           className="form-textarea"
@@ -150,6 +154,8 @@ export function ContactForm() {
       {isPending && (
         <motion.div
           className="form-loading-indicator"
+          role="status"
+          aria-live="polite"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
@@ -167,6 +173,8 @@ export function ContactForm() {
       {showSuccess && (
         <motion.div
           className="form-success-indicator"
+          role="status"
+          aria-live="polite"
           variants={successVariants}
           initial="hidden"
           animate="visible"
@@ -179,7 +187,7 @@ export function ContactForm() {
           >
             ✓
           </motion.span>
-          Message sent! Thanks for reaching out 🎵
+          Message sent! Thanks for reaching out.
         </motion.div>
       )}
     </motion.form>
@@ -239,7 +247,7 @@ function FloatingParticles() {
   const particles = Array.from({ length: 6 }, (_, i) => i);
 
   return (
-    <div className="particles-container">
+    <div className="particles-container" aria-hidden="true">
       {particles.map((i) => (
         <motion.div
           key={i}
