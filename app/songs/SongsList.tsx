@@ -45,6 +45,7 @@ interface ClipTimingEntry {
 type RawTimingEntry = number[] | ClipTimingEntry;
 
 const DEFAULT_CARD_LENGTH = 6;
+const ENABLE_GRID_VIEW = false;
 
 function normalizeBoundaryPoint(point: unknown): number | null {
   if (typeof point !== 'number' || !Number.isFinite(point) || point < 0) return null;
@@ -118,13 +119,17 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
   const [timingBoundsBySlug, setTimingBoundsBySlug] = useState<Record<string, TimingBounds>>({});
   const { user, privateSongs, preferences, loading: authLoading, ready: authReady, signIn, signOut, addSong, addSongs, removeSong, setPref } = useGoogleAuth();
   const [filter, setFilterState] = useState<'all' | 'library' | 'mine'>((preferences.songsFilter as 'all' | 'library' | 'mine') || 'all');
-  const [viewMode, setViewModeState] = useState<'grid' | 'list'>((preferences.songsViewMode as 'grid' | 'list') || 'grid');
+  const [viewMode, setViewModeState] = useState<'grid' | 'list'>(ENABLE_GRID_VIEW ? ((preferences.songsViewMode as 'grid' | 'list') || 'grid') : 'list');
   const [showAddForm, setShowAddForm] = useState(false);
 
   // Sync prefs when they load after sign-in
   useEffect(() => {
     if (preferences.songsFilter) setFilterState(preferences.songsFilter as 'all' | 'library' | 'mine');
-    if (preferences.songsViewMode) setViewModeState(preferences.songsViewMode as 'grid' | 'list');
+    if (ENABLE_GRID_VIEW && preferences.songsViewMode) {
+      setViewModeState(preferences.songsViewMode as 'grid' | 'list');
+      return;
+    }
+    setViewModeState('list');
   }, [preferences.songsFilter, preferences.songsViewMode]);
 
   const setFilter = useCallback((v: 'all' | 'library' | 'mine') => {
@@ -133,6 +138,7 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
   }, [user, setPref]);
 
   const setViewMode = useCallback((v: 'grid' | 'list') => {
+    if (!ENABLE_GRID_VIEW && v === 'grid') return;
     setViewModeState(v);
     if (user) setPref('songsViewMode', v);
   }, [user, setPref]);
@@ -208,6 +214,9 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
           placeholder="Search by title, artist, or lyrics..."
           className="search-input"
         />
+        {user && (
+          <button className="my-songs-add-btn" onClick={() => setShowAddForm(true)}>+ Add Song</button>
+        )}
       </div>
 
       <div className="songs-filter-bar">
@@ -218,19 +227,18 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
             My Songs{user && privateSongs.length > 0 ? ` (${privateSongs.length})` : ''}
           </button>
         </div>
-        <div className="songs-filter-right">
-          <div className="songs-view-toggle">
-            <button className={`songs-view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')} aria-label="Grid view">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
-            </button>
-            <button className={`songs-view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} aria-label="List view">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
-            </button>
+        {ENABLE_GRID_VIEW && (
+          <div className="songs-filter-right">
+            <div className="songs-view-toggle">
+              <button className={`songs-view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')} aria-label="Grid view">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
+              </button>
+              <button className={`songs-view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} aria-label="List view">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
+              </button>
+            </div>
           </div>
-          {user && (
-            <button className="my-songs-add-btn" onClick={() => setShowAddForm(true)}>+ Add Song</button>
-          )}
-        </div>
+        )}
       </div>
 
       <AddSongModal open={showAddForm} onClose={() => setShowAddForm(false)} onSave={addSong} onSaveBulk={addSongs} />
@@ -248,6 +256,12 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
         </div>
       ) : (
         <div className={viewMode === 'list' ? 'songs-list' : 'songs-grid'}>
+          {viewMode === 'list' && (
+            <div className="songs-list-header" aria-hidden="true">
+              <span>Track</span>
+              <span>Playback + Actions</span>
+            </div>
+          )}
           {filteredSongs.map((song, index) => {
             const isPrivate = '_privateId' in song && !!song._privateId;
             const href = isPrivate ? `/songs/my-${song._privateId}` : `/songs/${slugify(song.title)}`;
@@ -255,12 +269,30 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
             const fallbackSlug = isPrivate ? null : slugify(song.search_title || song.title);
             const bounds = timingBoundsBySlug[songSlug] ?? (fallbackSlug ? timingBoundsBySlug[fallbackSlug] : undefined) ?? { inPoint: null, outPoint: null };
             const cardKey = isPrivate ? `my-${song._privateId}` : `${href}-${song.artist || 'unknown-artist'}`;
+            const lyricLines = song.lyrics
+              .split('\n')
+              .map((line) => line.trim())
+              .filter(Boolean);
+            const listExcerpt = lyricLines.slice(0, 2).join('  ') ?? '';
             return (
               <div key={cardKey} className={`song-card ${isPrivate ? 'private-song-card' : ''}`}>
                 <Link href={href} className="song-card-link">
-                  {isPrivate && <div className="private-badge">My Song</div>}
-                  <h3 className="song-title">{song.title}</h3>
-                  {song.artist && <p className="song-artist">{song.artist}</p>}
+                  {viewMode === 'list' ? (
+                    <div className="song-list-headline">
+                      <span className="song-list-index">{String(index + 1).padStart(2, '0')}</span>
+                      <div className="song-list-meta">
+                        {isPrivate && <div className="private-badge">My Song</div>}
+                        <h3 className="song-title">{song.title}</h3>
+                        {song.artist && <p className="song-artist">{song.artist}</p>}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {isPrivate && <div className="private-badge">My Song</div>}
+                      <h3 className="song-title">{song.title}</h3>
+                      {song.artist && <p className="song-artist">{song.artist}</p>}
+                    </>
+                  )}
                   {viewMode === 'grid' && (
                     <div className="song-lyrics">
                       {song.lyrics.split('\n').slice(0, 4).join('\n')}
@@ -268,37 +300,61 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
                     </div>
                   )}
                 </Link>
+                {viewMode === 'list' && (
+                  <p className="song-list-excerpt">{listExcerpt || '\u2014'}</p>
+                )}
                 <div className="song-links">
-                  {song.drive && (
-                    <a href={song.drive} target="_blank" rel="noopener noreferrer" className="song-link">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg> Drive
+                  <div className="song-player-rail">
+                    {(song.audio || song.youtube) && (() => {
+                      const urls = extractAllYouTubeUrls(song.youtube);
+                      if (!song.audio && urls.length === 0) return null;
+                      if (song.audio) {
+                        return <MediaPlayer audioUrl={song.audio} youtubeUrl={urls[0] || ''} inPoint={bounds.inPoint} outPoint={bounds.outPoint} />;
+                      }
+                      return (
+                        <div className={`yt-players-stack${urls.length > 1 ? ' double' : ''}`}>
+                          {urls.map((u, i) => <MediaPlayer key={`${cardKey}-${u}-${i}`} youtubeUrl={u} inPoint={bounds.inPoint} outPoint={bounds.outPoint} />)}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="song-quick-actions">
+                    {/* Secondary icon-only actions */}
+                    {song.drive && (
+                      <a
+                        href={song.drive}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="song-link song-link-icon"
+                        aria-label="Open Drive link"
+                        title="Open Drive link"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
+                      </a>
+                    )}
+                    {isPrivate && (
+                      <button
+                        className="song-link song-link-icon private-delete-btn"
+                        onClick={() => { if (confirm(`Delete "${song.title}"?`)) removeSong(song._privateId!); }}
+                        aria-label="Delete private song"
+                        title="Delete private song"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6L17.8 20a2 2 0 01-2 2H8.2a2 2 0 01-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>
+                      </button>
+                    )}
+                    {/* Primary CTA — always labeled */}
+                    <a
+                      href={`/smartboard-mode?slug=${encodeURIComponent(isPrivate ? `my-${song._privateId}` : slugify(song.title))}&lyrics=${encodeURIComponent(song.lyrics)}${song.audio ? `&audio=${encodeURIComponent(song.audio)}` : ''}${song.youtube ? `&youtube=${encodeURIComponent(extractAllYouTubeUrls(song.youtube)[0] || '')}` : ''}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="song-smartboard-btn"
+                      title="Open in Smartboard mode"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+                      <span>Smartboard</span>
                     </a>
-                  )}
-                  {(song.audio || song.youtube) && (() => {
-                    const urls = extractAllYouTubeUrls(song.youtube);
-                    if (!song.audio && urls.length === 0) return null;
-                    if (song.audio) {
-                      return <MediaPlayer audioUrl={song.audio} youtubeUrl={urls[0] || ''} inPoint={bounds.inPoint} outPoint={bounds.outPoint} />;
-                    }
-                    return (
-                      <div className={`yt-players-stack${urls.length > 1 ? ' double' : ''}`}>
-                        {urls.map((u, i) => <MediaPlayer key={`${cardKey}-${u}-${i}`} youtubeUrl={u} inPoint={bounds.inPoint} outPoint={bounds.outPoint} />)}
-                      </div>
-                    );
-                  })()}
-                  <a
-                    href={`/smartboard-mode?slug=${encodeURIComponent(isPrivate ? `my-${song._privateId}` : slugify(song.title))}&lyrics=${encodeURIComponent(song.lyrics)}${song.audio ? `&audio=${encodeURIComponent(song.audio)}` : ''}${song.youtube ? `&youtube=${encodeURIComponent(extractAllYouTubeUrls(song.youtube)[0] || '')}` : ''}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="song-link"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg> Open for Smartboard
-                  </a>
-                  {isPrivate && (
-                    <button className="song-link private-delete-btn" onClick={() => { if (confirm(`Delete "${song.title}"?`)) removeSong(song._privateId!); }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6L17.8 20a2 2 0 01-2 2H8.2a2 2 0 01-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></svg> Delete
-                    </button>
-                  )}
+                  </div>
                 </div>
               </div>
             );

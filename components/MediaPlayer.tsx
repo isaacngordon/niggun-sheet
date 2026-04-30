@@ -370,6 +370,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
   const displayEnd = effectiveWindowEnd != null ? Math.min(effectiveWindowEnd, duration || effectiveWindowEnd) : duration;
   const displaySpan = Math.max(0.001, displayEnd - displayStart);
   const displayProgress = Math.max(0, Math.min(displaySpan, progress - displayStart));
+  const progressPercent = duration ? Math.max(0, Math.min(100, (displayProgress / displaySpan) * 100)) : 0;
 
   if (!audioUrl && !youtubeId) return null;
 
@@ -404,8 +405,11 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
         )}
       </button>
-      <div className="yt-progress-bar" onClick={seek}>
-        <div className="yt-progress-fill" style={{ width: duration ? `${(displayProgress / displaySpan) * 100}%` : '0%' }} />
+      <div
+        className="yt-progress-bar"
+        onClick={seek}
+      >
+        <div className="yt-progress-fill" style={{ width: `${progressPercent}%` }} />
       </div>
       <span className={`yt-time${error ? ' yt-time-error' : ''}`}>{error ? 'error' : ready && duration ? fmt(progress) : '--:--'}</span>
     </div>

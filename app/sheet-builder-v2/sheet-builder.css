@@ -249,7 +249,9 @@
 }
 
 .sb2-search-box {
-  width: 100%;
+  width: min(240px, 100%);
+  display: block;
+  margin: 0 auto;
   padding: 10px 12px;
   background: #0a0a0a;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -959,7 +961,11 @@
 
   .sb2-header-wrap,
   .sb2-sidebar,
-  .sb2-toolbar {
+  .sb2-toolbar,
+  .analytics-pref-shell,
+  .analytics-pref-widget,
+  .analytics-pref-trigger,
+  .analytics-consent-card {
     display: none !important;
   }
 
@@ -1001,6 +1007,8 @@
     height: 11in !important;
     margin: 0 !important;
     padding: 0 !important;
+    transform: none !important;
+    transform-origin: top left !important;
     box-shadow: none !important;
     border-radius: 0 !important;
     page-break-after: always;

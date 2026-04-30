@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ANALYTICS_PREFERENCE_EVENT,
   ANALYTICS_MODE_KEY,
+  ANALYTICS_PREF_VERSION_KEY,
   GA_MEASUREMENT_ID,
   type AnalyticsMode,
   applyAnalyticsPreference,
@@ -15,8 +16,9 @@ import {
 export default function Analytics() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [mode, setMode] = useState<AnalyticsMode>('fallback');
+  const [mode, setMode] = useState<AnalyticsMode>('cookie');
   const [trackingReady, setTrackingReady] = useState(false);
+  const [gaConfigured, setGaConfigured] = useState(false);
 
   const pagePath = useMemo(() => {
     const query = searchParams?.toString();
@@ -37,7 +39,7 @@ export default function Analytics() {
   }, []);
 
   useEffect(() => {
-    if (!trackingReady || typeof window.gtag !== 'function') {
+    if (!trackingReady || !gaConfigured || typeof window.gtag !== 'function') {
       return;
     }
 
@@ -45,8 +47,9 @@ export default function Analytics() {
       page_title: document.title,
       page_location: window.location.href,
       page_path: pagePath,
+      debug_mode: process.env.NODE_ENV !== 'production' || window.location.hostname === 'localhost',
     });
-  }, [mode, pagePath, trackingReady]);
+  }, [gaConfigured, mode, pagePath, trackingReady]);
 
   if (!GA_MEASUREMENT_ID) {
     return null;
@@ -63,20 +66,26 @@ export default function Analytics() {
       <Script
         id="ga-config"
         strategy="afterInteractive"
+        onReady={() => setGaConfigured(true)}
         dangerouslySetInnerHTML={{
           __html: `
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             window.gtag = gtag;
 
-            var mode = 'fallback';
+            var mode = 'cookie';
             try {
+              var prefVersion = window.localStorage.getItem('${ANALYTICS_PREF_VERSION_KEY}');
+              if (prefVersion !== '2') {
+                window.localStorage.setItem('${ANALYTICS_MODE_KEY}', 'cookie');
+                window.localStorage.setItem('${ANALYTICS_PREF_VERSION_KEY}', '2');
+              }
               var storedMode = window.localStorage.getItem('${ANALYTICS_MODE_KEY}');
               if (storedMode === 'cookie' || storedMode === 'fallback') {
                 mode = storedMode;
               }
             } catch (err) {
-              mode = 'fallback';
+              mode = 'cookie';
             }
 
             gtag('consent', 'default', {
@@ -89,7 +98,8 @@ export default function Analytics() {
             gtag('js', new Date());
             gtag('config', '${GA_MEASUREMENT_ID}', {
               send_page_view: false,
-              anonymize_ip: true
+              anonymize_ip: true,
+              debug_mode: ${process.env.NODE_ENV !== 'production' ? 'true' : 'window.location.hostname === "localhost"'}
             });
           `,
         }}

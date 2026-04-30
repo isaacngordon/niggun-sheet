@@ -3,9 +3,11 @@
 export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-N0MP01KGSP';
 export const ANALYTICS_MODE_KEY = 'niggunsheet-analytics-mode';
 export const ANALYTICS_PREFERENCE_EVENT = 'niggunsheet-analytics-preference';
+export const ANALYTICS_PREF_VERSION_KEY = 'niggunsheet-analytics-pref-version';
 const MODE_COOKIE_NAME = 'niggunsheet_analytics_mode';
 const LEGACY_OPT_OUT_KEY = 'niggunsheet-analytics-opt-out';
 const LEGACY_OPT_OUT_COOKIE_NAME = 'niggunsheet_analytics_opt_out';
+const CURRENT_PREF_VERSION = '2';
 
 export type AnalyticsMode = 'fallback' | 'cookie';
 
@@ -73,8 +75,49 @@ function updateConsentMode(mode: AnalyticsMode) {
   });
 }
 
+function migrateStoredAnalyticsPreference() {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const prefVersion = window.localStorage.getItem(ANALYTICS_PREF_VERSION_KEY);
+    if (prefVersion === CURRENT_PREF_VERSION) return;
+
+    window.localStorage.setItem(ANALYTICS_MODE_KEY, 'cookie');
+    window.localStorage.removeItem(LEGACY_OPT_OUT_KEY);
+    window.localStorage.setItem(ANALYTICS_PREF_VERSION_KEY, CURRENT_PREF_VERSION);
+    writeModeCookie('cookie');
+    clearCookieByName(LEGACY_OPT_OUT_COOKIE_NAME);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function hasAnalyticsPreference() {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const localValue = window.localStorage.getItem(ANALYTICS_MODE_KEY);
+    if (localValue === 'cookie' || localValue === 'fallback') return true;
+
+    const legacyLocal = window.localStorage.getItem(LEGACY_OPT_OUT_KEY);
+    if (legacyLocal === '0' || legacyLocal === '1') return true;
+  } catch {
+    // Ignore storage failures and fall back to cookies.
+  }
+
+  const cookieValue = readCookie(MODE_COOKIE_NAME);
+  if (cookieValue === 'cookie' || cookieValue === 'fallback') return true;
+
+  const legacyCookieValue = readCookie(LEGACY_OPT_OUT_COOKIE_NAME);
+  if (legacyCookieValue === '0' || legacyCookieValue === '1') return true;
+
+  return false;
+}
+
 export function getAnalyticsMode(): AnalyticsMode {
-  if (typeof window === 'undefined') return 'fallback';
+  if (typeof window === 'undefined') return 'cookie';
+
+  migrateStoredAnalyticsPreference();
 
   try {
     const localValue = window.localStorage.getItem(ANALYTICS_MODE_KEY);
@@ -94,7 +137,7 @@ export function getAnalyticsMode(): AnalyticsMode {
   if (legacyCookieValue === '0') return 'cookie';
   if (legacyCookieValue === '1') return 'fallback';
 
-  return 'fallback';
+  return 'cookie';
 }
 
 export function setAnalyticsMode(mode: AnalyticsMode) {
@@ -103,6 +146,7 @@ export function setAnalyticsMode(mode: AnalyticsMode) {
   try {
     window.localStorage.setItem(ANALYTICS_MODE_KEY, mode);
     window.localStorage.removeItem(LEGACY_OPT_OUT_KEY);
+    window.localStorage.setItem(ANALYTICS_PREF_VERSION_KEY, CURRENT_PREF_VERSION);
   } catch {
     // Ignore storage failures.
   }
@@ -122,7 +166,7 @@ export function setAnalyticsMode(mode: AnalyticsMode) {
 }
 
 export function applyAnalyticsPreference() {
-  if (typeof window === 'undefined') return 'fallback' as AnalyticsMode;
+  if (typeof window === 'undefined') return 'cookie' as AnalyticsMode;
 
   const mode = getAnalyticsMode();
   updateConsentMode(mode);

@@ -557,6 +557,7 @@ function SmartboardContent() {
   const router = useRouter();
   const [darkMode, setDarkMode] = useState(true);
   const [fontSize, setFontSize] = useState(3); // em units
+  const [viewportSize, setViewportSize] = useState({ width: 1920, height: 1080 });
   const [lyrics, setLyrics] = useState('Loading...');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
@@ -617,6 +618,16 @@ function SmartboardContent() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const lines = lyrics.split('\n');
 
   const effectiveSavedBounds = React.useMemo(
@@ -668,6 +679,26 @@ function SmartboardContent() {
       .sort((a, b) => a.start - b.start);
   }, [effectiveSavedBounds, savedClips]);
 
+  const regularViewDisplayFontSize = React.useMemo(() => {
+    const nonEmptyLines = lines.map((line) => line.trim()).filter(Boolean);
+    const lineCount = Math.max(nonEmptyLines.length, 1);
+
+    // Strip Hebrew nikud/taamim for width estimation so marked text can still scale up.
+    const measureWidth = (line: string) => {
+      const base = line.replace(/[\u0591-\u05C7]/g, '').trim();
+      return Array.from(base).length;
+    };
+
+    const longestLineLength = Math.max(...nonEmptyLines.map(measureWidth), 10);
+    const availableWidthPx = viewportSize.width * 0.84;
+    const availableHeightPx = Math.max(340, viewportSize.height - 240);
+    const widthBasedEm = availableWidthPx / (longestLineLength * 0.5 * 16);
+    const heightBasedEm = availableHeightPx / (lineCount * 1.55 * 16);
+
+    const autoFitEm = Math.max(2.6, Math.min(8.2, widthBasedEm, heightBasedEm));
+    return Math.max(fontSize, autoFitEm);
+  }, [fontSize, lines, viewportSize.height, viewportSize.width]);
+
   // Active position in the timeline sequence based on playback time
   const activeSeqIndex = React.useMemo(() => {
     if (!playheadOn || timelineSequence.length === 0) return -1;
@@ -677,6 +708,8 @@ function SmartboardContent() {
     }
     return best;
   }, [playheadOn, previewPlaybackTime, timelineSequence]);
+
+  const isNoTimingPlayhead = playheadOn && timelineSequence.length === 0;
 
   const probeRef = useRef<HTMLSpanElement>(null);
   const wheelAnimationRef = useRef<number | null>(null);
@@ -1028,6 +1061,7 @@ function SmartboardContent() {
                       boxShadow: 'none',
                       background: 'transparent',
                       color: darkMode ? 'white' : 'black',
+                      textAlign: 'center',
                       cursor: 'pointer',
                       touchAction: 'manipulation',
                       pointerEvents: isWheelDragging ? 'none' : 'auto',
@@ -1048,17 +1082,17 @@ function SmartboardContent() {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: playheadOn ? 'flex-start' : 'center',
+            justifyContent: isNoTimingPlayhead ? 'center' : playheadOn ? 'flex-start' : 'center',
             minHeight: '75vh',
-            paddingTop: playheadOn ? '2rem' : 0,
-            paddingBottom: playheadOn ? '10rem' : '7rem',
+            paddingTop: isNoTimingPlayhead ? '4.5rem' : playheadOn ? '2rem' : '4.5rem',
+            paddingBottom: isNoTimingPlayhead ? 0 : playheadOn ? '10rem' : 0,
             cursor: playheadOn ? 'pointer' : 'default',
           }}
         >
-          <div style={{ maxWidth: '80%', textAlign: 'center' }}>
+          <div style={{ width: 'min(92vw, 1500px)', maxWidth: '1500px', textAlign: 'center' }}>
             {playheadOn ? (
               // MANUAL PLAYHEAD MODE — all lines listed, active one highlighted
-              <div style={{ fontSize: `${fontSize}em`, lineHeight: 1.6 }}>
+              <div style={{ fontSize: `${isNoTimingPlayhead ? regularViewDisplayFontSize : fontSize}em`, lineHeight: isNoTimingPlayhead ? 1.42 : 1.6 }}>
                 {lines.map((line, i) => (
                   <span
                     key={i}
@@ -1066,11 +1100,12 @@ function SmartboardContent() {
                     onClick={(e) => { e.stopPropagation(); setCurrentLine(i); scrollToLine(i); }}
                     style={{
                       display: 'block',
-                      padding: '0.1em 0.3em',
+                      padding: isNoTimingPlayhead ? '0.02em 0.28em' : '0.1em 0.3em',
                       borderRadius: 6,
                       transition: 'opacity 0.3s, transform 0.3s',
                       opacity: i === (timedActiveLine ?? currentLine) ? 1 : 0.3,
                       transform: i === (timedActiveLine ?? currentLine) ? 'scale(1.05)' : 'scale(1)',
+                      textAlign: 'center',
                       cursor: 'pointer',
                     }}
                   >
@@ -1079,7 +1114,19 @@ function SmartboardContent() {
                 ))}
               </div>
             ) : (
-              <p style={{ fontSize: `${fontSize}em`, whiteSpace: 'pre-line' }}>{lyrics}</p>
+              <p
+                style={{
+                  fontSize: `${regularViewDisplayFontSize}em`,
+                  whiteSpace: 'pre-line',
+                  textAlign: 'center',
+                  margin: '0 auto',
+                  maxWidth: '84vw',
+                  paddingInline: '4vw',
+                  lineHeight: 1.45,
+                }}
+              >
+                {lyrics}
+              </p>
             )}
           </div>
         </div>

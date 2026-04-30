@@ -22,7 +22,7 @@ export default function HomePage() {
               <span className="text-accent">Perfect Niggun</span>
             </h1>
             <p className="hero-description">
-              Goodbye Copy and Paste, Hello Drag and Drop.<br />
+              Drag + Drop<br />
               The next generation of Kumzitz Sheets has arrived.
             </p>
             <div className="hero-search">
@@ -54,8 +54,8 @@ export default function HomePage() {
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg></div>
-              <h3>Extensive Library</h3>
-              <p>Browse our growing collection of niggunim with Hebrew lyrics and transliterations</p>
+              <h3>Smartboard Friendly Mode</h3>
+              <p>Project scrolling lyrics that follow the music in real time for seamless group singing</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><polyline points="10 17 15 12 10 7" /><line x1="15" y1="12" x2="3" y2="12" /></svg></div>
@@ -92,8 +92,7 @@ export default function HomePage() {
         <div className="container">
           <div className="stats-grid">
             <div className="stat-item">
-              <div className="stat-number">Drag + Drop</div>
-              <div className="stat-label">Sheet Builder</div>
+              <div className="stat-number">Built for Rebbeim</div>
             </div>
             <div className="stat-item">
               <div className="stat-number">Smartboard</div>
