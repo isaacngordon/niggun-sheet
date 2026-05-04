@@ -1,20 +1,27 @@
 'use client';
 
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { useNiggunSheetDownload } from '@/components/NiggunSheetDownload';
-import { useGoogleAuth } from '@/components/GoogleAuthProvider';
+import { useState } from 'react';
+import NiggunSheetDownloadButton from '@/components/NiggunSheetDownloadButton';
+
+const HeaderAuthControls = dynamic(() => import('@/components/HeaderAuthControls'), {
+  ssr: false,
+  loading: () => <button disabled className="header-signin-btn">Sign In</button>,
+});
 
 export default function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { download, downloading } = useNiggunSheetDownload();
-  const { user, signIn, signOut, loading: authLoading, restoring, ready: authReady } = useGoogleAuth();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const showSheetBuilderTour = pathname === '/sheet-builder';
 
   const isActive = (path: string) => pathname === path;
+
+  const handleStartSheetBuilderTour = () => {
+    window.dispatchEvent(new CustomEvent('sheet-builder:start-tour'));
+  };
 
   const navLinks = [
     { href: '/', label: 'Home' },
@@ -29,7 +36,14 @@ export default function Header() {
         {/* Logo */}
         <div className="header-logo">
           <Link href="/">
-            <img src="/assets/Niggun_Sheet_Header_Logo.png" alt="Niggun Sheet" />
+            <Image
+              className="header-logo-image"
+              src="/assets/Niggun_Sheet_Header_Logo.png"
+              alt="Niggun Sheet"
+              width={220}
+              height={36}
+              priority={pathname === '/'}
+            />
           </Link>
         </div>
 
@@ -52,30 +66,13 @@ export default function Header() {
 
         {/* Actions */}
         <div className="header-actions">
-          {mounted && user ? (
-            <div className="header-user-menu">
-              <span className="header-signed-in" title={user.email} style={restoring ? { opacity: 0.6 } : undefined}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                {user.email.split('@')[0]}
-              </span>
-              {!restoring && <button onClick={signOut} className="header-signout-btn">Sign Out</button>}
-            </div>
-          ) : (
-            <button
-              onClick={signIn}
-              disabled={mounted && (authLoading || !authReady)}
-              className="header-signin-btn"
-            >
-              {authLoading ? 'Signing in...' : 'Sign In'}
-            </button>
+          {showSheetBuilderTour && (
+            <button className="header-tour-btn" onClick={handleStartSheetBuilderTour}>Tour</button>
           )}
-          <button
-            onClick={download}
-            disabled={downloading}
-            className="btn-primary header-download-btn"
-          >
+          <HeaderAuthControls />
+          <NiggunSheetDownloadButton className="btn-primary header-download-btn">
             Download Sheet
-          </button>
+          </NiggunSheetDownloadButton>
           
           {/* Mobile menu button */}
           <button 
@@ -111,16 +108,18 @@ export default function Header() {
               </li>
             ))}
             <li className="mobile-nav-auth">
-              {mounted && user ? (
-                <>
-                  <span className="mobile-nav-user" style={restoring ? { opacity: 0.6 } : undefined}>{user.email}</span>
-                  {!restoring && <button onClick={() => { signOut(); setMobileMenuOpen(false); }} className="mobile-nav-signout">Sign Out</button>}
-                </>
-              ) : (
-                <button onClick={() => { signIn(); setMobileMenuOpen(false); }} disabled={mounted && (authLoading || !authReady)} className="mobile-nav-signin">
-                  {authLoading ? 'Signing in...' : 'Sign In with Google'}
+              {showSheetBuilderTour && (
+                <button
+                  className="mobile-nav-signin mobile-nav-tour-btn"
+                  onClick={() => {
+                    handleStartSheetBuilderTour();
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  Tour
                 </button>
               )}
+              <HeaderAuthControls mobile onDone={() => setMobileMenuOpen(false)} />
             </li>
           </ul>
         </nav>

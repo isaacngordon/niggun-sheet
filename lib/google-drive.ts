@@ -5,6 +5,7 @@ const SCOPES = 'https://www.googleapis.com/auth/drive.appdata email';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const PRIVATE_SONGS_FILE = 'niggunsheet-songs.json';
 const PREFERENCES_FILE = 'niggunsheet-prefs.json';
+const SAVED_SHEETS_FILE = 'niggunsheet-sheets.json';
 
 const SILENT_REAUTH_TIMEOUT = 8000; // ms — abort silent reauth if Google is slow
 const FETCH_TIMEOUT = 15000;        // ms — abort any single fetch
@@ -32,6 +33,27 @@ export interface PrivateSong {
 
 export interface GoogleUser {
   email: string;
+}
+
+export interface SavedSheetSong {
+  title: string;
+  artist: string;
+  lyrics: string;
+}
+
+export interface SavedSheet {
+  id: string;
+  title: string;
+  songs: SavedSheetSong[];
+  showTitles: boolean;
+  showPageNumbers: boolean;
+  showOrderNumbers: boolean;
+  autoFit: boolean;
+  manualColumns: number;
+  manualFontSize: number;
+  manualLocks: number[][];
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ─── Fetch with Timeout ─────────────────────────────────────────
@@ -104,6 +126,13 @@ let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let onTokenRefreshed: (() => void) | null = null; // callback for provider to reload data
 let pendingPopupErrorHandler: ((err: Error) => void) | null = null;
 
+function createGoogleAuthError(type: string | undefined): Error {
+  const code = type || 'Google sign-in failed';
+  const error = new Error(code === 'popup_closed' ? 'Google sign-in cancelled' : code);
+  error.name = code;
+  return error;
+}
+
 export function setOnTokenRefreshed(cb: () => void) { onTokenRefreshed = cb; }
 
 export async function initGoogleAuth(clientId: string): Promise<void> {
@@ -120,7 +149,7 @@ export async function initGoogleAuth(clientId: string): Promise<void> {
       scope: SCOPES,
       callback: () => {},
       error_callback: (err: any) => {
-        pendingPopupErrorHandler?.(new Error(err?.type || 'Google sign-in failed'));
+        pendingPopupErrorHandler?.(createGoogleAuthError(err?.type));
       },
     });
     console.log('[GoogleAuth] tokenClient created');
@@ -542,6 +571,56 @@ export async function savePreferences(prefs: UserPreferences): Promise<void> {
       await updateFileContent(fileId, content);
     } else {
       await createAppFile(PREFERENCES_FILE, content);
+    }
+  });
+}
+
+export async function loadSavedSheets(): Promise<SavedSheet[]> {
+  return withRetry(async () => {
+    const fileId = await findAppFile(SAVED_SHEETS_FILE);
+    if (!fileId) return [];
+    const raw = await readFileContent(fileId);
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+
+      return parsed.filter((item): item is SavedSheet => {
+        if (!item || typeof item !== 'object') return false;
+        if (typeof (item as any).id !== 'string' || typeof (item as any).title !== 'string') return false;
+        if (!Array.isArray((item as any).songs)) return false;
+        if (typeof (item as any).showTitles !== 'boolean') return false;
+        if (typeof (item as any).showPageNumbers !== 'boolean') return false;
+        if (typeof (item as any).showOrderNumbers !== 'boolean') return false;
+        if (typeof (item as any).autoFit !== 'boolean') return false;
+        if (typeof (item as any).manualColumns !== 'number') return false;
+        if (typeof (item as any).manualFontSize !== 'number') return false;
+        if (!Array.isArray((item as any).manualLocks)) return false;
+        if (typeof (item as any).createdAt !== 'string' || typeof (item as any).updatedAt !== 'string') return false;
+
+        return (item as any).songs.every(
+          (song: unknown) =>
+            song &&
+            typeof song === 'object' &&
+            typeof (song as any).title === 'string' &&
+            typeof (song as any).artist === 'string' &&
+            typeof (song as any).lyrics === 'string',
+        );
+      });
+    } catch {
+      return [];
+    }
+  });
+}
+
+export async function saveSavedSheets(sheets: SavedSheet[]): Promise<void> {
+  return withRetry(async () => {
+    const content = JSON.stringify(sheets, null, 2);
+    const fileId = await findAppFile(SAVED_SHEETS_FILE);
+    if (fileId) {
+      await updateFileContent(fileId, content);
+    } else {
+      await createAppFile(SAVED_SHEETS_FILE, content);
     }
   });
 }

@@ -51,6 +51,14 @@ describe('extractYouTubeId', () => {
     expect(extractYouTubeId('https://youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
   });
 
+  it('extracts ID from bare www URL', () => {
+    expect(extractYouTubeId('www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+  });
+
+  it('extracts ID from a direct youtube path segment', () => {
+    expect(extractYouTubeId('https://www.youtube.com/Y3gSOBfIvLA')).toBe('Y3gSOBfIvLA');
+  });
+
   it('returns null for empty string', () => {
     expect(extractYouTubeId('')).toBeNull();
   });
@@ -117,6 +125,24 @@ describe('extractAllYouTubeUrls', () => {
     expect(urls).toHaveLength(2);
     expect(extractYouTubeId(urls[0])).toBe('dQw4w9WgXcQ');
     expect(extractYouTubeId(urls[1])).toBe('9bZkp7q19f0');
+  });
+
+  it('extracts multiple URLs separated by commas', () => {
+    const text = 'https://www.youtube.com/watch?v=zV_GSoaOJFo, https://www.youtube.com/watch?v=-DACmtfohHE';
+    const urls = extractAllYouTubeUrls(text);
+    expect(urls).toEqual([
+      'https://www.youtube.com/watch?v=zV_GSoaOJFo',
+      'https://www.youtube.com/watch?v=-DACmtfohHE',
+    ]);
+  });
+
+  it('extracts mixed https and bare www URLs from song data', () => {
+    const text = 'https://www.youtube.com/watch?v=eTBqH3QlTJQ, www.youtube.com/watch?v=qlpj_7qXmlY&pp=ygUPZWluIGFyb2NoIGxlY2hh';
+    const urls = extractAllYouTubeUrls(text);
+    expect(urls).toEqual([
+      'https://www.youtube.com/watch?v=eTBqH3QlTJQ',
+      'https://www.youtube.com/watch?v=qlpj_7qXmlY&pp=ygUPZWluIGFyb2NoIGxlY2hh',
+    ]);
   });
 });
 

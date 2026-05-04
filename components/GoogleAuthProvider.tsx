@@ -11,17 +11,21 @@ import {
   savePrivateSongs,
   loadPreferences,
   savePreferences,
+  loadSavedSheets,
+  saveSavedSheets,
   generateId,
   setOnTokenRefreshed,
   getStoredEmail,
   type GoogleUser,
   type PrivateSong,
+  type SavedSheet,
   type UserPreferences,
 } from '@/lib/google-drive';
 
 interface GoogleAuthState {
   user: GoogleUser | null;
   privateSongs: PrivateSong[];
+  savedSheets: SavedSheet[];
   preferences: UserPreferences;
   loading: boolean;
   restoring: boolean;
@@ -32,22 +36,33 @@ interface GoogleAuthState {
   addSongs: (songs: Omit<PrivateSong, 'id' | 'createdAt'>[]) => Promise<void>;
   removeSong: (id: string) => Promise<void>;
   editSong: (id: string, updates: Partial<Pick<PrivateSong, 'title' | 'artist' | 'lyrics'>>) => Promise<void>;
+  saveSheet: (sheet: Omit<SavedSheet, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<SavedSheet>;
   setPref: (key: string, value: unknown) => void;
 }
 
 const GoogleAuthContext = createContext<GoogleAuthState | null>(null);
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+const MAX_SAVED_SHEETS = 3;
 
 export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [privateSongs, setPrivateSongs] = useState<PrivateSong[]>([]);
+  const [savedSheets, setSavedSheets] = useState<SavedSheet[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences>({});
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [ready, setReady] = useState(false);
   const prefsRef = useRef<UserPreferences>({});
   const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const reloadDriveData = useCallback(async () => {
+    const [songs, prefs, sheets] = await Promise.all([loadPrivateSongs(), loadPreferences(), loadSavedSheets()]);
+    setPrivateSongs(songs);
+    prefsRef.current = prefs;
+    setPreferences(prefs);
+    setSavedSheets(sheets);
+  }, []);
 
   // Init GIS on mount + try restoring previous session
   useEffect(() => {
@@ -69,6 +84,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     // Register proactive token refresh handler
     setOnTokenRefreshed(() => {
       console.log('[GoogleAuth] Token refreshed proactively');
+      reloadDriveData().catch((err) => console.error('[GoogleAuth] Failed to reload Drive data:', err));
     });
 
     initGoogleAuth(CLIENT_ID)
@@ -88,11 +104,8 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
           const u = await getGoogleUser(token);
           if (cancelled) return;
           setUser(u);
-          const [songs, prefs] = await Promise.all([loadPrivateSongs(), loadPreferences()]);
+          await reloadDriveData();
           if (cancelled) return;
-          setPrivateSongs(songs);
-          prefsRef.current = prefs;
-          setPreferences(prefs);
         } catch (err) {
           console.warn('[GoogleAuth] Session restore failed:', err);
           setUser(null);
@@ -120,13 +133,10 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
       const token = await gSignIn();
       const u = await getGoogleUser(token);
       setUser(u);
-      const [songs, prefs] = await Promise.all([loadPrivateSongs(), loadPreferences()]);
-      setPrivateSongs(songs);
-      prefsRef.current = prefs;
-      setPreferences(prefs);
+      await reloadDriveData();
     } catch (err: any) {
-      // Ignore debounce rejections (user double-clicked)
-      if (err?.message !== 'Sign-in already in progress') {
+      // Ignore expected user/debounce cancellations.
+      if (err?.message !== 'Sign-in already in progress' && err?.name !== 'popup_closed') {
         console.error('[GoogleAuth] Sign-in error:', err);
       }
     } finally {
@@ -138,6 +148,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     gSignOut();
     setUser(null);
     setPrivateSongs([]);
+    setSavedSheets([]);
     prefsRef.current = {};
     setPreferences({});
   }, []);
@@ -173,6 +184,29 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     await savePrivateSongs(updated);
   }, [privateSongs]);
 
+  const saveSheet = useCallback(async (sheet: Omit<SavedSheet, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
+    const now = new Date().toISOString();
+    const existing = sheet.id ? savedSheets.find((entry) => entry.id === sheet.id) : null;
+
+    if (!existing && savedSheets.length >= MAX_SAVED_SHEETS) {
+      throw new Error(`Saved sheet limit reached (${MAX_SAVED_SHEETS} max)`);
+    }
+
+    const nextSheet: SavedSheet = {
+      ...sheet,
+      id: existing?.id ?? generateId(),
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    };
+    const nextSavedSheets = existing
+      ? savedSheets.map((entry) => (entry.id === nextSheet.id ? nextSheet : entry))
+      : [...savedSheets, nextSheet];
+
+    setSavedSheets(nextSavedSheets);
+    await saveSavedSheets(nextSavedSheets);
+    return nextSheet;
+  }, [savedSheets]);
+
   // Debounced preference setter — updates state immediately, saves to Drive after 500ms idle
   const setPref = useCallback((key: string, value: unknown) => {
     prefsRef.current = { ...prefsRef.current, [key]: value };
@@ -184,7 +218,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GoogleAuthContext.Provider value={{ user, privateSongs, preferences, loading, restoring, ready, signIn, signOut, addSong, addSongs, removeSong, editSong, setPref }}>
+    <GoogleAuthContext.Provider value={{ user, privateSongs, savedSheets, preferences, loading, restoring, ready, signIn, signOut, addSong, addSongs, removeSong, editSong, saveSheet, setPref }}>
       {children}
     </GoogleAuthContext.Provider>
   );
@@ -194,4 +228,8 @@ export function useGoogleAuth(): GoogleAuthState {
   const ctx = useContext(GoogleAuthContext);
   if (!ctx) throw new Error('useGoogleAuth must be used within GoogleAuthProvider');
   return ctx;
+}
+
+export function useOptionalGoogleAuth(): GoogleAuthState | null {
+  return useContext(GoogleAuthContext);
 }

@@ -1,11 +1,8 @@
-'use client';
-
 import Link from 'next/link';
-import { useNiggunSheetDownload } from '@/components/NiggunSheetDownload';
+import NiggunSheetDownloadButton from '@/components/NiggunSheetDownloadButton';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
-  const { download } = useNiggunSheetDownload();
   
   return (
     <footer className="footer">
@@ -13,13 +10,9 @@ export default function Footer() {
         <div className="footer-links">
           <div className="footer-section">
             <h4>Downloads</h4>
-            <button
-              type="button"
-              className="footer-link-button"
-              onClick={download}
-            >
+            <NiggunSheetDownloadButton type="button" className="footer-link-button">
               Niggun Sheet
-            </button>
+            </NiggunSheetDownloadButton>
             <a
               href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
               target="_blank"

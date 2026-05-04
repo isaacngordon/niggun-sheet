@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ensureYTApi, extractYouTubeId, playbackBus, fmt } from '@/lib/youtube';
+import { ensureYTApi, extractYouTubeId, playbackBus, fmt, primeYTApi, warmYouTubeConnections } from '@/lib/youtube';
 
 interface MediaPlayerProps {
   audioUrl?: string | null;
@@ -32,16 +32,36 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
   const [playing, setPlaying] = useState(false);
   const [optimisticPlaying, setOptimisticPlaying] = useState(false);
   const [ready, setReady] = useState(false);
-  const [loading, setLoading] = useState(prefersAudio ? false : true);
+  const [loading, setLoading] = useState(prefersAudio ? false : detail);
   const [apiReady, setApiReady] = useState(prefersAudio);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [shouldPrimeYoutube, setShouldPrimeYoutube] = useState(prefersAudio || detail);
   const [shouldInitYoutube, setShouldInitYoutube] = useState(prefersAudio || detail);
   const [retryNonce, setRetryNonce] = useState(0);
 
   const windowStart = Math.max(0, inPoint ?? 0);
   const effectiveWindowEnd = outPoint != null && outPoint > windowStart ? outPoint : null;
+  const startYoutubeFromWindow = useCallback((startTime: number) => {
+    const player = playerRef.current;
+    if (!player || !youtubeId) return;
+
+    const nextStart = Math.max(0, startTime);
+
+    if (typeof player.loadVideoById === 'function') {
+      player.loadVideoById({ videoId: youtubeId, startSeconds: nextStart });
+      return;
+    }
+
+    if (typeof player.seekTo === 'function') {
+      player.seekTo(nextStart, true);
+    }
+    if (typeof player.playVideo === 'function') {
+      player.playVideo();
+    }
+  }, [youtubeId]);
+
   const clampToWindow = useCallback((time: number, totalDuration: number) => {
     const upper = effectiveWindowEnd != null ? Math.min(effectiveWindowEnd, totalDuration > 0 ? totalDuration : effectiveWindowEnd) : totalDuration;
     const upperBound = upper > 0 ? upper : effectiveWindowEnd ?? Number.POSITIVE_INFINITY;
@@ -76,40 +96,58 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
   }, []);
 
   useEffect(() => {
-    if (prefersAudio || !youtubeId || !shouldInitYoutube) return;
+    if (prefersAudio || !youtubeId || !shouldPrimeYoutube) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    ensureYTApi()
+    warmYouTubeConnections();
+    if (shouldInitYoutube) {
+      setLoading(true);
+      setError(null);
+    }
+
+    const loadPromise = shouldInitYoutube ? ensureYTApi() : primeYTApi();
+
+    loadPromise
       .then(() => {
         if (cancelled || destroyedRef.current) return;
         setApiReady(true);
       })
       .catch(() => {
         if (cancelled || destroyedRef.current) return;
-        setError('Unable to load YouTube');
-        setLoading(false);
+        if (shouldInitYoutube) {
+          setError('Unable to load YouTube');
+          setLoading(false);
+        }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [prefersAudio, youtubeId, shouldInitYoutube, retryNonce]);
+  }, [prefersAudio, youtubeId, shouldInitYoutube, shouldPrimeYoutube, retryNonce]);
 
   useEffect(() => {
-    if (prefersAudio || detail || shouldInitYoutube) return;
+    if (prefersAudio || detail || shouldPrimeYoutube) return;
 
     const node = containerRef.current;
     if (!node || typeof IntersectionObserver === 'undefined') {
-      setShouldInitYoutube(true);
+      setShouldPrimeYoutube(true);
+      return;
+    }
+
+    const rect = node.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const preloadMargin = 160;
+    const isNearViewport = rect.bottom >= -preloadMargin && rect.top <= viewportHeight + preloadMargin;
+
+    if (isNearViewport) {
+      setShouldPrimeYoutube(true);
       return;
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
-          setShouldInitYoutube(true);
+          setShouldPrimeYoutube(true);
           observer.disconnect();
         }
       },
@@ -118,7 +156,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [prefersAudio, detail, shouldInitYoutube]);
+  }, [prefersAudio, detail, shouldPrimeYoutube]);
 
   useEffect(() => {
     if (!prefersAudio || !audioRef.current) return;
@@ -203,7 +241,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
       width: String(hostWidth),
       videoId: youtubeId,
       playerVars: {
-        autoplay: 0,
+        autoplay: pendingPlayRef.current ? 1 : 0,
         controls: 0,
         disablekb: 1,
         fs: 0,
@@ -224,7 +262,13 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
           if (pendingPlayRef.current) {
             pendingPlayRef.current = false;
             playbackBus?.dispatchEvent(new CustomEvent('play', { detail: idRef.current }));
-            try { playerRef.current?.playVideo(); } catch {}
+            try {
+              if (windowStart > 0) {
+                startYoutubeFromWindow(windowStart);
+              } else {
+                playerRef.current?.playVideo();
+              }
+            } catch {}
           }
         },
         onStateChange: (e: any) => {
@@ -276,7 +320,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
       playerRef.current = null;
       host.innerHTML = '';
     };
-  }, [prefersAudio, youtubeId, shouldInitYoutube, apiReady, detail, exposePlayer, onTick, retryNonce, effectiveWindowEnd, clampToWindow]);
+  }, [prefersAudio, youtubeId, shouldInitYoutube, apiReady, detail, exposePlayer, onTick, retryNonce, effectiveWindowEnd, clampToWindow, startYoutubeFromWindow, windowStart]);
 
   useEffect(() => {
     if (prefersAudio || !playerRef.current || !playing) return;
@@ -334,6 +378,8 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
       setError(null);
       setReady(false);
       setLoading(true);
+      setShouldPrimeYoutube(true);
+      setShouldInitYoutube(true);
       readyRef.current = false;
       playingRef.current = false;
       try { playerRef.current?.destroy?.(); } catch {}
@@ -345,6 +391,7 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
     if (!shouldInitYoutube) {
       pendingPlayRef.current = true;
       setOptimisticPlaying(true);
+      setShouldPrimeYoutube(true);
       setShouldInitYoutube(true);
       setLoading(true);
       return;
@@ -370,16 +417,19 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
     const current = playerRef.current?.getCurrentTime?.() || 0;
     const total = playerRef.current?.getDuration?.() || duration;
     if (current < windowStart || (effectiveWindowEnd != null && current >= effectiveWindowEnd)) {
-      try { playerRef.current.seekTo(clampToWindow(windowStart, total), true); } catch {}
+      try {
+        startYoutubeFromWindow(clampToWindow(windowStart, total));
+      } catch {}
+    } else {
+      playerRef.current.playVideo();
     }
 
     playbackBus?.dispatchEvent(new CustomEvent('play', { detail: idRef.current }));
-  playingRef.current = true;
-  setOptimisticPlaying(true);
-  setPlaying(true);
-  setLoading(false);
-    playerRef.current.playVideo();
-  }, [prefersAudio, youtubeId, apiReady, error, shouldInitYoutube, duration, windowStart, effectiveWindowEnd, clampToWindow]);
+    playingRef.current = true;
+    setOptimisticPlaying(true);
+    setPlaying(true);
+    setLoading(false);
+  }, [prefersAudio, youtubeId, apiReady, error, shouldInitYoutube, duration, windowStart, effectiveWindowEnd, clampToWindow, startYoutubeFromWindow]);
 
   const seek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!duration) return;
@@ -410,8 +460,11 @@ export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outP
     <div
       ref={containerRef}
       className="yt-audio-player"
-      onPointerEnter={() => setShouldInitYoutube(true)}
-      onFocus={() => setShouldInitYoutube(true)}
+      onPointerEnter={() => setShouldPrimeYoutube(true)}
+      onFocus={() => {
+        setShouldPrimeYoutube(true);
+        setShouldInitYoutube(true);
+      }}
     >
       {prefersAudio ? (
         <audio ref={audioRef} src={audioUrl || undefined} preload="metadata" />

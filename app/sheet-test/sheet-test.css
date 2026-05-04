@@ -4,7 +4,7 @@
   min-height: 100vh;
   background: #0d0d0d;
   color: #e0e0e0;
-  font-family: 'Frank Ruhl Libre', serif;
+  font-family: var(--font-frank-ruhl-libre), serif;
 }
 
 .st-header-wrap {
@@ -133,7 +133,7 @@
   font-weight: 700;
   margin-bottom: 1px;
   color: #1a1a1a;
-  font-family: 'Frank Ruhl Libre', serif;
+  font-family: var(--font-frank-ruhl-libre), serif;
 }
 
 .st-song-card-lyrics {
@@ -142,7 +142,7 @@
   overflow-wrap: break-word;
   line-height: 1.25;
   color: #333;
-  font-family: 'Frank Ruhl Libre', serif;
+  font-family: var(--font-frank-ruhl-libre), serif;
 }
 
 .st-song-card-title {

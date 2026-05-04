@@ -29,6 +29,59 @@ export function cleanText(text: string): string {
     .replace(/\uFFFD/g, '')
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
 }
+function getFirstLyricLine(lyrics: string): string {
+  return lyrics
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line.length > 0) ?? '';
+}
+
+function looksLikeSearchTitle(text: string): boolean {
+  const hasHebrew = /[\u0590-\u05FF]/.test(text);
+  const hasLatin = /[A-Za-z]/.test(text);
+  return hasHebrew && hasLatin;
+}
+
+function resolveDisplayTitle(searchTitle: string, title: string, lyrics: string): string {
+  const normalizedSearchTitle = cleanText(searchTitle);
+  const normalizedTitle = cleanText(title);
+  const normalizedLyrics = cleanText(lyrics);
+  const firstLyricLine = getFirstLyricLine(normalizedLyrics);
+  const candidateTitle = normalizedTitle || normalizedSearchTitle;
+
+  if (!candidateTitle) {
+    return firstLyricLine;
+  }
+
+  if (candidateTitle === normalizedSearchTitle && looksLikeSearchTitle(candidateTitle) && firstLyricLine) {
+    return firstLyricLine;
+  }
+
+  return candidateTitle;
+}
+
+function escapeCSVField(value: string): string {
+  if (/[",\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+
+  return value;
+}
+
+function serializeSongsToCSV(songs: Song[]): string {
+  const header = 'Search title,Title,lyrics,artist,google drive,youtube link,audio url';
+  const rows = songs.map((song) => [
+    song.search_title,
+    song.title,
+    song.lyrics,
+    song.artist,
+    song.drive,
+    song.youtube,
+    song.audio,
+  ].map((field) => escapeCSVField(field ?? '')).join(','));
+
+  return `${header}\n${rows.join('\n')}\n`;
+}
 
 function parseCSVRows(csvText: string): string[][] {
   const rows: string[][] = [];
@@ -92,10 +145,10 @@ export function parseCSV(csvText: string): Song[] {
     if (fields.length >= 4) {
       const [search_title, title, lyrics, artist, drive = '', youtube = '', audio = ''] = fields;
       result.push({
-        search_title,
-        title,
-        lyrics,
-        artist,
+        search_title: cleanText(search_title),
+        title: resolveDisplayTitle(search_title, title, lyrics),
+        lyrics: cleanText(lyrics),
+        artist: cleanText(artist),
         drive,
         youtube,
         audio,
@@ -128,7 +181,7 @@ function fetchFromGoogleSheets(): Promise<Song[]> {
               const [search_title = '', title = '', lyrics = '', artist = '', drive = '', youtube = '', audio = ''] = row;
               songs.push({
                 search_title: cleanText(search_title),
-                title: cleanText(title),
+                title: resolveDisplayTitle(search_title, title, lyrics),
                 lyrics: cleanText(lyrics),
                 artist: cleanText(artist),
                 drive: drive.trim(),
@@ -171,6 +224,20 @@ function readLocalCSV(): Song[] {
   return parseCSV(data);
 }
 
+function writeLocalCSV(songs: Song[]) {
+  const songsFilePath = path.join(process.cwd(), 'data/songs.csv');
+  const nextCSV = serializeSongsToCSV(songs);
+  const currentCSV = fs.existsSync(songsFilePath) ? fs.readFileSync(songsFilePath, 'utf8') : null;
+
+  if (currentCSV === nextCSV) {
+    return;
+  }
+
+  const tempFilePath = `${songsFilePath}.tmp`;
+  fs.writeFileSync(tempFilePath, nextCSV, 'utf8');
+  fs.renameSync(tempFilePath, songsFilePath);
+}
+
 export async function getSongs(): Promise<Song[]> {
   const now = Date.now();
   if (cachedSongs && now - cacheTimestamp < CACHE_DURATION) {
@@ -185,6 +252,11 @@ export async function getSongs(): Promise<Song[]> {
         GOOGLE_SHEETS_TIMEOUT_MS,
         'Google Sheets request timed out',
       );
+      try {
+        writeLocalCSV(songs);
+      } catch (error) {
+        console.warn('[songs.data] Failed to refresh local CSV backup from Google Sheets:', error);
+      }
       cachedSongs = songs;
       cacheTimestamp = now;
       return songs;

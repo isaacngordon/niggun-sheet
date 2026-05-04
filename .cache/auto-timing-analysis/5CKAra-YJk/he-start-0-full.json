@@ -1,0 +1,332 @@
+{
+  "version": 1,
+  "videoId": "-5CKAra-YJk",
+  "language": "he",
+  "clipStartSeconds": 0,
+  "clipDurationSeconds": null,
+  "sourceFingerprint": {
+    "size": 3986119,
+    "mtimeMs": 1777661102530
+  },
+  "transcription": {
+    "rawSrt": "1\n00:00:00,000 --> 00:00:15,000\n *מוזיקה*\n\n2\n00:00:15,000 --> 00:00:39,000\n *מוזיקה*\n\n3\n00:00:39,000 --> 00:01:02,000\n *מוזיקה*\n\n4\n00:01:02,000 --> 00:01:31,000\n *מוזיקה*\n\n5\n00:01:31,000 --> 00:01:50,000\n *מוזיקה*\n\n6\n00:01:50,000 --> 00:02:15,000\n *מוזיקה*\n\n7\n00:02:15,000 --> 00:02:38,000\n *מוזיקה*\n\n8\n00:02:38,000 --> 00:03:02,000\n *מוזיקה*\n\n9\n00:03:02,000 --> 00:03:26,000\n *מוזיקה*\n\n10\n00:03:26,000 --> 00:03:36,000\n *מוזיקה*\n\n",
+    "segments": [
+      {
+        "start": 0,
+        "end": 15,
+        "text": "*מוזיקה*"
+      },
+      {
+        "start": 15,
+        "end": 39,
+        "text": "*מוזיקה*"
+      },
+      {
+        "start": 39,
+        "end": 62,
+        "text": "*מוזיקה*"
+      },
+      {
+        "start": 62,
+        "end": 91,
+        "text": "*מוזיקה*"
+      },
+      {
+        "start": 91,
+        "end": 110,
+        "text": "*מוזיקה*"
+      },
+      {
+        "start": 110,
+        "end": 135,
+        "text": "*מוזיקה*"
+      },
+      {
+        "start": 135,
+        "end": 158,
+        "text": "*מוזיקה*"
+      },
+      {
+        "start": 158,
+        "end": 182,
+        "text": "*מוזיקה*"
+      },
+      {
+        "start": 182,
+        "end": 206,
+        "text": "*מוזיקה*"
+      },
+      {
+        "start": 206,
+        "end": 216,
+        "text": "*מוזיקה*"
+      }
+    ],
+    "transcriptWords": [
+      {
+        "word": "*מוזיקה*",
+        "start": 0,
+        "end": 15,
+        "confidence": null
+      },
+      {
+        "word": "*מוזיקה*",
+        "start": 15,
+        "end": 39,
+        "confidence": null
+      },
+      {
+        "word": "*מוזיקה*",
+        "start": 39,
+        "end": 62,
+        "confidence": null
+      },
+      {
+        "word": "*מוזיקה*",
+        "start": 62,
+        "end": 91,
+        "confidence": null
+      },
+      {
+        "word": "*מוזיקה*",
+        "start": 91,
+        "end": 110,
+        "confidence": null
+      },
+      {
+        "word": "*מוזיקה*",
+        "start": 110,
+        "end": 135,
+        "confidence": null
+      },
+      {
+        "word": "*מוזיקה*",
+        "start": 135,
+        "end": 158,
+        "confidence": null
+      },
+      {
+        "word": "*מוזיקה*",
+        "start": 158,
+        "end": 182,
+        "confidence": null
+      },
+      {
+        "word": "*מוזיקה*",
+        "start": 182,
+        "end": 206,
+        "confidence": null
+      },
+      {
+        "word": "*מוזיקה*",
+        "start": 206,
+        "end": 216,
+        "confidence": null
+      }
+    ]
+  },
+  "sectionAnalysis": {
+    "sectionProfiles": [
+      {
+        "segmentIndex": 0,
+        "start": 0,
+        "end": 15,
+        "text": "*מוזיקה*",
+        "duration": 15,
+        "wordCount": 1,
+        "energy": 0.091635,
+        "brightness": 0.045717,
+        "label": "low",
+        "melodicScore": 0,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": null,
+        "repeatSimilarity": 0
+      },
+      {
+        "segmentIndex": 1,
+        "start": 15,
+        "end": 39,
+        "text": "*מוזיקה*",
+        "duration": 24,
+        "wordCount": 1,
+        "energy": 0.129865,
+        "brightness": 0.068521,
+        "label": "low",
+        "melodicScore": 0,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      },
+      {
+        "segmentIndex": 2,
+        "start": 39,
+        "end": 62,
+        "text": "*מוזיקה*",
+        "duration": 23,
+        "wordCount": 1,
+        "energy": 0.197799,
+        "brightness": 0.103014,
+        "label": "low",
+        "melodicScore": 0.444,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      },
+      {
+        "segmentIndex": 3,
+        "start": 62,
+        "end": 91,
+        "text": "*מוזיקה*",
+        "duration": 29,
+        "wordCount": 1,
+        "energy": 0.234499,
+        "brightness": 0.14861,
+        "label": "high",
+        "melodicScore": 0.9,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      },
+      {
+        "segmentIndex": 4,
+        "start": 91,
+        "end": 110,
+        "text": "*מוזיקה*",
+        "duration": 19,
+        "wordCount": 1,
+        "energy": 0.265291,
+        "brightness": 0.153651,
+        "label": "high",
+        "melodicScore": 1,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      },
+      {
+        "segmentIndex": 5,
+        "start": 110,
+        "end": 135,
+        "text": "*מוזיקה*",
+        "duration": 25,
+        "wordCount": 1,
+        "energy": 0.138131,
+        "brightness": 0.098987,
+        "label": "low",
+        "melodicScore": 0.264,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      },
+      {
+        "segmentIndex": 6,
+        "start": 135,
+        "end": 158,
+        "text": "*מוזיקה*",
+        "duration": 23,
+        "wordCount": 1,
+        "energy": 0.20298,
+        "brightness": 0.10619,
+        "label": "high",
+        "melodicScore": 0.483,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      },
+      {
+        "segmentIndex": 7,
+        "start": 158,
+        "end": 182,
+        "text": "*מוזיקה*",
+        "duration": 24,
+        "wordCount": 1,
+        "energy": 0.179415,
+        "brightness": 0.128693,
+        "label": "high",
+        "melodicScore": 0.604,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      },
+      {
+        "segmentIndex": 8,
+        "start": 182,
+        "end": 206,
+        "text": "*מוזיקה*",
+        "duration": 24,
+        "wordCount": 1,
+        "energy": 0.258655,
+        "brightness": 0.159083,
+        "label": "high",
+        "melodicScore": 1,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      },
+      {
+        "segmentIndex": 9,
+        "start": 206,
+        "end": 216,
+        "text": "*מוזיקה*",
+        "duration": 10,
+        "wordCount": 1,
+        "energy": 0.138606,
+        "brightness": 0.086719,
+        "label": "low",
+        "melodicScore": 0.167,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      }
+    ],
+    "sectionStarts": [
+      {
+        "start": 0,
+        "end": 15,
+        "label": "low",
+        "segmentIndex": 0,
+        "repeatGroup": 0,
+        "reason": "opening"
+      },
+      {
+        "start": 62,
+        "end": 91,
+        "label": "high",
+        "segmentIndex": 3,
+        "repeatGroup": 0,
+        "reason": "register-change"
+      },
+      {
+        "start": 110,
+        "end": 135,
+        "label": "low",
+        "segmentIndex": 5,
+        "repeatGroup": 0,
+        "reason": "register-change"
+      },
+      {
+        "start": 135,
+        "end": 158,
+        "label": "high",
+        "segmentIndex": 6,
+        "repeatGroup": 0,
+        "reason": "register-change"
+      },
+      {
+        "start": 206,
+        "end": 216,
+        "label": "low",
+        "segmentIndex": 9,
+        "repeatGroup": 0,
+        "reason": "register-change"
+      }
+    ],
+    "pattern": [
+      "low",
+      "high",
+      "low",
+      "high",
+      "low"
+    ]
+  },
+  "cachedAt": "2026-05-01T18:55:55.350Z"
+}

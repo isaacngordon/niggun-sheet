@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useGoogleAuth } from '@/components/GoogleAuthProvider';
 import AddSongModal from '@/components/AddSongModal';
 import MediaPlayer from '@/components/MediaPlayer';
+import { buildMediaTimingSources, resolveBoundsFromTimingEntry, resolveSourceLabelsFromTimingEntry, type TimingEntry } from '@/lib/timings';
 import { extractAllYouTubeUrls } from '@/lib/youtube';
 
 function slugify(text: string): string {
@@ -24,90 +25,23 @@ interface Song {
   audio: string;
 }
 
-interface TimingBounds {
+interface SongListEntry {
+  key: string;
+  href: string;
+  smartboardHref: string;
+  title: string;
+  artist: string;
+  lyrics: string;
+  drive: string;
+  audioUrl: string | null;
+  youtubeUrl: string | null;
   inPoint: number | null;
   outPoint: number | null;
+  isPrivate: boolean;
+  privateId?: string;
 }
 
-interface StoredTimingClip {
-  verseIndex: number;
-  start: number;
-}
-
-interface ClipTimingEntry {
-  version?: number;
-  clips?: StoredTimingClip[];
-  inPoint?: number | null;
-  outPoint?: number | null;
-  useClipEdgeBounds?: boolean;
-}
-
-type RawTimingEntry = number[] | ClipTimingEntry;
-
-const DEFAULT_CARD_LENGTH = 6;
 const ENABLE_GRID_VIEW = false;
-
-function normalizeBoundaryPoint(point: unknown): number | null {
-  if (typeof point !== 'number' || !Number.isFinite(point) || point < 0) return null;
-  return Number(point.toFixed(2));
-}
-
-function normalizeTimingBounds(inPoint: unknown, outPoint: unknown): TimingBounds {
-  const nextInPoint = normalizeBoundaryPoint(inPoint);
-  let nextOutPoint = normalizeBoundaryPoint(outPoint);
-  if (nextInPoint != null && nextOutPoint != null && nextOutPoint <= nextInPoint) {
-    nextOutPoint = null;
-  }
-  return { inPoint: nextInPoint, outPoint: nextOutPoint };
-}
-
-function sanitizeClips(clips: unknown): StoredTimingClip[] {
-  if (!Array.isArray(clips)) return [];
-  return clips
-    .filter((clip): clip is StoredTimingClip =>
-      !!clip &&
-      typeof clip === 'object' &&
-      typeof (clip as StoredTimingClip).start === 'number' &&
-      Number.isFinite((clip as StoredTimingClip).start)
-    )
-    .map((clip) => ({
-      verseIndex: Number.isFinite(clip.verseIndex) ? Math.round(clip.verseIndex) : -1,
-      start: Number(clip.start.toFixed(2)),
-    }))
-    .sort((a, b) => a.start - b.start);
-}
-
-function deriveBoundsFromClipEdges(clips: StoredTimingClip[], outPoint: number | null): TimingBounds {
-  if (clips.length === 0) return { inPoint: null, outPoint: null };
-  const first = clips[0].start;
-  const last = clips[clips.length - 1].start;
-  const defaultOutPoint = Number((last + DEFAULT_CARD_LENGTH).toFixed(2));
-  const normalizedOut = normalizeBoundaryPoint(outPoint);
-  const boundedOut = normalizedOut != null && normalizedOut > last
-    ? Math.min(normalizedOut, defaultOutPoint)
-    : defaultOutPoint;
-  return normalizeTimingBounds(first, boundedOut);
-}
-
-function resolveBoundsFromEntry(entry: RawTimingEntry | undefined): TimingBounds {
-  if (!entry) return { inPoint: null, outPoint: null };
-
-  if (Array.isArray(entry)) {
-    const clips = entry
-      .map((start, verseIndex) => ({ verseIndex, start }))
-      .filter((clip) => Number.isFinite(clip.start) && clip.start >= 0)
-      .sort((a, b) => a.start - b.start);
-    return deriveBoundsFromClipEdges(clips, null);
-  }
-
-  const clips = sanitizeClips(entry.clips);
-  const manualBounds = normalizeTimingBounds(entry.inPoint, entry.outPoint);
-  const useClipEdgeBounds = typeof entry.useClipEdgeBounds === 'boolean' ? entry.useClipEdgeBounds : true;
-  if (useClipEdgeBounds) {
-    return deriveBoundsFromClipEdges(clips, manualBounds.outPoint);
-  }
-  return manualBounds;
-}
 
 interface SongsListProps {
   songs: Song[];
@@ -116,7 +50,7 @@ interface SongsListProps {
 
 export default function SongsList({ songs, initialSearch }: SongsListProps) {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [timingBoundsBySlug, setTimingBoundsBySlug] = useState<Record<string, TimingBounds>>({});
+  const [timingEntriesBySlug, setTimingEntriesBySlug] = useState<Record<string, TimingEntry>>({});
   const { user, privateSongs, preferences, loading: authLoading, ready: authReady, signIn, signOut, addSong, addSongs, removeSong, setPref } = useGoogleAuth();
   const [filter, setFilterState] = useState<'all' | 'library' | 'mine'>((preferences.songsFilter as 'all' | 'library' | 'mine') || 'all');
   const [viewMode, setViewModeState] = useState<'grid' | 'list'>(ENABLE_GRID_VIEW ? ((preferences.songsViewMode as 'grid' | 'list') || 'grid') : 'list');
@@ -182,21 +116,72 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
 
   const totalCount = filter === 'mine' ? privateSongsAsSongs.length : filter === 'library' ? songs.length : songs.length + privateSongsAsSongs.length;
 
+  const displayEntries = useMemo<SongListEntry[]>(() => {
+    return filteredSongs.flatMap<SongListEntry>((song) => {
+      const isPrivate = '_privateId' in song && !!song._privateId;
+      const songSlug = isPrivate ? `my-${song._privateId}` : slugify(song.title);
+      const fallbackSlug = isPrivate ? null : slugify(song.search_title || song.title);
+      const timingEntry = timingEntriesBySlug[songSlug] ?? (fallbackSlug ? timingEntriesBySlug[fallbackSlug] : undefined);
+      const urls = extractAllYouTubeUrls(song.youtube);
+      const mediaSources = buildMediaTimingSources(song.audio, urls, resolveSourceLabelsFromTimingEntry(timingEntry));
+      const primarySourceKey = mediaSources[0]?.key ?? null;
+
+      if (mediaSources.length <= 1) {
+        const source = mediaSources[0] ?? null;
+        const bounds = resolveBoundsFromTimingEntry(timingEntry, source?.key ?? primarySourceKey, primarySourceKey);
+        const hrefBase = isPrivate ? `/songs/my-${song._privateId}` : `/songs/${slugify(song.title)}`;
+
+        return [{
+          key: `${hrefBase}-${source?.key ?? 'default'}`,
+          href: source?.key ? `${hrefBase}?timingSource=${encodeURIComponent(source.key)}` : hrefBase,
+          smartboardHref: `/smartboard-mode?slug=${encodeURIComponent(isPrivate ? `my-${song._privateId}` : slugify(song.title))}&lyrics=${encodeURIComponent(song.lyrics)}${song.audio ? `&audio=${encodeURIComponent(song.audio)}` : ''}${source?.youtubeUrl ? `&youtube=${encodeURIComponent(source.youtubeUrl)}` : ''}${source?.key ? `&timingSource=${encodeURIComponent(source.key)}` : ''}`,
+          title: song.title,
+          artist: song.artist,
+          lyrics: song.lyrics,
+          drive: song.drive,
+          audioUrl: song.audio || null,
+          youtubeUrl: source?.youtubeUrl ?? urls[0] ?? null,
+          inPoint: bounds.inPoint,
+          outPoint: bounds.outPoint,
+          isPrivate,
+          privateId: isPrivate ? song._privateId : undefined,
+        }];
+      }
+
+      return mediaSources.map((source) => {
+        const hrefBase = isPrivate ? `/songs/my-${song._privateId}` : `/songs/${slugify(song.title)}`;
+        const bounds = resolveBoundsFromTimingEntry(timingEntry, source.key, primarySourceKey);
+
+        return {
+          key: `${hrefBase}-${source.key}`,
+          href: `${hrefBase}?timingSource=${encodeURIComponent(source.key)}`,
+          smartboardHref: `/smartboard-mode?slug=${encodeURIComponent(isPrivate ? `my-${song._privateId}` : slugify(song.title))}&lyrics=${encodeURIComponent(song.lyrics)}${source.youtubeUrl ? `&youtube=${encodeURIComponent(source.youtubeUrl)}` : ''}${source.key ? `&timingSource=${encodeURIComponent(source.key)}` : ''}`,
+          title: song.title,
+          artist: source.label,
+          lyrics: song.lyrics,
+          drive: song.drive,
+          audioUrl: null,
+          youtubeUrl: source.youtubeUrl,
+          inPoint: bounds.inPoint,
+          outPoint: bounds.outPoint,
+          isPrivate,
+          privateId: isPrivate ? song._privateId : undefined,
+        };
+      });
+    });
+  }, [filteredSongs, timingEntriesBySlug]);
+
   useEffect(() => {
     let cancelled = false;
 
     fetch('/api/timings')
       .then((res) => (res.ok ? res.json() : null))
-      .then((raw: Record<string, RawTimingEntry> | null) => {
+      .then((raw: Record<string, TimingEntry> | null) => {
         if (cancelled || !raw || typeof raw !== 'object') return;
-        const next: Record<string, TimingBounds> = {};
-        for (const [slug, entry] of Object.entries(raw)) {
-          next[slug] = resolveBoundsFromEntry(entry);
-        }
-        setTimingBoundsBySlug(next);
+        setTimingEntriesBySlug(raw);
       })
       .catch(() => {
-        if (!cancelled) setTimingBoundsBySlug({});
+        if (!cancelled) setTimingEntriesBySlug({});
       });
 
     return () => {
@@ -244,10 +229,10 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
       <AddSongModal open={showAddForm} onClose={() => setShowAddForm(false)} onSave={addSong} onSaveBulk={addSongs} />
 
       <p className="songs-count">
-        Showing {filteredSongs.length} of {totalCount} {filter === 'mine' ? 'private songs' : 'niggunim'}
+        Showing {displayEntries.length} {displayEntries.length === 1 ? 'entry' : 'entries'} from {filteredSongs.length} {filteredSongs.length === 1 ? 'song' : 'songs'}
       </p>
 
-      {filteredSongs.length === 0 ? (
+      {displayEntries.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
           <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
             {filter === 'mine' ? 'No private songs yet' : 'No songs found'}
@@ -262,41 +247,35 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
               <span>Playback + Actions</span>
             </div>
           )}
-          {filteredSongs.map((song, index) => {
-            const isPrivate = '_privateId' in song && !!song._privateId;
-            const href = isPrivate ? `/songs/my-${song._privateId}` : `/songs/${slugify(song.title)}`;
-            const songSlug = isPrivate ? `my-${song._privateId}` : slugify(song.title);
-            const fallbackSlug = isPrivate ? null : slugify(song.search_title || song.title);
-            const bounds = timingBoundsBySlug[songSlug] ?? (fallbackSlug ? timingBoundsBySlug[fallbackSlug] : undefined) ?? { inPoint: null, outPoint: null };
-            const cardKey = isPrivate ? `my-${song._privateId}` : `${href}-${song.artist || 'unknown-artist'}`;
-            const lyricLines = song.lyrics
+          {displayEntries.map((entry, index) => {
+            const lyricLines = entry.lyrics
               .split('\n')
               .map((line) => line.trim())
               .filter(Boolean);
             const listExcerpt = lyricLines.slice(0, 2).join('  ') ?? '';
             return (
-              <div key={cardKey} className={`song-card ${isPrivate ? 'private-song-card' : ''}`}>
-                <Link href={href} className="song-card-link">
+              <div key={entry.key} className={`song-card ${entry.isPrivate ? 'private-song-card' : ''}`}>
+                <Link href={entry.href} className="song-card-link">
                   {viewMode === 'list' ? (
                     <div className="song-list-headline">
                       <span className="song-list-index">{String(index + 1).padStart(2, '0')}</span>
                       <div className="song-list-meta">
-                        {isPrivate && <div className="private-badge">My Song</div>}
-                        <h3 className="song-title">{song.title}</h3>
-                        {song.artist && <p className="song-artist">{song.artist}</p>}
+                        {entry.isPrivate && <div className="private-badge">My Song</div>}
+                        <h3 className="song-title">{entry.title}</h3>
+                        {entry.artist && <p className="song-artist">{entry.artist}</p>}
                       </div>
                     </div>
                   ) : (
                     <>
-                      {isPrivate && <div className="private-badge">My Song</div>}
-                      <h3 className="song-title">{song.title}</h3>
-                      {song.artist && <p className="song-artist">{song.artist}</p>}
+                      {entry.isPrivate && <div className="private-badge">My Song</div>}
+                      <h3 className="song-title">{entry.title}</h3>
+                      {entry.artist && <p className="song-artist">{entry.artist}</p>}
                     </>
                   )}
                   {viewMode === 'grid' && (
                     <div className="song-lyrics">
-                      {song.lyrics.split('\n').slice(0, 4).join('\n')}
-                      {song.lyrics.split('\n').length > 4 && '...'}
+                      {entry.lyrics.split('\n').slice(0, 4).join('\n')}
+                      {entry.lyrics.split('\n').length > 4 && '...'}
                     </div>
                   )}
                 </Link>
@@ -305,25 +284,21 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
                 )}
                 <div className="song-links">
                   <div className="song-player-rail">
-                    {(song.audio || song.youtube) && (() => {
-                      const urls = extractAllYouTubeUrls(song.youtube);
-                      if (!song.audio && urls.length === 0) return null;
-                      if (song.audio) {
-                        return <MediaPlayer audioUrl={song.audio} youtubeUrl={urls[0] || ''} inPoint={bounds.inPoint} outPoint={bounds.outPoint} />;
-                      }
-                      return (
-                        <div className={`yt-players-stack${urls.length > 1 ? ' double' : ''}`}>
-                          {urls.map((u, i) => <MediaPlayer key={`${cardKey}-${u}-${i}`} youtubeUrl={u} inPoint={bounds.inPoint} outPoint={bounds.outPoint} />)}
-                        </div>
-                      );
-                    })()}
+                    {(entry.audioUrl || entry.youtubeUrl) && (
+                      <MediaPlayer
+                        audioUrl={entry.audioUrl}
+                        youtubeUrl={entry.youtubeUrl}
+                        inPoint={entry.inPoint}
+                        outPoint={entry.outPoint}
+                      />
+                    )}
                   </div>
 
                   <div className="song-quick-actions">
                     {/* Secondary icon-only actions */}
-                    {song.drive && (
+                    {entry.drive && (
                       <a
-                        href={song.drive}
+                        href={entry.drive}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="song-link song-link-icon"
@@ -333,10 +308,10 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
                       </a>
                     )}
-                    {isPrivate && (
+                    {entry.isPrivate && (
                       <button
                         className="song-link song-link-icon private-delete-btn"
-                        onClick={() => { if (confirm(`Delete "${song.title}"?`)) removeSong(song._privateId!); }}
+                        onClick={() => { if (confirm(`Delete "${entry.title}"?`)) removeSong(entry.privateId!); }}
                         aria-label="Delete private song"
                         title="Delete private song"
                       >
@@ -345,7 +320,7 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
                     )}
                     {/* Primary CTA — always labeled */}
                     <a
-                      href={`/smartboard-mode?slug=${encodeURIComponent(isPrivate ? `my-${song._privateId}` : slugify(song.title))}&lyrics=${encodeURIComponent(song.lyrics)}${song.audio ? `&audio=${encodeURIComponent(song.audio)}` : ''}${song.youtube ? `&youtube=${encodeURIComponent(extractAllYouTubeUrls(song.youtube)[0] || '')}` : ''}`}
+                      href={entry.smartboardHref}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="song-smartboard-btn"

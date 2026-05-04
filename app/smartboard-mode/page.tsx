@@ -3,47 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
-import { extractYouTubeId, ensureYTApi, fmt } from '@/lib/youtube';
+import { extractYouTubeId, ensureYTApi, fmt, warmYouTubeConnections } from '@/lib/youtube';
+import { buildMediaTimingSources, deriveBoundsFromClipEdges, normalizeTimingBounds, type StoredTimingClip, type StoredTimingData, type TimingBounds } from '@/lib/timings';
 import React from 'react';
-
-interface StoredTimingClip {
-  verseIndex: number;
-  start: number;
-}
-
-interface TimingBounds {
-  inPoint: number | null;
-  outPoint: number | null;
-}
-
-interface StoredTimingData extends TimingBounds {
-  clips: StoredTimingClip[];
-  useClipEdgeBounds: boolean;
-}
-
-const DEFAULT_CARD_LENGTH = 6;
-
-function normalizeBoundaryPoint(point: unknown): number | null {
-  if (typeof point !== 'number' || !Number.isFinite(point) || point < 0) {
-    return null;
-  }
-
-  return Number(point.toFixed(2));
-}
-
-function normalizeTimingBounds(inPoint: unknown, outPoint: unknown): TimingBounds {
-  const nextInPoint = normalizeBoundaryPoint(inPoint);
-  let nextOutPoint = normalizeBoundaryPoint(outPoint);
-
-  if (nextInPoint != null && nextOutPoint != null && nextOutPoint <= nextInPoint) {
-    nextOutPoint = null;
-  }
-
-  return {
-    inPoint: nextInPoint,
-    outPoint: nextOutPoint,
-  };
-}
 
 function isTimeWithinBounds(currentTime: number, bounds: TimingBounds): boolean {
   if (bounds.inPoint != null && currentTime < bounds.inPoint) return false;
@@ -55,23 +17,6 @@ function isClipWithinBounds(clip: StoredTimingClip, bounds: TimingBounds): boole
   if (bounds.inPoint != null && clip.start < bounds.inPoint) return false;
   if (bounds.outPoint != null && clip.start >= bounds.outPoint) return false;
   return true;
-}
-
-function deriveBoundsFromClipEdges(clips: StoredTimingClip[], fallbackOutPoint: number | null): TimingBounds {
-  if (clips.length === 0) {
-    return { inPoint: null, outPoint: null };
-  }
-
-  const ordered = clips.slice().sort((a, b) => a.start - b.start);
-  const inPoint = Number(ordered[0].start.toFixed(2));
-  const lastStart = ordered[ordered.length - 1].start;
-  const defaultOutPoint = Number((lastStart + DEFAULT_CARD_LENGTH).toFixed(2));
-  const roundedFallbackOut = normalizeBoundaryPoint(fallbackOutPoint);
-  const outPoint = roundedFallbackOut != null && roundedFallbackOut > lastStart
-    ? Math.min(roundedFallbackOut, defaultOutPoint)
-    : defaultOutPoint;
-
-  return normalizeTimingBounds(inPoint, outPoint);
 }
 
 function resolveEffectiveBounds(
@@ -349,6 +294,8 @@ function SmartboardYouTubePlayer({
   useEffect(() => {
     let cancelled = false;
 
+    warmYouTubeConnections();
+
     (async () => {
       try {
         await ensureYTApi();
@@ -579,7 +526,7 @@ function SmartboardContent() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
   const [currentLine, setCurrentLine] = useState(0);
-  const [playheadOn, setPlayheadOn] = useState(false);
+  const [playheadMode, setPlayheadMode] = useState<'off' | 'timed' | 'manual'>('off');
   const [savedClips, setSavedClips] = useState<StoredTimingClip[]>([]);
   const [savedBounds, setSavedBounds] = useState<TimingBounds>({ inPoint: null, outPoint: null });
   const [savedUseClipEdgeBounds, setSavedUseClipEdgeBounds] = useState(true);
@@ -601,33 +548,41 @@ function SmartboardContent() {
   useEffect(() => {
     const slugParam = searchParams.get('slug');
     const lyricsParam = searchParams.get('lyrics');
+    const audioParam = searchParams.get('audio');
+    const youtubeParam = searchParams.get('youtube');
+    const timingSourceParam = searchParams.get('timingSource');
+    const fallbackSourceKey = buildMediaTimingSources(audioParam, youtubeParam ? [youtubeParam] : [])[0]?.key ?? null;
     if (lyricsParam) {
       const doc = new DOMParser().parseFromString(lyricsParam, 'text/html');
       setLyrics(doc.body.textContent || '');
     }
 
     if (slugParam) {
-      fetchTimings(slugParam).then((timingData) => {
+      const query = new URLSearchParams({ slug: slugParam });
+      if (timingSourceParam) query.set('source', timingSourceParam);
+      if (fallbackSourceKey) query.set('fallbackSource', fallbackSourceKey);
+
+      fetch(`/api/timings?${query.toString()}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((timingData: StoredTimingData | null) => {
         setSavedClips(timingData?.clips ?? []);
         setSavedBounds({
           inPoint: timingData?.inPoint ?? null,
           outPoint: timingData?.outPoint ?? null,
         });
         setSavedUseClipEdgeBounds(timingData?.useClipEdgeBounds ?? true);
-      });
+        });
     } else {
       setSavedClips([]);
       setSavedBounds({ inPoint: null, outPoint: null });
       setSavedUseClipEdgeBounds(true);
     }
 
-    const ytParam = searchParams.get('youtube');
-    if (ytParam) {
-      const id = extractYouTubeId(ytParam);
+    if (youtubeParam) {
+      const id = extractYouTubeId(youtubeParam);
       if (id) setYoutubeVideoId(id);
     }
 
-    const audioParam = searchParams.get('audio');
     setAudioUrl(audioParam || null);
 
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -678,10 +633,14 @@ function SmartboardContent() {
     });
   }, [scrollToLine]);
 
+  const timedPlayheadOn = playheadMode === 'timed';
+  const manualPlayheadOn = playheadMode === 'manual';
+  const playheadOn = playheadMode !== 'off';
+
   const timedActiveLine = React.useMemo(() => {
-    if (!playheadOn || savedClips.length === 0) return null;
+    if (!timedPlayheadOn || savedClips.length === 0) return null;
     return activeLineFromClips(savedClips, previewPlaybackTime, effectiveSavedBounds);
-  }, [effectiveSavedBounds, playheadOn, previewPlaybackTime, savedClips]);
+  }, [effectiveSavedBounds, previewPlaybackTime, savedClips, timedPlayheadOn]);
 
   useEffect(() => {
     if (timedActiveLine == null || timedActiveLine < 0) return;
@@ -718,15 +677,15 @@ function SmartboardContent() {
 
   // Active position in the timeline sequence based on playback time
   const activeSeqIndex = React.useMemo(() => {
-    if (!playheadOn || timelineSequence.length === 0) return -1;
+    if (!timedPlayheadOn || timelineSequence.length === 0) return -1;
     let best = -1;
     for (let i = 0; i < timelineSequence.length; i++) {
       if (timelineSequence[i].start <= previewPlaybackTime) best = i;
     }
     return best;
-  }, [playheadOn, previewPlaybackTime, timelineSequence]);
+  }, [previewPlaybackTime, timedPlayheadOn, timelineSequence]);
 
-  const isNoTimingPlayhead = playheadOn && timelineSequence.length === 0;
+  const hasTimedPlayhead = timelineSequence.length > 0;
 
   const probeRef = useRef<HTMLSpanElement>(null);
   const wheelAnimationRef = useRef<number | null>(null);
@@ -907,6 +866,12 @@ function SmartboardContent() {
     animateWheelTo(seqIdx, 280, true);
   }, [animateWheelTo]);
 
+  const activateManualPlayhead = useCallback((lineIndex: number) => {
+    setPlayheadMode('manual');
+    setCurrentLine(lineIndex);
+    scrollToLine(lineIndex);
+  }, [scrollToLine]);
+
   // Keyboard navigation
   useEffect(() => {
     if (!playheadOn) return;
@@ -927,18 +892,24 @@ function SmartboardContent() {
     setFontSize((prev) => Math.max(0.5, increase ? prev + 0.2 : prev - 0.2));
   }, []);
 
-  const togglePlayhead = useCallback(() => {
-    setPlayheadOn((v) => {
-      if (!v) {
-        setCurrentLine(0);
-        scrollToLine(0);
-        if (effectiveSavedBounds.inPoint != null) {
-          requestSeekTo(effectiveSavedBounds.inPoint);
-        }
+  const toggleTimedPlayhead = useCallback(() => {
+    if (!hasTimedPlayhead) {
+      return;
+    }
+
+    setPlayheadMode((currentMode) => {
+      if (currentMode === 'timed') {
+        return 'off';
       }
-      return !v;
+
+      setCurrentLine(0);
+      scrollToLine(0);
+      if (effectiveSavedBounds.inPoint != null) {
+        requestSeekTo(effectiveSavedBounds.inPoint);
+      }
+      return 'timed';
     });
-  }, [effectiveSavedBounds.inPoint, requestSeekTo, scrollToLine]);
+  }, [effectiveSavedBounds.inPoint, hasTimedPlayhead, requestSeekTo, scrollToLine]);
 
   const bottomButtonStyle: React.CSSProperties = {
     background: 'linear-gradient(180deg, #f6d85e, #e7ba1f)',
@@ -966,7 +937,7 @@ function SmartboardContent() {
       style={{
         margin: 0,
         padding: 0,
-        fontFamily: "'Frank Ruhl Libre', 'Noto Serif Hebrew', Arial, sans-serif",
+        fontFamily: 'var(--font-frank-ruhl-libre), var(--font-noto-serif-hebrew), Arial, sans-serif',
         backgroundColor: darkMode ? 'black' : 'white',
         color: darkMode ? 'white' : 'black',
         transition: 'background-color 0.5s, color 0.5s',
@@ -974,7 +945,7 @@ function SmartboardContent() {
       }}
     >
       {/* Song lyrics */}
-      {playheadOn && timelineSequence.length > 0 ? (
+      {timedPlayheadOn && timelineSequence.length > 0 ? (
         // TELEPROMPTER MODE: custom wheel viewport
         <>
           {/* Hidden probe span — measures widest verse at full font size to lock column width */}
@@ -989,7 +960,7 @@ function SmartboardContent() {
               pointerEvents: 'none',
               fontSize: `${fontSize}em`,
               fontWeight: 700,
-              fontFamily: "'Frank Ruhl Libre', 'Noto Serif Hebrew', Arial, sans-serif",
+              fontFamily: 'var(--font-frank-ruhl-libre), var(--font-noto-serif-hebrew), Arial, sans-serif',
               padding: '0.2em 0.6em',
               whiteSpace: 'nowrap',
             }}
@@ -1094,57 +1065,57 @@ function SmartboardContent() {
         </>
       ) : (
         <div
-          onClick={playheadOn ? goNext : undefined}
+          onClick={manualPlayheadOn ? () => setPlayheadMode('off') : undefined}
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: isNoTimingPlayhead ? 'center' : playheadOn ? 'flex-start' : 'center',
+            justifyContent: manualPlayheadOn ? 'center' : playheadOn ? 'flex-start' : 'center',
             minHeight: '75vh',
-            paddingTop: isNoTimingPlayhead ? '4.5rem' : playheadOn ? '2rem' : '4.5rem',
-            paddingBottom: isNoTimingPlayhead ? 0 : playheadOn ? '10rem' : 0,
-            cursor: playheadOn ? 'pointer' : 'default',
+            paddingTop: manualPlayheadOn ? '4.5rem' : playheadOn ? '2rem' : '4.5rem',
+            paddingBottom: manualPlayheadOn ? 0 : playheadOn ? '10rem' : 0,
+            cursor: manualPlayheadOn ? 'pointer' : 'default',
           }}
         >
-          <div style={{ width: 'min(92vw, 1500px)', maxWidth: '1500px', textAlign: 'center' }}>
-            {playheadOn ? (
-              // MANUAL PLAYHEAD MODE — all lines listed, active one highlighted
-              <div style={{ fontSize: `${isNoTimingPlayhead ? regularViewDisplayFontSize : fontSize}em`, lineHeight: isNoTimingPlayhead ? 1.42 : 1.6 }}>
-                {lines.map((line, i) => (
-                  <span
-                    key={i}
-                    ref={(el) => { linesRef.current[i] = el; }}
-                    onClick={(e) => { e.stopPropagation(); setCurrentLine(i); scrollToLine(i); }}
-                    style={{
-                      display: 'block',
-                      padding: isNoTimingPlayhead ? '0.02em 0.28em' : '0.1em 0.3em',
-                      borderRadius: 6,
-                      transition: 'opacity 0.3s, transform 0.3s',
-                      opacity: i === (timedActiveLine ?? currentLine) ? 1 : 0.3,
-                      transform: i === (timedActiveLine ?? currentLine) ? 'scale(1.05)' : 'scale(1)',
-                      textAlign: 'center',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {line || '\u00A0'}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p
-                style={{
-                  fontSize: `${regularViewDisplayFontSize}em`,
-                  whiteSpace: 'pre-line',
-                  textAlign: 'center',
-                  margin: '0 auto',
-                  maxWidth: '84vw',
-                  paddingInline: '4vw',
-                  lineHeight: 1.45,
-                }}
-              >
-                {lyrics}
-              </p>
-            )}
+          <div
+            onClick={(event) => {
+              if (manualPlayheadOn) {
+                event.stopPropagation();
+              }
+            }}
+            style={{
+              display: 'inline-block',
+              width: 'fit-content',
+              maxWidth: '84vw',
+              textAlign: 'center',
+              margin: '0 auto',
+            }}
+          >
+            <div style={{ fontSize: `${regularViewDisplayFontSize}em`, lineHeight: manualPlayheadOn ? 1.42 : 1.45 }}>
+              {lines.map((line, i) => (
+                <span
+                  key={i}
+                  ref={(el) => { linesRef.current[i] = el; }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    activateManualPlayhead(i);
+                  }}
+                  style={{
+                    display: 'block',
+                    padding: manualPlayheadOn ? '0.02em 0.28em' : '0.04em 0.28em',
+                    borderRadius: 6,
+                    transition: 'opacity 0.3s, transform 0.3s',
+                    opacity: manualPlayheadOn ? (i === currentLine ? 1 : 0.3) : 1,
+                    transform: manualPlayheadOn && i === currentLine ? 'scale(1.05)' : 'scale(1)',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {line || '\u00A0'}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -1197,13 +1168,18 @@ function SmartboardContent() {
             Back
           </button>
           <button
-            onClick={togglePlayhead}
+            onClick={toggleTimedPlayhead}
+            disabled={!hasTimedPlayhead}
             style={{
-              ...(playheadOn ? bottomButtonStyle : secondaryBottomButtonStyle),
+              ...(timedPlayheadOn ? bottomButtonStyle : secondaryBottomButtonStyle),
               minWidth: 168,
+              opacity: hasTimedPlayhead ? 1 : 0.42,
+              cursor: hasTimedPlayhead ? 'pointer' : 'not-allowed',
+              borderColor: hasTimedPlayhead ? undefined : 'rgba(255,255,255,0.14)',
+              color: hasTimedPlayhead ? (timedPlayheadOn ? '#151515' : '#f2cb05') : '#8f8f8f',
             }}
           >
-            {playheadOn ? 'Pause Playhead' : 'Start Playhead'}
+            {timedPlayheadOn ? 'Pause Playhead' : 'Start Playhead'}
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '1 1 460px', minWidth: 0 }}>

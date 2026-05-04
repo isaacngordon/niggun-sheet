@@ -1,12 +1,11 @@
-'use client';
+import type { Metadata } from 'next';
+import SheetBuilderRoute from './SheetBuilderRoute';
 
-import { useEffect } from 'react';
-import SheetBuilderApp from '../sheet-builder-v2/SheetBuilderApp';
+export const metadata: Metadata = {
+  title: 'Sheet Builder',
+  description: 'Build printable kumzitz sheets with drag-and-drop layout and auto-fit pagination.',
+};
 
 export default function SheetBuilderPage() {
-  useEffect(() => {
-    document.title = 'Sheet Builder | Niggun Sheet';
-  }, []);
-
-  return <SheetBuilderApp />;
+  return <SheetBuilderRoute />;
 }

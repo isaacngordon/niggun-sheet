@@ -1,10 +1,23 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
+import { Frank_Ruhl_Libre, Noto_Serif_Hebrew } from 'next/font/google';
 import { Suspense } from 'react';
 import Analytics from '@/components/Analytics';
-import Providers from '@/components/Providers';
+import AnalyticsPreferences from '@/components/AnalyticsPreferences';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://niggunsheet.com';
+
+const frankRuhlLibre = Frank_Ruhl_Libre({
+  subsets: ['hebrew', 'latin'],
+  display: 'swap',
+  variable: '--font-frank-ruhl-libre',
+});
+
+const notoSerifHebrew = Noto_Serif_Hebrew({
+  subsets: ['hebrew', 'latin'],
+  display: 'swap',
+  variable: '--font-noto-serif-hebrew',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -63,22 +76,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300..900&family=Noto+Serif+Hebrew:wght@100..900&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={`${frankRuhlLibre.variable} ${notoSerifHebrew.variable}`}>
       <body>
-        <Providers>
-          {children}
-          <Suspense fallback={null}>
-            <Analytics />
-          </Suspense>
-        </Providers>
+        {children}
+        <AnalyticsPreferences />
+        <Suspense fallback={null}>
+          <Analytics />
+        </Suspense>
       </body>
     </html>
   );

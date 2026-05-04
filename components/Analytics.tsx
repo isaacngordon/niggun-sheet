@@ -14,6 +14,7 @@ import {
 } from '@/lib/analytics';
 
 export default function Analytics() {
+  const analyticsEnabled = process.env.NODE_ENV === 'production';
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<AnalyticsMode>('cookie');
@@ -51,7 +52,7 @@ export default function Analytics() {
     });
   }, [gaConfigured, mode, pagePath, trackingReady]);
 
-  if (!GA_MEASUREMENT_ID) {
+  if (!analyticsEnabled || !GA_MEASUREMENT_ID) {
     return null;
   }
 

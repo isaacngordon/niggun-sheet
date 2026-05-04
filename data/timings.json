@@ -1,22 +1,22 @@
 {
   "acheinu": {
-    "version": 2,
+    "version": 3,
     "clips": [
       {
         "verseIndex": 0,
-        "start": 43.59
+        "start": 58.57
       },
       {
         "verseIndex": 1,
-        "start": 56.56
+        "start": 64.7
       },
       {
         "verseIndex": 2,
-        "start": 63.91
+        "start": 68.68
       },
       {
         "verseIndex": 0,
-        "start": 73.12
+        "start": 81.19
       },
       {
         "verseIndex": 1,
@@ -48,8 +48,266 @@
       },
       {
         "verseIndex": -1,
-        "start": 133.09
+        "start": 147.82
       }
-    ]
+    ],
+    "inPoint": null,
+    "outPoint": 174.94,
+    "useClipEdgeBounds": true
+  },
+  "ilan-ilan": {
+    "version": 4,
+    "defaultSource": "youtube:pSiwTwYYO94",
+    "sources": {
+      "youtube:pSiwTwYYO94": {
+        "version": 3,
+        "clips": [],
+        "inPoint": null,
+        "outPoint": 83.47,
+        "useClipEdgeBounds": true
+      }
+    },
+    "sourceLabels": {
+      "youtube:pSiwTwYYO94": "Abie Rottenberg",
+      "youtube:VUaAAj3t_HU": "Chassidish"
+    }
+  },
+  "al-tira": {
+    "version": 4,
+    "defaultSource": "youtube:-5CKAra-YJk",
+    "sources": {
+      "youtube:-5CKAra-YJk": {
+        "version": 3,
+        "clips": [
+          {
+            "verseIndex": 0,
+            "start": 15.43
+          },
+          {
+            "verseIndex": 1,
+            "start": 21.08
+          },
+          {
+            "verseIndex": 0,
+            "start": 27.63
+          },
+          {
+            "verseIndex": 1,
+            "start": 33.03
+          },
+          {
+            "verseIndex": 0,
+            "start": 39.58
+          },
+          {
+            "verseIndex": 1,
+            "start": 45.04
+          },
+          {
+            "verseIndex": 0,
+            "start": 51.22
+          },
+          {
+            "verseIndex": 1,
+            "start": 56.6
+          },
+          {
+            "verseIndex": 2,
+            "start": 63.19
+          },
+          {
+            "verseIndex": 3,
+            "start": 68.58
+          },
+          {
+            "verseIndex": 2,
+            "start": 74.24
+          },
+          {
+            "verseIndex": 3,
+            "start": 80.38
+          }
+        ],
+        "inPoint": null,
+        "outPoint": 87.14,
+        "useClipEdgeBounds": true
+      }
+    },
+    "sourceLabels": {}
+  },
+  "avinu-av-harachaman": {
+    "version": 4,
+    "defaultSource": "youtube:-DACmtfohHE",
+    "sources": {
+      "youtube:-DACmtfohHE": {
+        "version": 3,
+        "clips": [
+          {
+            "verseIndex": 0,
+            "start": 38.05
+          },
+          {
+            "verseIndex": 1,
+            "start": 43.81
+          },
+          {
+            "verseIndex": 3,
+            "start": 50.39
+          },
+          {
+            "verseIndex": 4,
+            "start": 56.24
+          },
+          {
+            "verseIndex": 0,
+            "start": 62.54
+          },
+          {
+            "verseIndex": 1,
+            "start": 68.07
+          },
+          {
+            "verseIndex": 3,
+            "start": 74.43
+          },
+          {
+            "verseIndex": 4,
+            "start": 80.48
+          },
+          {
+            "verseIndex": 5,
+            "start": 86.51
+          },
+          {
+            "verseIndex": 6,
+            "start": 92.57
+          },
+          {
+            "verseIndex": 7,
+            "start": 98.23
+          },
+          {
+            "verseIndex": 8,
+            "start": 104.74
+          },
+          {
+            "verseIndex": 5,
+            "start": 110.54
+          },
+          {
+            "verseIndex": 6,
+            "start": 116.76
+          },
+          {
+            "verseIndex": 7,
+            "start": 122.29
+          },
+          {
+            "verseIndex": 8,
+            "start": 128.69
+          },
+          {
+            "verseIndex": 9,
+            "start": 134.73
+          },
+          {
+            "verseIndex": 10,
+            "start": 146.03
+          },
+          {
+            "verseIndex": 11,
+            "start": 158.4
+          },
+          {
+            "verseIndex": 12,
+            "start": 169.93
+          }
+        ],
+        "inPoint": null,
+        "outPoint": 184.19,
+        "useClipEdgeBounds": true
+      },
+      "youtube:zV_GSoaOJFo": {
+        "version": 3,
+        "clips": [
+          {
+            "verseIndex": 0,
+            "start": 30.91
+          },
+          {
+            "verseIndex": 1,
+            "start": 38.16
+          },
+          {
+            "verseIndex": 0,
+            "start": 45.31
+          },
+          {
+            "verseIndex": 1,
+            "start": 52.95
+          },
+          {
+            "verseIndex": 0,
+            "start": 60.31
+          },
+          {
+            "verseIndex": 1,
+            "start": 67.62
+          },
+          {
+            "verseIndex": 0,
+            "start": 74.78
+          },
+          {
+            "verseIndex": 1,
+            "start": 82.3
+          },
+          {
+            "verseIndex": 2,
+            "start": 89.7
+          },
+          {
+            "verseIndex": 2,
+            "start": 93.36
+          },
+          {
+            "verseIndex": 0,
+            "start": 97.1
+          },
+          {
+            "verseIndex": 2,
+            "start": 104.44
+          },
+          {
+            "verseIndex": 2,
+            "start": 108.12
+          },
+          {
+            "verseIndex": 0,
+            "start": 111.74
+          },
+          {
+            "verseIndex": 1,
+            "start": 119.09
+          },
+          {
+            "verseIndex": 0,
+            "start": 126.38
+          },
+          {
+            "verseIndex": 1,
+            "start": 133.78
+          },
+          {
+            "verseIndex": 0,
+            "start": 141.08
+          }
+        ],
+        "inPoint": null,
+        "outPoint": 150.18,
+        "useClipEdgeBounds": true
+      }
+    },
+    "sourceLabels": {}
   }
 }

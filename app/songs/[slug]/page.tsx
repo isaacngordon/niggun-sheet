@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import AuthBoundary from '@/components/AuthBoundary';
 import SongDetail from './SongDetail';
 import { getSongs } from '@/app/api/songs/data';
 
@@ -17,11 +18,11 @@ export default async function SongDetailPage({
   ) ?? null;
 
   return (
-    <>
+    <AuthBoundary>
       <Header />
       <SongDetail publicSong={publicSong} slug={slug} />
       <Footer />
-    </>
+    </AuthBoundary>
   );
 }
 

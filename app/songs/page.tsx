@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import AuthBoundary from '@/components/AuthBoundary';
 import SongsList from './SongsList';
 import { getSongs } from '@/app/api/songs/data';
 import type { Metadata } from 'next';
@@ -27,13 +28,13 @@ export default async function SongsPage({
   const searchQuery = params.search || '';
 
   return (
-    <>
+    <AuthBoundary>
       <Header />
       <main className="songs-container">
         <h1 style={{ marginBottom: '2rem', fontSize: '2rem' }}>Song Directory</h1>
         <SongsList songs={songs} initialSearch={searchQuery} />
       </main>
       <Footer />
-    </>
+    </AuthBoundary>
   );
 }

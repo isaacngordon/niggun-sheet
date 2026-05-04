@@ -1,0 +1,473 @@
+{
+  "version": 1,
+  "videoId": "-5CKAra-YJk",
+  "language": "he",
+  "clipStartSeconds": 15,
+  "clipDurationSeconds": 75,
+  "sourceFingerprint": {
+    "size": 3986119,
+    "mtimeMs": 1777661102530
+  },
+  "transcription": {
+    "rawSrt": "1\n00:00:00,000 --> 00:00:11,360\n על תירה כיה שרש, כהיר בקבוע פסע.\n\n2\n00:00:11,360 --> 00:00:23,120\n על תירה כיה שרש, כהיר בקבוע פסע.\n\n3\n00:00:24,320 --> 00:00:35,680\n על תירה כיה שרש, כהיר בקבוע פסע.\n\n4\n00:00:35,680 --> 00:00:46,800\n על תירה כיה שרש, כהיר בקבוע פסע.\n\n5\n00:00:47,680 --> 00:00:59,040\n כהיר במוסע, כהיר בקבוע פסע.\n\n6\n00:00:59,040 --> 00:01:10,800\n כהיר בקבוע פסע, כהיר בקבוע פסע.\n\n7\n00:01:10,800 --> 00:01:15,200\n כהיר בקבוע פסע, כהיר בקבוע פסע.\n\n",
+    "segments": [
+      {
+        "start": 15,
+        "end": 26.36,
+        "text": "על תירה כיה שרש, כהיר בקבוע פסע."
+      },
+      {
+        "start": 26.36,
+        "end": 38.12,
+        "text": "על תירה כיה שרש, כהיר בקבוע פסע."
+      },
+      {
+        "start": 39.32,
+        "end": 50.68,
+        "text": "על תירה כיה שרש, כהיר בקבוע פסע."
+      },
+      {
+        "start": 50.68,
+        "end": 61.8,
+        "text": "על תירה כיה שרש, כהיר בקבוע פסע."
+      },
+      {
+        "start": 62.68,
+        "end": 74.04,
+        "text": "כהיר במוסע, כהיר בקבוע פסע."
+      },
+      {
+        "start": 74.04,
+        "end": 85.8,
+        "text": "כהיר בקבוע פסע, כהיר בקבוע פסע."
+      },
+      {
+        "start": 85.8,
+        "end": 90.2,
+        "text": "כהיר בקבוע פסע, כהיר בקבוע פסע."
+      }
+    ],
+    "transcriptWords": [
+      {
+        "word": "על",
+        "start": 15,
+        "end": 16.62,
+        "confidence": null
+      },
+      {
+        "word": "תירה",
+        "start": 16.62,
+        "end": 18.25,
+        "confidence": null
+      },
+      {
+        "word": "כיה",
+        "start": 18.25,
+        "end": 19.87,
+        "confidence": null
+      },
+      {
+        "word": "שרש,",
+        "start": 19.87,
+        "end": 21.49,
+        "confidence": null
+      },
+      {
+        "word": "כהיר",
+        "start": 21.49,
+        "end": 23.11,
+        "confidence": null
+      },
+      {
+        "word": "בקבוע",
+        "start": 23.11,
+        "end": 24.74,
+        "confidence": null
+      },
+      {
+        "word": "פסע.",
+        "start": 24.74,
+        "end": 26.36,
+        "confidence": null
+      },
+      {
+        "word": "על",
+        "start": 26.36,
+        "end": 28.04,
+        "confidence": null
+      },
+      {
+        "word": "תירה",
+        "start": 28.04,
+        "end": 29.72,
+        "confidence": null
+      },
+      {
+        "word": "כיה",
+        "start": 29.72,
+        "end": 31.4,
+        "confidence": null
+      },
+      {
+        "word": "שרש,",
+        "start": 31.4,
+        "end": 33.08,
+        "confidence": null
+      },
+      {
+        "word": "כהיר",
+        "start": 33.08,
+        "end": 34.76,
+        "confidence": null
+      },
+      {
+        "word": "בקבוע",
+        "start": 34.76,
+        "end": 36.44,
+        "confidence": null
+      },
+      {
+        "word": "פסע.",
+        "start": 36.44,
+        "end": 38.12,
+        "confidence": null
+      },
+      {
+        "word": "על",
+        "start": 39.32,
+        "end": 40.94,
+        "confidence": null
+      },
+      {
+        "word": "תירה",
+        "start": 40.94,
+        "end": 42.57,
+        "confidence": null
+      },
+      {
+        "word": "כיה",
+        "start": 42.57,
+        "end": 44.19,
+        "confidence": null
+      },
+      {
+        "word": "שרש,",
+        "start": 44.19,
+        "end": 45.81,
+        "confidence": null
+      },
+      {
+        "word": "כהיר",
+        "start": 45.81,
+        "end": 47.43,
+        "confidence": null
+      },
+      {
+        "word": "בקבוע",
+        "start": 47.43,
+        "end": 49.06,
+        "confidence": null
+      },
+      {
+        "word": "פסע.",
+        "start": 49.06,
+        "end": 50.68,
+        "confidence": null
+      },
+      {
+        "word": "על",
+        "start": 50.68,
+        "end": 52.27,
+        "confidence": null
+      },
+      {
+        "word": "תירה",
+        "start": 52.27,
+        "end": 53.86,
+        "confidence": null
+      },
+      {
+        "word": "כיה",
+        "start": 53.86,
+        "end": 55.45,
+        "confidence": null
+      },
+      {
+        "word": "שרש,",
+        "start": 55.45,
+        "end": 57.03,
+        "confidence": null
+      },
+      {
+        "word": "כהיר",
+        "start": 57.03,
+        "end": 58.62,
+        "confidence": null
+      },
+      {
+        "word": "בקבוע",
+        "start": 58.62,
+        "end": 60.21,
+        "confidence": null
+      },
+      {
+        "word": "פסע.",
+        "start": 60.21,
+        "end": 61.8,
+        "confidence": null
+      },
+      {
+        "word": "כהיר",
+        "start": 62.68,
+        "end": 64.95,
+        "confidence": null
+      },
+      {
+        "word": "במוסע,",
+        "start": 64.95,
+        "end": 67.22,
+        "confidence": null
+      },
+      {
+        "word": "כהיר",
+        "start": 67.22,
+        "end": 69.5,
+        "confidence": null
+      },
+      {
+        "word": "בקבוע",
+        "start": 69.5,
+        "end": 71.77,
+        "confidence": null
+      },
+      {
+        "word": "פסע.",
+        "start": 71.77,
+        "end": 74.04,
+        "confidence": null
+      },
+      {
+        "word": "כהיר",
+        "start": 74.04,
+        "end": 76,
+        "confidence": null
+      },
+      {
+        "word": "בקבוע",
+        "start": 76,
+        "end": 77.96,
+        "confidence": null
+      },
+      {
+        "word": "פסע,",
+        "start": 77.96,
+        "end": 79.92,
+        "confidence": null
+      },
+      {
+        "word": "כהיר",
+        "start": 79.92,
+        "end": 81.88,
+        "confidence": null
+      },
+      {
+        "word": "בקבוע",
+        "start": 81.88,
+        "end": 83.84,
+        "confidence": null
+      },
+      {
+        "word": "פסע.",
+        "start": 83.84,
+        "end": 85.8,
+        "confidence": null
+      },
+      {
+        "word": "כהיר",
+        "start": 85.8,
+        "end": 86.53,
+        "confidence": null
+      },
+      {
+        "word": "בקבוע",
+        "start": 86.53,
+        "end": 87.27,
+        "confidence": null
+      },
+      {
+        "word": "פסע,",
+        "start": 87.27,
+        "end": 88,
+        "confidence": null
+      },
+      {
+        "word": "כהיר",
+        "start": 88,
+        "end": 88.73,
+        "confidence": null
+      },
+      {
+        "word": "בקבוע",
+        "start": 88.73,
+        "end": 89.47,
+        "confidence": null
+      },
+      {
+        "word": "פסע.",
+        "start": 89.47,
+        "end": 90.2,
+        "confidence": null
+      }
+    ]
+  },
+  "sectionAnalysis": {
+    "sectionProfiles": [
+      {
+        "segmentIndex": 0,
+        "start": 15,
+        "end": 26.36,
+        "text": "על תירה כיה שרש, כהיר בקבוע פסע.",
+        "duration": 11.36,
+        "wordCount": 7,
+        "energy": 0.13748,
+        "brightness": 0.070473,
+        "label": "low",
+        "melodicScore": 0,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": null,
+        "repeatSimilarity": 0
+      },
+      {
+        "segmentIndex": 1,
+        "start": 26.36,
+        "end": 38.12,
+        "text": "על תירה כיה שרש, כהיר בקבוע פסע.",
+        "duration": 11.76,
+        "wordCount": 7,
+        "energy": 0.124164,
+        "brightness": 0.063896,
+        "label": "low",
+        "melodicScore": 0,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      },
+      {
+        "segmentIndex": 2,
+        "start": 39.32,
+        "end": 50.68,
+        "text": "על תירה כיה שרש, כהיר בקבוע פסע.",
+        "duration": 11.36,
+        "wordCount": 7,
+        "energy": 0.202734,
+        "brightness": 0.103533,
+        "label": "high",
+        "melodicScore": 0.507,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      },
+      {
+        "segmentIndex": 3,
+        "start": 50.68,
+        "end": 61.8,
+        "text": "על תירה כיה שרש, כהיר בקבוע פסע.",
+        "duration": 11.12,
+        "wordCount": 7,
+        "energy": 0.193881,
+        "brightness": 0.103228,
+        "label": "low",
+        "melodicScore": 0.474,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 1
+      },
+      {
+        "segmentIndex": 4,
+        "start": 62.68,
+        "end": 74.04,
+        "text": "כהיר במוסע, כהיר בקבוע פסע.",
+        "duration": 11.36,
+        "wordCount": 5,
+        "energy": 0.234958,
+        "brightness": 0.148745,
+        "label": "high",
+        "melodicScore": 1,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 0,
+        "repeatSimilarity": 0.5
+      },
+      {
+        "segmentIndex": 5,
+        "start": 74.04,
+        "end": 85.8,
+        "text": "כהיר בקבוע פסע, כהיר בקבוע פסע.",
+        "duration": 11.76,
+        "wordCount": 6,
+        "energy": 0.2327,
+        "brightness": 0.148464,
+        "label": "high",
+        "melodicScore": 0.998,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 4,
+        "repeatSimilarity": 0.846
+      },
+      {
+        "segmentIndex": 6,
+        "start": 85.8,
+        "end": 90.2,
+        "text": "כהיר בקבוע פסע, כהיר בקבוע פסע.",
+        "duration": 4.4,
+        "wordCount": 6,
+        "energy": 0.232067,
+        "brightness": 0.149083,
+        "label": "high",
+        "melodicScore": 0.998,
+        "repeatGroup": 0,
+        "repeatedFromSegmentIndex": 5,
+        "repeatSimilarity": 1
+      }
+    ],
+    "sectionStarts": [
+      {
+        "start": 15,
+        "end": 26.36,
+        "label": "low",
+        "segmentIndex": 0,
+        "repeatGroup": 0,
+        "reason": "opening"
+      },
+      {
+        "start": 39.32,
+        "end": 50.68,
+        "label": "high",
+        "segmentIndex": 2,
+        "repeatGroup": 0,
+        "reason": "register-change"
+      },
+      {
+        "start": 50.68,
+        "end": 61.8,
+        "label": "low",
+        "segmentIndex": 3,
+        "repeatGroup": 0,
+        "reason": "register-change"
+      },
+      {
+        "start": 62.68,
+        "end": 74.04,
+        "label": "high",
+        "segmentIndex": 4,
+        "repeatGroup": 0,
+        "reason": "register-change"
+      }
+    ],
+    "pattern": [
+      "low",
+      "high",
+      "low",
+      "high"
+    ]
+  },
+  "cachedAt": "2026-05-01T18:55:58.325Z"
+}

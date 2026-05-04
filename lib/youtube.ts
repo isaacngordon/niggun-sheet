@@ -5,19 +5,64 @@
 
 /* ── URL helpers ── */
 
+const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
+
+function normalizeYouTubeUrl(url: string): string {
+  const trimmed = url.trim().replace(/[),.;]+$/g, '');
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^(?:www\.)?(?:youtube\.com|youtu\.be)\//i.test(trimmed)) {
+    return `https://${trimmed.replace(/^www\./i, 'www.')}`;
+  }
+  return trimmed;
+}
+
 export function extractYouTubeId(url: string): string | null {
   if (!url) return null;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=|youtube\.com\/embed\/)([^&?#\s]+)/);
-  return match?.[1] && match[1].length === 11 ? match[1] : null;
+  const normalized = normalizeYouTubeUrl(url);
+
+  try {
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.replace(/^www\./i, '').toLowerCase();
+
+    let candidate = '';
+
+    if (host === 'youtu.be') {
+      candidate = parsed.pathname.replace(/^\//, '').split('/')[0] ?? '';
+    } else if (host === 'youtube.com') {
+      if (parsed.pathname === '/watch') {
+        candidate = parsed.searchParams.get('v') ?? '';
+      } else {
+        const segments = parsed.pathname.split('/').filter(Boolean);
+        if (segments[0] === 'embed' || segments[0] === 'shorts' || segments[0] === 'live') {
+          candidate = segments[1] ?? '';
+        } else if (segments.length === 1) {
+          candidate = segments[0] ?? '';
+        }
+      }
+    }
+
+    return YOUTUBE_ID_PATTERN.test(candidate) ? candidate : null;
+  } catch {
+    return null;
+  }
 }
 
 export function extractAllYouTubeUrls(field: string): string[] {
   if (!field) return [];
-  // Split concatenated URLs (no space between them) by inserting a space before http
-  const normalized = field.replace(/(?<=\S)(https?:\/\/)/g, ' $1');
-  const urls = normalized.match(/https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/[^\s]*/g);
+  const normalized = field
+    .replace(/(?<=\S)((?:https?:\/\/|www\.)(?:youtube\.com|youtu\.be))/gi, ' $1');
+  const urls = normalized.match(/(?:(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/[^\s,]+)/gi);
   if (!urls) return [];
-  return urls.filter((u) => extractYouTubeId(u) !== null);
+
+  const seen = new Set<string>();
+
+  return urls
+    .map((url) => normalizeYouTubeUrl(url))
+    .filter((url) => {
+      if (extractYouTubeId(url) === null || seen.has(url)) return false;
+      seen.add(url);
+      return true;
+    });
 }
 
 /* ── Time formatting ── */
@@ -42,14 +87,46 @@ export const playbackBus = typeof window !== 'undefined' ? new EventTarget() : n
 
 const LOAD_TIMEOUT = 10_000; // 10s
 const MAX_RETRIES = 2;
+const YOUTUBE_RESOURCE_HINTS = [
+  ['dns-prefetch', 'https://www.youtube.com'],
+  ['preconnect', 'https://www.youtube.com'],
+  ['dns-prefetch', 'https://i.ytimg.com'],
+  ['preconnect', 'https://i.ytimg.com'],
+  ['dns-prefetch', 'https://s.ytimg.com'],
+  ['preconnect', 'https://s.ytimg.com'],
+] as const;
 
 let ytApiPromise: Promise<void> | null = null;
 let loadAttempt = 0;
+let hintsPrimed = false;
+
+export function warmYouTubeConnections(): void {
+  if (typeof document === 'undefined' || hintsPrimed) return;
+
+  YOUTUBE_RESOURCE_HINTS.forEach(([rel, href]) => {
+    const existing = document.head.querySelector(`link[rel="${rel}"][href="${href}"]`);
+    if (existing) {
+      return;
+    }
+
+    const link = document.createElement('link');
+    link.rel = rel;
+    link.href = href;
+    if (rel === 'preconnect') {
+      link.crossOrigin = 'anonymous';
+    }
+    document.head.appendChild(link);
+  });
+
+  hintsPrimed = true;
+}
 
 function loadApi(): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     // Already available (e.g. after hot reload)
     if ((window as any).YT?.Player) { resolve(); return; }
+
+    warmYouTubeConnections();
 
     let settled = false;
     const settle = (fn: () => void) => {
@@ -83,6 +160,8 @@ function loadApi(): Promise<void> {
       const tag = document.createElement('script');
       tag.id = 'yt-iframe-api';
       tag.src = 'https://www.youtube.com/iframe_api';
+      tag.async = true;
+      tag.defer = true;
       tag.onerror = () => {
         settle(() => reject(new Error('YouTube API script failed to load')));
       };
@@ -125,6 +204,31 @@ export function ensureYTApi(): Promise<void> {
   return ytApiPromise;
 }
 
+export function primeYTApi(): Promise<void> {
+  if (typeof window === 'undefined') {
+    return Promise.resolve();
+  }
+
+  warmYouTubeConnections();
+
+  if ((window as any).YT?.Player || ytApiPromise) {
+    return ensureYTApi();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const start = () => {
+      ensureYTApi().then(resolve).catch(reject);
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(start, { timeout: 1200 });
+      return;
+    }
+
+    window.setTimeout(start, 120);
+  });
+}
+
 /**
  * Preload the YouTube IFrame API immediately (non-blocking).
  * Call this early (e.g. in a top-level Provider) so the API is likely
@@ -132,6 +236,7 @@ export function ensureYTApi(): Promise<void> {
  */
 export function preloadYTApi(): void {
   if (typeof window === 'undefined') return;
+  warmYouTubeConnections();
   // If already loaded or loading, skip
   if ((window as any).YT?.Player || ytApiPromise) return;
   // Fire and forget — errors handled in ensureYTApi retries
@@ -142,4 +247,5 @@ export function preloadYTApi(): void {
 export function _resetForTesting(): void {
   ytApiPromise = null;
   loadAttempt = 0;
+  hintsPrimed = false;
 }
