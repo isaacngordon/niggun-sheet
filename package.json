@@ -1,16 +1,15 @@
 {
   "name": "niggun-sheet",
   "version": "1.0.1",
-  "description": "",
-  "main": "server.js",
+  "description": "Discover Your Perfect Niggun - the next generation of Kumzits Sheets",
   "scripts": {
-    "preinstall": "npm install node-gyp@latest",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "dev": "nodemon server.js -e html,js,css,csv",
-    "db-migrate": "node data/migrate.js",
-    "db-seed": "node data/seed.js data/songs.csv",
-    "db-backup": "prefix=$(echo $(( $(ls data/backups | grep -o '^[0-9]*' | sort -n | tail -1) + 1 ))); timestamp=$(date +\"%Y%m%d_%H%M%S\"); filepath=\"data/backups/${prefix}_${timestamp}_backup.sql\"; sqlite3 db.db .dump > $filepath; echo $filepath"
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "waveforms:generate": "node scripts/generate-waveforms.mjs",
+    "test": "jest",
+    "test:e2e": "npx playwright test"
   },
   "author": "",
   "license": "ISC",
@@ -18,16 +17,27 @@
     "node": "22.x"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "csv-parser": "^3.0.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@google-cloud/speech": "^7.3.0",
     "dotenv": "^17.2.2",
-    "express": "^4.18.2",
-    "googleapis": "^159.0.0",
-    "node-gyp": "^12.1.0",
-    "serverless-http": "^3.2.0",
-    "sqlite3": "^5.1.7"
+    "framer-motion": "^12.38.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "next": "^16.2.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "@playwright/test": "^1.59.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
+    "ts-jest": "^29.4.9",
+    "typescript": "^5"
   }
 }

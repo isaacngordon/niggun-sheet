@@ -1,0 +1,502 @@
+'use client';
+
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { ensureYTApi, extractYouTubeId, playbackBus, fmt, primeYTApi, warmYouTubeConnections } from '@/lib/youtube';
+
+interface MediaPlayerProps {
+  audioUrl?: string | null;
+  youtubeUrl?: string | null;
+  inPoint?: number | null;
+  outPoint?: number | null;
+  onTick?: (time: number, duration: number, playing: boolean) => void;
+  exposePlayer?: (player: any) => void;
+  detail?: boolean;
+}
+
+export default function MediaPlayer({ audioUrl, youtubeUrl, inPoint = null, outPoint = null, onTick, exposePlayer, detail = false }: MediaPlayerProps) {
+  const youtubeId = extractYouTubeId(youtubeUrl || '');
+  const prefersAudio = Boolean(audioUrl);
+  const hostWidth = detail ? 92 : 72;
+  const hostHeight = detail ? 52 : 40;
+
+  const idRef = useRef(`media-${Math.random().toString(36).slice(2, 8)}`);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<any>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const readyRef = useRef(false);
+  const playingRef = useRef(false);
+  const destroyedRef = useRef(false);
+  const pendingPlayRef = useRef(false);
+
+  const [playing, setPlaying] = useState(false);
+  const [optimisticPlaying, setOptimisticPlaying] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(prefersAudio ? false : detail);
+  const [apiReady, setApiReady] = useState(prefersAudio);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [shouldPrimeYoutube, setShouldPrimeYoutube] = useState(prefersAudio || detail);
+  const [shouldInitYoutube, setShouldInitYoutube] = useState(prefersAudio || detail);
+  const [retryNonce, setRetryNonce] = useState(0);
+
+  const windowStart = Math.max(0, inPoint ?? 0);
+  const effectiveWindowEnd = outPoint != null && outPoint > windowStart ? outPoint : null;
+  const startYoutubeFromWindow = useCallback((startTime: number) => {
+    const player = playerRef.current;
+    if (!player || !youtubeId) return;
+
+    const nextStart = Math.max(0, startTime);
+
+    if (typeof player.loadVideoById === 'function') {
+      player.loadVideoById({ videoId: youtubeId, startSeconds: nextStart });
+      return;
+    }
+
+    if (typeof player.seekTo === 'function') {
+      player.seekTo(nextStart, true);
+    }
+    if (typeof player.playVideo === 'function') {
+      player.playVideo();
+    }
+  }, [youtubeId]);
+
+  const clampToWindow = useCallback((time: number, totalDuration: number) => {
+    const upper = effectiveWindowEnd != null ? Math.min(effectiveWindowEnd, totalDuration > 0 ? totalDuration : effectiveWindowEnd) : totalDuration;
+    const upperBound = upper > 0 ? upper : effectiveWindowEnd ?? Number.POSITIVE_INFINITY;
+    return Math.min(Math.max(time, windowStart), upperBound);
+  }, [effectiveWindowEnd, windowStart]);
+
+  useEffect(() => {
+    destroyedRef.current = false;
+
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail === idRef.current) return;
+      if (audioRef.current && !audioRef.current.paused) {
+        audioRef.current.pause();
+      }
+      if (playerRef.current && readyRef.current) {
+        try { playerRef.current.pauseVideo(); } catch {}
+      }
+      pendingPlayRef.current = false;
+      playingRef.current = false;
+      setOptimisticPlaying(false);
+      setPlaying(false);
+    };
+
+    playbackBus?.addEventListener('play', handler);
+    return () => {
+      destroyedRef.current = true;
+      pendingPlayRef.current = false;
+      playbackBus?.removeEventListener('play', handler);
+      try { playerRef.current?.destroy?.(); } catch {}
+      playerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (prefersAudio || !youtubeId || !shouldPrimeYoutube) return;
+
+    let cancelled = false;
+    warmYouTubeConnections();
+    if (shouldInitYoutube) {
+      setLoading(true);
+      setError(null);
+    }
+
+    const loadPromise = shouldInitYoutube ? ensureYTApi() : primeYTApi();
+
+    loadPromise
+      .then(() => {
+        if (cancelled || destroyedRef.current) return;
+        setApiReady(true);
+      })
+      .catch(() => {
+        if (cancelled || destroyedRef.current) return;
+        if (shouldInitYoutube) {
+          setError('Unable to load YouTube');
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [prefersAudio, youtubeId, shouldInitYoutube, shouldPrimeYoutube, retryNonce]);
+
+  useEffect(() => {
+    if (prefersAudio || detail || shouldPrimeYoutube) return;
+
+    const node = containerRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      setShouldPrimeYoutube(true);
+      return;
+    }
+
+    const rect = node.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const preloadMargin = 160;
+    const isNearViewport = rect.bottom >= -preloadMargin && rect.top <= viewportHeight + preloadMargin;
+
+    if (isNearViewport) {
+      setShouldPrimeYoutube(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldPrimeYoutube(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '160px 0px' }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [prefersAudio, detail, shouldPrimeYoutube]);
+
+  useEffect(() => {
+    if (!prefersAudio || !audioRef.current) return;
+    const audio = audioRef.current;
+
+    const updateTime = () => {
+      const current = audio.currentTime || 0;
+      const total = audio.duration || 0;
+      if (effectiveWindowEnd != null && current >= effectiveWindowEnd) {
+        audio.currentTime = clampToWindow(effectiveWindowEnd, total);
+        audio.pause();
+      }
+      setProgress(current);
+      if (total > 0) setDuration(total);
+      onTick?.(current, total, !audio.paused && !audio.ended);
+    };
+    const handleCanPlay = () => {
+      readyRef.current = true;
+      setReady(true);
+      setLoading(false);
+      setDuration(audio.duration || 0);
+      exposePlayer?.(audio);
+    };
+    const handlePlay = () => {
+      playingRef.current = true;
+      setPlaying(true);
+      playbackBus?.dispatchEvent(new CustomEvent('play', { detail: idRef.current }));
+    };
+    const handlePause = () => {
+      playingRef.current = false;
+      setPlaying(false);
+      updateTime();
+    };
+
+    audio.addEventListener('loadedmetadata', handleCanPlay);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handlePause);
+
+    if (audio.readyState >= 2) handleCanPlay();
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', handleCanPlay);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handlePause);
+    };
+  }, [prefersAudio, audioUrl, onTick, exposePlayer, effectiveWindowEnd, clampToWindow]);
+
+  useEffect(() => {
+    if (prefersAudio || !youtubeId || !shouldInitYoutube || !apiReady || !hostRef.current || playerRef.current) return;
+
+    let cancelled = false;
+    const host = hostRef.current;
+    const yt = (window as any).YT;
+    if (!yt?.Player) {
+      setError('YouTube unavailable');
+      setLoading(false);
+      return;
+    }
+
+    readyRef.current = false;
+    playingRef.current = false;
+    setReady(false);
+    setPlaying(false);
+    setOptimisticPlaying(false);
+    setProgress(0);
+    setDuration(0);
+    setLoading(true);
+    setError(null);
+
+    host.innerHTML = '';
+    const div = document.createElement('div');
+    host.appendChild(div);
+
+    playerRef.current = new yt.Player(div, {
+      height: String(hostHeight),
+      width: String(hostWidth),
+      videoId: youtubeId,
+      playerVars: {
+        autoplay: pendingPlayRef.current ? 1 : 0,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        modestbranding: 1,
+        playsinline: 1,
+        rel: 0,
+        origin: window.location.origin,
+      },
+      events: {
+        onReady: () => {
+          if (cancelled || destroyedRef.current) return;
+          readyRef.current = true;
+          setReady(true);
+          setLoading(false);
+          setDuration(playerRef.current?.getDuration?.() || 0);
+          exposePlayer?.(playerRef.current);
+          try { playerRef.current?.setPlaybackQuality?.('small'); } catch {}
+          if (pendingPlayRef.current) {
+            pendingPlayRef.current = false;
+            playbackBus?.dispatchEvent(new CustomEvent('play', { detail: idRef.current }));
+            try {
+              if (windowStart > 0) {
+                startYoutubeFromWindow(windowStart);
+              } else {
+                playerRef.current?.playVideo();
+              }
+            } catch {}
+          }
+        },
+        onStateChange: (e: any) => {
+          if (cancelled || destroyedRef.current) return;
+          const state = e.data;
+          const isPlaying = state === yt.PlayerState.PLAYING;
+          const isBuffering = state === yt.PlayerState.BUFFERING;
+          const current = playerRef.current?.getCurrentTime?.() || 0;
+          const total = playerRef.current?.getDuration?.() || 0;
+
+          if (effectiveWindowEnd != null && current >= effectiveWindowEnd && playerRef.current) {
+            const endTime = clampToWindow(effectiveWindowEnd, total);
+            try { playerRef.current.seekTo(endTime, true); } catch {}
+            try { playerRef.current.pauseVideo(); } catch {}
+            playingRef.current = false;
+            setPlaying(false);
+            setOptimisticPlaying(false);
+            setLoading(false);
+            setProgress(endTime);
+            onTick?.(endTime, total, false);
+            return;
+          }
+
+          playingRef.current = isPlaying;
+          setPlaying(isPlaying);
+          if (isPlaying || !isBuffering) {
+            setOptimisticPlaying(false);
+          }
+          setLoading(isBuffering);
+          if (total > 0) setDuration(total);
+          setProgress(current);
+          onTick?.(current, total, isPlaying);
+        },
+        onError: (e: any) => {
+          if (cancelled || destroyedRef.current) return;
+          pendingPlayRef.current = false;
+          setOptimisticPlaying(false);
+          setError(`YouTube error ${e?.data ?? ''}`.trim());
+          setLoading(false);
+        },
+      },
+    });
+
+    return () => {
+      cancelled = true;
+      readyRef.current = false;
+      playingRef.current = false;
+      try { playerRef.current?.destroy?.(); } catch {}
+      playerRef.current = null;
+      host.innerHTML = '';
+    };
+  }, [prefersAudio, youtubeId, shouldInitYoutube, apiReady, detail, exposePlayer, onTick, retryNonce, effectiveWindowEnd, clampToWindow, startYoutubeFromWindow, windowStart]);
+
+  useEffect(() => {
+    if (prefersAudio || !playerRef.current || !playing) return;
+    const interval = setInterval(() => {
+      const current = playerRef.current?.getCurrentTime?.() || 0;
+      const total = playerRef.current?.getDuration?.() || 0;
+      if (effectiveWindowEnd != null && current >= effectiveWindowEnd && playerRef.current) {
+        const endTime = clampToWindow(effectiveWindowEnd, total);
+        try { playerRef.current.seekTo(endTime, true); } catch {}
+        try { playerRef.current.pauseVideo(); } catch {}
+        setProgress(endTime);
+        setPlaying(false);
+        setOptimisticPlaying(false);
+        onTick?.(endTime, total, false);
+        return;
+      }
+      setProgress(current);
+      if (total > 0) setDuration(total);
+      onTick?.(current, total, true);
+    }, 250);
+    return () => clearInterval(interval);
+  }, [prefersAudio, playing, onTick, effectiveWindowEnd, clampToWindow]);
+
+  const togglePlay = useCallback(() => {
+    if (prefersAudio) {
+      const audio = audioRef.current;
+      if (!audio) return;
+      if (!audio.paused) {
+        setOptimisticPlaying(false);
+        setPlaying(false);
+        audio.pause();
+        return;
+      }
+      const total = audio.duration || duration;
+      const current = audio.currentTime || 0;
+      if (current < windowStart || (effectiveWindowEnd != null && current >= effectiveWindowEnd)) {
+        audio.currentTime = clampToWindow(windowStart, total);
+        setProgress(audio.currentTime);
+      }
+      setLoading(!readyRef.current);
+      setOptimisticPlaying(true);
+      playbackBus?.dispatchEvent(new CustomEvent('play', { detail: idRef.current }));
+      void audio.play().catch(() => {
+        setOptimisticPlaying(false);
+        setLoading(false);
+      });
+      return;
+    }
+
+    if (!youtubeId) return;
+
+    if (error) {
+      pendingPlayRef.current = true;
+      setOptimisticPlaying(true);
+      setError(null);
+      setReady(false);
+      setLoading(true);
+      setShouldPrimeYoutube(true);
+      setShouldInitYoutube(true);
+      readyRef.current = false;
+      playingRef.current = false;
+      try { playerRef.current?.destroy?.(); } catch {}
+      playerRef.current = null;
+      setRetryNonce((v) => v + 1);
+      return;
+    }
+
+    if (!shouldInitYoutube) {
+      pendingPlayRef.current = true;
+      setOptimisticPlaying(true);
+      setShouldPrimeYoutube(true);
+      setShouldInitYoutube(true);
+      setLoading(true);
+      return;
+    }
+
+    if (!apiReady || !playerRef.current || !readyRef.current) {
+      pendingPlayRef.current = true;
+      setOptimisticPlaying(true);
+      setLoading(true);
+      return;
+    }
+
+    if (playingRef.current) {
+      pendingPlayRef.current = false;
+      playingRef.current = false;
+      setOptimisticPlaying(false);
+      setPlaying(false);
+      setLoading(false);
+      playerRef.current.pauseVideo();
+      return;
+    }
+
+    const current = playerRef.current?.getCurrentTime?.() || 0;
+    const total = playerRef.current?.getDuration?.() || duration;
+    if (current < windowStart || (effectiveWindowEnd != null && current >= effectiveWindowEnd)) {
+      try {
+        startYoutubeFromWindow(clampToWindow(windowStart, total));
+      } catch {}
+    } else {
+      playerRef.current.playVideo();
+    }
+
+    playbackBus?.dispatchEvent(new CustomEvent('play', { detail: idRef.current }));
+    playingRef.current = true;
+    setOptimisticPlaying(true);
+    setPlaying(true);
+    setLoading(false);
+  }, [prefersAudio, youtubeId, apiReady, error, shouldInitYoutube, duration, windowStart, effectiveWindowEnd, clampToWindow, startYoutubeFromWindow]);
+
+  const seek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const seekEnd = effectiveWindowEnd != null ? Math.min(effectiveWindowEnd, duration) : duration;
+    const seekStart = Math.min(windowStart, seekEnd);
+    const nextTime = seekStart + (seekEnd - seekStart) * pct;
+    if (prefersAudio && audioRef.current) {
+      audioRef.current.currentTime = nextTime;
+    } else if (playerRef.current && readyRef.current) {
+      playerRef.current.seekTo(nextTime, true);
+    }
+    setProgress(nextTime);
+  }, [duration, prefersAudio, effectiveWindowEnd, windowStart]);
+
+  const displayStart = Math.min(windowStart, duration || windowStart);
+  const displayEnd = effectiveWindowEnd != null ? Math.min(effectiveWindowEnd, duration || effectiveWindowEnd) : duration;
+  const displaySpan = Math.max(0.001, displayEnd - displayStart);
+  const displayProgress = Math.max(0, Math.min(displaySpan, progress - displayStart));
+  const progressPercent = duration ? Math.max(0, Math.min(100, (displayProgress / displaySpan) * 100)) : 0;
+  const displayPlaying = playing || optimisticPlaying;
+  const displayLoading = loading && !optimisticPlaying;
+
+  if (!audioUrl && !youtubeId) return null;
+
+  return (
+    <div
+      ref={containerRef}
+      className="yt-audio-player"
+      onPointerEnter={() => setShouldPrimeYoutube(true)}
+      onFocus={() => {
+        setShouldPrimeYoutube(true);
+        setShouldInitYoutube(true);
+      }}
+    >
+      {prefersAudio ? (
+        <audio ref={audioRef} src={audioUrl || undefined} preload="metadata" />
+      ) : (
+        <div
+          ref={hostRef}
+          className={`yt-video-host${ready ? '' : ' yt-video-host-loading'}`}
+          style={{ width: hostWidth, height: hostHeight }}
+          aria-hidden="true"
+        />
+      )}
+      <button
+        className="yt-play-btn"
+        onClick={togglePlay}
+        disabled={prefersAudio ? false : false}
+        aria-label={displayPlaying ? 'Pause' : 'Play'}
+      >
+        {displayLoading ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="20 40" /></svg>
+        ) : displayPlaying ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+        )}
+      </button>
+      <div
+        className="yt-progress-bar"
+        onClick={seek}
+      >
+        <div className="yt-progress-fill" style={{ width: `${progressPercent}%` }} />
+      </div>
+      <span className={`yt-time${error ? ' yt-time-error' : ''}`}>{error ? 'error' : ready && duration ? fmt(progress) : '--:--'}</span>
+    </div>
+  );
+}

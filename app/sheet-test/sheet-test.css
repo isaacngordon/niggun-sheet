@@ -1,0 +1,151 @@
+/* ─── Sheet Test Page Styles ────────────────────────────────── */
+
+.st-root {
+  min-height: 100vh;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  font-family: var(--font-frank-ruhl-libre), serif;
+}
+
+.st-header-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* ─── Controls Bar ────────────────────────────────────────── */
+
+.st-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  background: #1a1a1a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.st-info {
+  font-size: 14px;
+  color: #ccc;
+}
+
+.st-generate-btn {
+  padding: 12px 28px;
+  background: #EAB308;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.st-generate-btn:hover {
+  background: #d4a007;
+}
+
+.st-generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.st-again-btn {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.st-again-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ─── Page Container ──────────────────────────────────────── */
+
+.st-page-container {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  background: #0d0d0d;
+}
+
+/* ─── Sheet Page (612×792 letter size with sheetskin) ─────── */
+
+.st-sheet-page {
+  width: 612px;
+  height: 792px;
+  background: white url('/assets/sheetskin.png') center / 612px 792px no-repeat;
+  color: #1a1a1a;
+  border-radius: 4px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  /* Stay inside sheetskin border with breathing room, clear footer */
+  padding: 34px 36px 84px 36px;
+}
+
+/* ─── Grid (CSS columns) ─────────────────────────────────── */
+
+.st-packery-grid {
+  column-count: 1;
+  column-gap: 8px;
+  column-fill: auto;
+  direction: rtl;
+  height: 100%;
+}
+
+.st-packery-grid.two-columns {
+  column-count: 2;
+}
+
+.st-packery-grid.three-columns {
+  column-count: 3;
+}
+
+.st-packery-grid.four-columns {
+  column-count: 4;
+}
+
+.st-packery-grid.five-columns {
+  column-count: 5;
+}
+
+/* ─── Song Card on Sheet ──────────────────────────────────── */
+
+.st-song-card {
+  break-inside: avoid;
+  padding: 1px 3px;
+  margin-bottom: 10px;
+  direction: rtl;
+  text-align: right;
+}
+
+.st-song-card-title {
+  font-weight: 700;
+  margin-bottom: 1px;
+  color: #1a1a1a;
+  font-family: var(--font-frank-ruhl-libre), serif;
+}
+
+.st-song-card-lyrics {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.25;
+  color: #333;
+  font-family: var(--font-frank-ruhl-libre), serif;
+}
+
+.st-song-card-title {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
