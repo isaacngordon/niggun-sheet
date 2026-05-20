@@ -43,8 +43,16 @@ interface GoogleAuthState {
 
 const GoogleAuthContext = createContext<GoogleAuthState | null>(null);
 
-const CLIENT_ID = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || '').trim();
+const DEFAULT_CLIENT_ID = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || '').trim();
+const BETA_CLIENT_ID = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_BETA || '').trim();
 const MAX_SAVED_SHEETS = 3;
+
+function resolveClientIdForCurrentHost(): string {
+  if (typeof window !== 'undefined' && window.location.hostname === 'beta.niggunsheet.com') {
+    return (BETA_CLIENT_ID || DEFAULT_CLIENT_ID).trim();
+  }
+  return DEFAULT_CLIENT_ID;
+}
 
 function formatAuthError(error: unknown): string {
   const message = error instanceof Error ? (error.name || error.message) : String(error || '');
@@ -78,6 +86,7 @@ function formatAuthError(error: unknown): string {
 }
 
 export function GoogleAuthProvider({ children }: { children: ReactNode }) {
+  const clientId = resolveClientIdForCurrentHost();
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [privateSongs, setPrivateSongs] = useState<PrivateSong[]>([]);
   const [savedSheets, setSavedSheets] = useState<SavedSheet[]>([]);
@@ -99,14 +108,14 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
 
   // Init GIS on mount + try restoring previous session
   useEffect(() => {
-    if (!CLIENT_ID) {
+    if (!clientId) {
       console.warn('[GoogleAuth] No NEXT_PUBLIC_GOOGLE_CLIENT_ID set');
       setAuthError('Google sign-in is not configured for this deployment.');
       setReady(true);
       return;
     }
     setAuthError(null);
-    console.log('[GoogleAuth] Initializing with client ID:', CLIENT_ID.slice(0, 10) + '...');
+    console.log('[GoogleAuth] Initializing with client ID:', clientId.slice(0, 10) + '...');
     let cancelled = false;
 
     // Show stored email immediately so UI doesn't flash "Sign In"
@@ -122,7 +131,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
       reloadDriveData().catch((err) => console.error('[GoogleAuth] Failed to reload Drive data:', err));
     });
 
-    initGoogleAuth(CLIENT_ID)
+    initGoogleAuth(clientId)
       .then(async () => {
         console.log('[GoogleAuth] Ready');
         if (cancelled) return;
@@ -161,7 +170,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async () => {
-    if (!CLIENT_ID) {
+    if (!clientId) {
       console.warn('[GoogleAuth] No client ID');
       setAuthError('Google sign-in is not configured for this deployment.');
       return;
@@ -184,7 +193,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [loading, ready, restoring]);
+  }, [clientId, loading, ready, restoring]);
 
   const signOut = useCallback(() => {
     gSignOut();
