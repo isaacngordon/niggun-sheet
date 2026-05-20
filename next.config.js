@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const isDev = process.env.NODE_ENV !== 'production';
+const { version } = require('./package.json');
 
 const nextConfig = {
   turbopack: {
@@ -9,6 +10,7 @@ const nextConfig = {
   // Fallback supports deployments that set GOOGLE_CLIENT_ID only.
   env: {
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '',
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || version,
   },
   // CORS headers for API routes + security headers
   async headers() {

@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import NiggunSheetDownloadButton from '@/components/NiggunSheetDownloadButton';
 
 const HeaderAuthControls = dynamic(() => import('@/components/HeaderAuthControls'), {
@@ -15,7 +15,13 @@ const HeaderAuthControls = dynamic(() => import('@/components/HeaderAuthControls
 export default function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showBetaVersion, setShowBetaVersion] = useState(false);
   const showSheetBuilderTour = pathname === '/sheet-builder';
+  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || 'dev';
+
+  useEffect(() => {
+    setShowBetaVersion(window.location.hostname === 'beta.niggunsheet.com');
+  }, []);
 
   const isActive = (path: string) => pathname === path;
 
@@ -32,6 +38,11 @@ export default function Header() {
 
   return (
     <header className="header">
+      {showBetaVersion && (
+        <div className="header-version-banner" role="status" aria-label="Beta version">
+          Beta v{appVersion}
+        </div>
+      )}
       <div className="header-container">
         {/* Logo */}
         <div className="header-logo">
