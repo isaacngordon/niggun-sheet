@@ -30,6 +30,7 @@ interface GoogleAuthState {
   loading: boolean;
   restoring: boolean;
   ready: boolean;
+  authError: string | null;
   signIn: () => Promise<void>;
   signOut: () => void;
   addSong: (song: Omit<PrivateSong, 'id' | 'createdAt'>) => Promise<void>;
@@ -42,8 +43,39 @@ interface GoogleAuthState {
 
 const GoogleAuthContext = createContext<GoogleAuthState | null>(null);
 
-const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+const CLIENT_ID = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || '').trim();
 const MAX_SAVED_SHEETS = 3;
+
+function formatAuthError(error: unknown): string {
+  const message = error instanceof Error ? (error.name || error.message) : String(error || '');
+
+  if (!message) {
+    return 'Google sign-in failed. Please try again.';
+  }
+  if (message.includes('origin_mismatch')) {
+    return 'Google sign-in is blocked for this site. Ask the site owner to add this domain in Google OAuth origins.';
+  }
+  if (message.includes('invalid_client')) {
+    return 'Google sign-in client is invalid. Verify NEXT_PUBLIC_GOOGLE_CLIENT_ID in production env vars.';
+  }
+  if (message.includes('access_denied')) {
+    return 'Google sign-in was denied for this app configuration.';
+  }
+  if (message.includes('unauthorized_client')) {
+    return 'Google sign-in client is not authorized for this domain. Update authorized JavaScript origins in Google Cloud.';
+  }
+  if (message.includes('popup_failed_to_open')) {
+    return 'Google sign-in popup was blocked. Allow popups for this site and try again.';
+  }
+  if (message.includes('idpiframe_initialization_failed')) {
+    return 'Google sign-in could not initialize in this browser.';
+  }
+  if (message.includes('No client ID')) {
+    return 'Google sign-in is not configured for this deployment.';
+  }
+
+  return 'Google sign-in failed. Please try again.';
+}
 
 export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<GoogleUser | null>(null);
@@ -53,6 +85,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [ready, setReady] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const prefsRef = useRef<UserPreferences>({});
   const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -68,9 +101,11 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!CLIENT_ID) {
       console.warn('[GoogleAuth] No NEXT_PUBLIC_GOOGLE_CLIENT_ID set');
+      setAuthError('Google sign-in is not configured for this deployment.');
       setReady(true);
       return;
     }
+    setAuthError(null);
     console.log('[GoogleAuth] Initializing with client ID:', CLIENT_ID.slice(0, 10) + '...');
     let cancelled = false;
 
@@ -116,6 +151,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
       .catch((err) => {
         console.error('[GoogleAuth] Init failed:', err);
         if (!cancelled) {
+          setAuthError('Google sign-in failed to initialize on this page.');
           setReady(true);
           setUser(null);
           setRestoring(false);
@@ -125,9 +161,14 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async () => {
-    if (!CLIENT_ID) { console.warn('[GoogleAuth] No client ID'); return; }
+    if (!CLIENT_ID) {
+      console.warn('[GoogleAuth] No client ID');
+      setAuthError('Google sign-in is not configured for this deployment.');
+      return;
+    }
     if (loading || restoring) return; // prevent overlapping restore + sign-in
     console.log('[GoogleAuth] Sign-in clicked, ready:', ready);
+    setAuthError(null);
     setLoading(true);
     try {
       const token = await gSignIn();
@@ -138,6 +179,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
       // Ignore expected user/debounce cancellations.
       if (err?.message !== 'Sign-in already in progress' && err?.name !== 'popup_closed') {
         console.error('[GoogleAuth] Sign-in error:', err);
+        setAuthError(formatAuthError(err));
       }
     } finally {
       setLoading(false);
@@ -146,6 +188,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     gSignOut();
+    setAuthError(null);
     setUser(null);
     setPrivateSongs([]);
     setSavedSheets([]);
@@ -218,7 +261,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GoogleAuthContext.Provider value={{ user, privateSongs, savedSheets, preferences, loading, restoring, ready, signIn, signOut, addSong, addSongs, removeSong, editSong, saveSheet, setPref }}>
+    <GoogleAuthContext.Provider value={{ user, privateSongs, savedSheets, preferences, loading, restoring, ready, authError, signIn, signOut, addSong, addSongs, removeSong, editSong, saveSheet, setPref }}>
       {children}
     </GoogleAuthContext.Provider>
   );

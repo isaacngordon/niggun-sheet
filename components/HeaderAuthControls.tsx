@@ -8,7 +8,7 @@ interface HeaderAuthControlsProps {
 }
 
 function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsProps) {
-  const { user, signIn, signOut, loading: authLoading, restoring, ready: authReady } = useGoogleAuth();
+  const { user, signIn, signOut, loading: authLoading, restoring, ready: authReady, authError } = useGoogleAuth();
 
   if (mobile) {
     if (user) {
@@ -31,15 +31,19 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
     }
 
     return (
-      <button
-        onClick={() => {
-          void signIn().finally(() => onDone?.());
-        }}
-        disabled={authLoading || !authReady}
-        className="mobile-nav-signin"
-      >
-        {authLoading ? 'Signing in...' : 'Sign In with Google'}
-      </button>
+      <div className="header-auth-control-group mobile">
+        <button
+          onClick={() => {
+            void signIn().finally(() => onDone?.());
+          }}
+          disabled={authLoading || !authReady}
+          className={`mobile-nav-signin ${authError ? 'auth-error' : ''}`}
+          title={authError || undefined}
+        >
+          {authLoading ? 'Signing in...' : 'Sign In with Google'}
+        </button>
+        {authError && <p className="header-auth-error mobile">{authError}</p>}
+      </div>
     );
   }
 
@@ -56,15 +60,19 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
   }
 
   return (
-    <button
-      onClick={() => {
-        void signIn();
-      }}
-      disabled={authLoading || !authReady}
-      className="header-signin-btn"
-    >
-      {authLoading ? 'Signing in...' : 'Sign In'}
-    </button>
+    <div className="header-auth-control-group">
+      <button
+        onClick={() => {
+          void signIn();
+        }}
+        disabled={authLoading || !authReady}
+        className={`header-signin-btn ${authError ? 'auth-error' : ''}`}
+        title={authError || undefined}
+      >
+        {authLoading ? 'Signing in...' : 'Sign In'}
+      </button>
+      {authError && <p className="header-auth-error">{authError}</p>}
+    </div>
   );
 }
 

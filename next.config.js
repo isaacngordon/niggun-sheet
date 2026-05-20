@@ -5,6 +5,11 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Expose the Google OAuth client id to client bundles.
+  // Fallback supports deployments that set GOOGLE_CLIENT_ID only.
+  env: {
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '',
+  },
   // CORS headers for API routes + security headers
   async headers() {
     const cspScriptSrc = [

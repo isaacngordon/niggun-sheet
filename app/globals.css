@@ -1509,6 +1509,17 @@ a {
   gap: 8px;
 }
 
+.header-auth-control-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.header-auth-control-group.mobile {
+  width: 100%;
+}
+
 .header-signout-btn {
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1542,6 +1553,30 @@ a {
 .header-signin-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.header-signin-btn.auth-error,
+.mobile-nav-signin.auth-error {
+  border-color: rgba(255, 107, 107, 0.45);
+  color: #ffb4b4;
+  background: rgba(255, 107, 107, 0.12);
+}
+
+.header-signin-btn.auth-error:hover,
+.mobile-nav-signin.auth-error:hover {
+  background: rgba(255, 107, 107, 0.18);
+}
+
+.header-auth-error {
+  max-width: 18rem;
+  margin: 0;
+  color: #ffb4b4;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.header-auth-error.mobile {
+  max-width: none;
 }
 
 .header-tour-btn {
