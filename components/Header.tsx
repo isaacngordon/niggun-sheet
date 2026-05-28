@@ -33,6 +33,7 @@ export default function Header() {
     { href: '/', label: 'Home' },
     { href: '/songs', label: 'Song Directory' },
     { href: '/sheet-builder', label: 'Sheet Builder', badge: 'new' },
+    { href: '/bencher', label: 'Bencher Creator' },
     { href: '/contact', label: 'Contact' },
   ];
 
@@ -77,13 +78,18 @@ export default function Header() {
 
         {/* Actions */}
         <div className="header-actions">
+          {process.env.NODE_ENV === 'development' && (
+            <button
+              className="header-tour-btn"
+              style={{ opacity: 0.45, fontSize: '0.72rem', letterSpacing: '0.02em' }}
+              onClick={() => window.dispatchEvent(new CustomEvent('debug-rect:toggle'))}
+              title="Toggle debug rect measurement tool"
+            >[dbg]</button>
+          )}
           {showSheetBuilderTour && (
             <button className="header-tour-btn" onClick={handleStartSheetBuilderTour}>Tour</button>
           )}
           <HeaderAuthControls />
-          <NiggunSheetDownloadButton className="btn-primary header-download-btn">
-            Download Sheet
-          </NiggunSheetDownloadButton>
           
           {/* Mobile menu button */}
           <button 
@@ -99,6 +105,9 @@ export default function Header() {
               )}
             </svg>
           </button>
+          <NiggunSheetDownloadButton className="btn-primary header-download-btn">
+            Download Sheet
+          </NiggunSheetDownloadButton>
         </div>
       </div>
 

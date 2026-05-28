@@ -6,6 +6,7 @@ const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/res
 const PRIVATE_SONGS_FILE = 'niggunsheet-songs.json';
 const PREFERENCES_FILE = 'niggunsheet-prefs.json';
 const SAVED_SHEETS_FILE = 'niggunsheet-sheets.json';
+const BENCHER_LAYOUTS_FILE = 'niggunsheet-bencher.json';
 
 const SILENT_REAUTH_TIMEOUT = 8000; // ms — abort silent reauth if Google is slow
 const FETCH_TIMEOUT = 15000;        // ms — abort any single fetch
@@ -52,6 +53,16 @@ export interface SavedSheet {
   manualColumns: number;
   manualFontSize: number;
   manualLocks: number[][];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SavedBencherLayout {
+  id: string;
+  title: string;
+  songs: SavedSheetSong[];
+  logoSrc: string | null;
+  showTitles: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -627,4 +638,50 @@ export async function saveSavedSheets(sheets: SavedSheet[]): Promise<void> {
 
 export function generateId(): string {
   return crypto.randomUUID();
+}
+
+// ─── Bencher Layouts ────────────────────────────────────────────
+
+function isValidBencherLayout(item: unknown): item is SavedBencherLayout {
+  if (!item || typeof item !== 'object') return false;
+  const obj = item as Record<string, unknown>;
+  if (typeof obj.id !== 'string' || typeof obj.title !== 'string') return false;
+  if (!Array.isArray(obj.songs)) return false;
+  if (typeof obj.showTitles !== 'boolean') return false;
+  if (typeof obj.createdAt !== 'string' || typeof obj.updatedAt !== 'string') return false;
+  return obj.songs.every(
+    (s: unknown) =>
+      s &&
+      typeof s === 'object' &&
+      typeof (s as any).title === 'string' &&
+      typeof (s as any).artist === 'string' &&
+      typeof (s as any).lyrics === 'string',
+  );
+}
+
+export async function loadSavedBencherLayouts(): Promise<SavedBencherLayout[]> {
+  return withRetry(async () => {
+    const fileId = await findAppFile(BENCHER_LAYOUTS_FILE);
+    if (!fileId) return [];
+    const raw = await readFileContent(fileId);
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(isValidBencherLayout);
+    } catch {
+      return [];
+    }
+  });
+}
+
+export async function saveSavedBencherLayouts(layouts: SavedBencherLayout[]): Promise<void> {
+  return withRetry(async () => {
+    const content = JSON.stringify(layouts, null, 2);
+    const fileId = await findAppFile(BENCHER_LAYOUTS_FILE);
+    if (fileId) {
+      await updateFileContent(fileId, content);
+    } else {
+      await createAppFile(BENCHER_LAYOUTS_FILE, content);
+    }
+  });
 }

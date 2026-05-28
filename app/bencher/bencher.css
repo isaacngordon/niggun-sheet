@@ -1,0 +1,640 @@
+.bencher-app {
+  height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  background: #0d0d0d;
+  color: #f7f2df;
+  overflow: hidden;
+}
+
+.bencher-workspace {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: 12px;
+  padding: 10px 16px 10px;
+  overflow: hidden;
+}
+
+.bencher-sidebar {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 212, 48, 0.22);
+  border-radius: 24px;
+  background: rgba(19, 19, 19, 0.96);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.bencher-sidebar-header {
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bencher-sidebar h1 {
+  margin: 0 0 2px;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+
+.bencher-sidebar p {
+  margin: 0;
+  color: rgba(247, 242, 223, 0.72);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.bencher-search {
+  width: calc(100% - 28px);
+  margin: 8px 14px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: #050505;
+  color: #fff;
+  font: inherit;
+}
+
+.bencher-song-library {
+  display: grid;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 14px 18px;
+}
+
+.bencher-song-library .sb2-song-item {
+  touch-action: none;
+}
+
+.bencher-song-option {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: #1a1a1a;
+  color: inherit;
+  text-align: left;
+  cursor: grab;
+  touch-action: none;
+}
+
+.bencher-song-option span {
+  font-weight: 800;
+}
+
+.bencher-song-option small {
+  color: rgba(247, 242, 223, 0.62);
+}
+
+.bencher-song-option.is-dragging {
+  opacity: 0.45;
+}
+
+.bencher-preview {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.bencher-actions {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 4px 0 8px;
+  background: #0d0d0d;
+}
+
+.bencher-actions button {
+  padding: 7px 14px;
+  border: 1px solid rgba(255, 212, 48, 0.45);
+  border-radius: 10px;
+  background: #181818;
+  color: #ffd430;
+  font-weight: 800;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.bencher-actions button.bencher-action-active {
+  background: rgba(255, 212, 48, 0.18);
+  border-color: #ffd430;
+}
+
+.bencher-actions-divider {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(255, 212, 48, 0.2);
+  margin: 4px 2px;
+}
+
+.bencher-save-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bencher-title-input {
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 212, 48, 0.35);
+  border-radius: 10px;
+  background: #181818;
+  color: #ffd430;
+  font-size: 0.82rem;
+  font-weight: 600;
+  outline: none;
+  width: 160px;
+}
+
+.bencher-title-input::placeholder {
+  color: rgba(255, 212, 48, 0.3);
+  font-weight: 400;
+}
+
+.bencher-title-input:focus {
+  border-color: rgba(255, 212, 48, 0.7);
+}
+
+.bencher-title-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Bencher modals ──────────────────────────────────────────── */
+
+.bencher-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.bencher-modal {
+  background: #181818;
+  border: 1px solid rgba(255, 212, 48, 0.25);
+  border-radius: 14px;
+  width: min(420px, 92vw);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bencher-modal-overwrite {
+  width: min(360px, 92vw);
+}
+
+.bencher-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid rgba(255, 212, 48, 0.12);
+}
+
+.bencher-modal-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffd430;
+}
+
+.bencher-modal-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 212, 48, 0.5);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.bencher-modal-close:hover {
+  color: #ffd430;
+}
+
+.bencher-modal-body {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bencher-modal-empty {
+  color: rgba(255, 212, 48, 0.4);
+  font-size: 0.85rem;
+  padding: 8px 4px;
+}
+
+.bencher-modal-item {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255, 212, 48, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bencher-modal-item.current {
+  border-color: rgba(255, 212, 48, 0.45);
+}
+
+.bencher-modal-item-load {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bencher-modal-item-load:hover {
+  background: rgba(255, 212, 48, 0.07);
+}
+
+.bencher-modal-item-title {
+  color: #ffd430;
+  font-size: 0.88rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.bencher-modal-item-meta {
+  color: rgba(255, 212, 48, 0.45);
+  font-size: 0.78rem;
+}
+
+.bencher-modal-item-delete {
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-left: 1px solid rgba(255, 212, 48, 0.12);
+  color: rgba(255, 212, 48, 0.35);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.bencher-modal-item-delete:hover {
+  color: #ffd430;
+  background: rgba(255, 212, 48, 0.08);
+}
+
+.bencher-modal-overwrite-desc {
+  color: rgba(255, 212, 48, 0.7);
+  font-size: 0.85rem;
+  margin: 0 0 8px;
+}
+
+.bencher-modal-overwrite-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: rgba(255, 212, 48, 0.6);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.bencher-modal-overwrite-option.selected {
+  background: rgba(255, 212, 48, 0.08);
+  color: #ffd430;
+}
+
+.bencher-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid rgba(255, 212, 48, 0.12);
+}
+
+.bencher-modal-confirm {
+  background: rgba(255, 212, 48, 0.15) !important;
+  border-color: rgba(255, 212, 48, 0.6) !important;
+  color: #ffd430 !important;
+}
+
+.bencher-modal-confirm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
+
+.bencher-pages {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  justify-items: center;
+  gap: 28px;
+  overflow-y: auto;
+  padding-bottom: 40px;
+}
+
+.bencher-page {
+  position: relative;
+  width: min(100%, 850px);
+  aspect-ratio: 768 / 994;
+  background-color: #fff;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+}
+
+.bencher-logo-target {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2px dashed rgba(255, 212, 48, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #171717;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bencher-logo-target input {
+  display: none;
+}
+
+.bencher-logo-target img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.bencher-song-drop-zone {
+  position: absolute;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.bencher-sheet-builder-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+}
+
+.bencher-sheet-builder-grid .sb2-sheet-column {
+  min-width: 0;
+  min-height: 100%;
+  overflow: visible;
+}
+
+.bencher-sheet-builder-grid .sb2-song-card {
+  margin: 0;
+  padding: 2px 1px 5px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: #17110a;
+}
+
+.bencher-sheet-builder-grid .sb2-song-card-title {
+  margin: 0 0 2px;
+  color: #000;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.004em;
+  line-height: 1.08;
+  text-align: center;
+}
+
+.bencher-sheet-builder-grid .sb2-song-card-lyrics {
+  color: #000;
+  direction: rtl;
+  font-family: var(--font-frank-ruhl-libre), var(--font-noto-serif-hebrew), Georgia, serif;
+  font-weight: 500;
+  letter-spacing: 0.002em;
+  line-height: 1.36;
+  text-align: center;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+}
+
+.bencher-sheet-builder-grid .sb2-drop-slot-expanded {
+  min-height: 108px;
+}
+
+.bencher-page-footer {
+  display: none;
+}
+
+.bencher-page.drag-over {
+  box-shadow: 0 0 0 3px #f2cb05, 0 18px 60px rgba(0, 0, 0, 0.5);
+}
+
+.bencher-page.drag-over .bencher-song-drop-zone {
+  background: rgba(242, 203, 5, 0.05);
+}
+
+.bencher-drop-hint {
+  position: absolute;
+  inset: 8px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: rgba(0, 0, 0, 0.52);
+  font-weight: 900;
+}
+
+.bencher-selected-song {
+  position: relative;
+  padding: 5px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111;
+  direction: rtl;
+}
+
+.bencher-selected-song button {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  border: 0;
+  background: transparent;
+  color: #111;
+  cursor: pointer;
+}
+
+.bencher-selected-song h3 {
+  margin: 0 0 3px;
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+.bencher-selected-song p {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 8px;
+  line-height: 1.25;
+}
+
+/* Analytics privacy widget — transparent on bencher page */
+body.bencher-active .header-container {
+  height: 40px;
+  padding: 0 1rem;
+}
+
+body.bencher-active .header-logo-image {
+  height: 26px;
+}
+
+body.bencher-active .analytics-pref-trigger {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.72rem;
+  padding: 0.4rem 0.6rem;
+}
+
+body.bencher-active .analytics-pref-trigger:hover {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+@media (max-width: 900px) {
+  .bencher-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .bencher-sidebar {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: 8.5in;
+    min-height: 11in;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .bencher-app header,
+  .bencher-sidebar,
+  .bencher-actions {
+    display: none !important;
+  }
+
+  .bencher-app,
+  .bencher-workspace,
+  .bencher-preview,
+  .bencher-pages {
+    display: block;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0;
+    margin: 0;
+    background: #fff;
+  }
+
+  .bencher-page {
+    width: 8.5in;
+    height: 11in;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none;
+    break-after: page;
+    page-break-after: always;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    overflow: hidden;
+  }
+
+  .bencher-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .bencher-page-footer {
+    display: block;
+    position: absolute;
+    bottom: 15px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    font-size: 7pt;
+    color: rgba(0, 0, 0, 0.35);
+    letter-spacing: 0.04em;
+    pointer-events: none;
+  }
+
+  .bencher-logo-target {
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .bencher-drop-hint {
+    display: none;
+  }
+
+  .bencher-song-drop-zone:not(:has(.sb2-song-card))::after {
+    content: 'niggunsheet.com';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    font-size: 9pt;
+    color: rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+  }
+
+  .bencher-song-drop-zone {
+    transform: none !important;
+    margin: 0 !important;
+  }
+
+  .bencher-song-drop-zone .bencher-sheet-builder-grid {
+    transform: none !important;
+    transform-origin: top left !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .bencher-song-drop-zone .sb2-sheet-column {
+    min-height: 100% !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+}

@@ -1,0 +1,477 @@
+etBuilderApp.tsx                                                                index 79245df..f481531 100644
+--- a/app/sheet-builder-v2/SheetBuilderApp.tsx
++++ b/app/sheet-builder-v2/SheetBuilderApp.tsx
+@@ -1145,17 +1145,26 @@ function PrintSheetPages({
+   showTitles,
+   showPageNumbers,
+   showOrderNumbers,
++  isBencherMode = false,
++  bencherLogo = null,
+ }: {
+   pageLayouts: PageLayout[];
+   config: SheetConfig;
+   showTitles: boolean;
+   showPageNumbers: boolean;
+   showOrderNumbers: boolean;
++  isBencherMode?: boolean;
++  bencherLogo?: string | null;
+ }) {
+   return (
+     <div className="sb2-page-container sb2-print-root" aria-hidden>
+       {pageLayouts.map((page) => (
+         <div key={`print-page-${page.pageIndex}`} className="sb2-sheet-page">
++          {isBencherMode && page.pageIndex === 0 && bencherLogo && (
++            <div className="sb2-bencher-logo-upload print-mode">
++              <img src={bencherLogo} alt="Logo" className="sb2-bencher-logo-img" />                                                                            +            </div>
++          )}
+           <div className="sb2-page-header" />
+           <div
+             className={`sb2-packery-grid ${config.cols === 2 ? 'two-columns' : ''} ${config.cols === 3 ? 'three-columns' : ''}`}                               @@ -1164,19 +1173,59 @@ function PrintSheetPages({
+             {page.columns.map((column, columnIndex) => (
+               <div key={`print-page-${page.pageIndex}-column-${columnIndex}`} className="sb2-sheet-column">                                                                     {column.map((positionedSong) => (
+-                  <div key={`print-page-${page.pageIndex}-column-${columnIndex}
+-${positionedSong.globalIndex}`} className="sb2-slot-stack">                    -                    <div className="sb2-song-card">
+-                      <SheetCardContent
+-                        song={positionedSong.song}
+-                        fontSize={config.fontSize}
+-                        showTitles={showTitles}
+-                        showOrderNumbers={showOrderNumbers}
+-                        orderNumber={positionedSong.orderNumber}
+-                        columnCount={config.cols}
+-                      />
+-                    </div>
+-                  </div>
++                  <SlotStackDropTarget
++                    key={`page-${page.pageIndex}-column-${columnIndex}-stack-${positionedSong.globalIndex}`}                                                   +                    slotData={{
++                      type: 'slot',
++                      pageIndex: page.pageIndex,
++                      columnIndex,
++                      slotIndex: -1, // This is a placeholder, not a real slot 
+index                                                                           +                      insertIndex: positionedSong.globalIndex,
++                      occupiedGlobalIndex: positionedSong.globalIndex,
++                    }}
++                    className="sb2-slot-stack"
++                  >
++                    <DropSlot
++                      slotData={{
++                        type: 'slot',
++                        pageIndex: page.pageIndex,
++                        columnIndex,
++                        slotIndex: -1, // This is a placeholder, not a real slot index                                                                         +                        insertIndex: positionedSong.globalIndex,
++                      }}
++                      active={isSlotActive(
++                        page.pageIndex,
++                        columnIndex,
++                        -1,
++                        positionedSong.globalIndex,
++                      )}
++                    />
++                    <SheetSongDraggable
++                      positionedSong={positionedSong}
++                      fontSize={config.fontSize}
++                      showTitles={showTitles}
++                      showOrderNumbers={showOrderNumbers}
++                      columnCount={config.cols}
++                      onRemove={() => handleRemoveSong(positionedSong.globalIndex)}                                                                            +                    />
++                  </SlotStackDropTarget>
+                 ))}
++                <DropSlot
++                  slotData={{
++                    type: 'slot',
++                    pageIndex: page.pageIndex,
++                    columnIndex,
++                    slotIndex: page.slotInsertIndices[columnIndex].length - 1,
++                    insertIndex: page.slotInsertIndices[columnIndex][page.slotInsertIndices[columnIndex].length - 1],                                          +                  }}
++                  active={isSlotActive(
++                    page.pageIndex,
++                    columnIndex,
++                    page.slotInsertIndices[columnIndex].length - 1,
++                    page.slotInsertIndices[columnIndex][page.slotInsertIndices[columnIndex].length - 1],                                                       +                  )}
++                  expanded
++                />
+               </div>
+             ))}
+           </div>
+@@ -1274,7 +1323,34 @@ function MeasurementBank({
+   );
+ }
+ 
+-export function SheetBuilderApp() {
++function applyBencherModeToLayouts(rawLayouts: PageLayout[], columns: number): PageLayout[] {                                                                  +  const contentPage = rawLayouts.length > 0 ? rawLayouts[0] : null;
++
++  const createEmptyPage = (index: number, startIndex: number): PageLayout => ({
++    pageIndex: index,
++    pageStartIndex: startIndex,
++    columns: Array.from({ length: columns }, () => []),
++    columnCounts: Array.from({ length: columns }, () => 0),
++    slotInsertIndices: Array.from({ length: columns }, () => [startIndex]),
++  });
++
++  const page0 = createEmptyPage(0, 0);
++  let page1: PageLayout;
++
++  if (contentPage) {
++    page1 = {
++      ...contentPage,
++      pageIndex: 1,
++      columns: contentPage.columns.map(col => col.map(s => ({ ...s, pageIndex: 1 })))                                                                          +    };
++  } else {
++    page1 = createEmptyPage(1, 0);
++  }
++
++  return [page0, page1];
++}
++
++export function SheetBuilderApp({ isBencherMode = false }: { isBencherMode?: boolean } = {}) {                                                                    const { isPhone, width } = useDevice();
+   const { user, privateSongs, savedSheets, preferences, addSong, addSongs, saveSheet, setPref } = useGoogleAuth();                                              
+@@ -1289,9 +1365,9 @@ export function SheetBuilderApp() {
+   const [showTitles, setShowTitles] = useState(preferences.sbShowTitles !== undefined ? !!preferences.sbShowTitles : true);                                       const [showPageNumbers, setShowPageNumbers] = useState(preferences.sbShowPageNumbers !== undefined ? !!preferences.sbShowPageNumbers : true);                   const [showOrderNumbers, setShowOrderNumbers] = useState(!!preferences.sbShowOrderNumbers);                                                                  -  const [autoFit, setAutoFit] = useState(preferences.sbAutoFit !== undefined ? !!preferences.sbAutoFit : true);                                                -  const [manualColumns, setManualColumns] = useState(typeof preferences.sbManualColumns === 'number' ? preferences.sbManualColumns : 1);                       -  const [manualFontSize, setManualFontSize] = useState(14);
++  const [autoFit, setAutoFit] = useState(isBencherMode ? false : (preferences.sbAutoFit !== undefined ? !!preferences.sbAutoFit : true));                      +  const [manualColumns, setManualColumns] = useState(isBencherMode ? 1 : (typeof preferences.sbManualColumns === 'number' ? preferences.sbManualColumns : 1)); +  const [manualFontSize, setManualFontSize] = useState(isBencherMode ? 9 : 14);
+   const [sheetTitle, setSheetTitle] = useState(typeof preferences.sbSheetTitle === 'string' ? preferences.sbSheetTitle : DEFAULT_SHEET_TITLE);                    const [currentSavedSheetId, setCurrentSavedSheetId] = useState(typeof preferences.sbCurrentSavedSheetId === 'string' ? preferences.sbCurrentSavedSheetId : '');                                                                                 const [showSavedSheetsModal, setShowSavedSheetsModal] = useState(false);
+@@ -1852,39 +1928,59 @@ export function SheetBuilderApp() {
+     }
+   }, [measurementConfigs, sheetSongs, showOrderNumbers, showTitles]);
+ 
+-  const autoConfig = useMemo(() => chooseAutoFitConfig(sheetSongs, measurements, showTitles, showOrderNumbers), [                                              -    measurements,
+-    sheetSongs,
+-    showOrderNumbers,
+-    showTitles,
+-  ]);
+-
+-  useEffect(() => {
+-    if (autoFit) {
+-      setManualFontSize(autoConfig.fontSize);
+-    }
+-  }, [autoConfig.fontSize, autoFit]);
++  const [isBuzzerBeater, setIsBuzzerBeater] = useState(false);
+ 
+-  const manualConfig = useMemo(() => {
++  const manualConfig = useMemo<SheetConfig>(() => {
++    const fontSize = isBencherMode ? (isBuzzerBeater ? 10 : 11) : manualFontSize;                                                                                   return resolveManualOverflowConfig(
+-      { cols: manualColumns, fontSize: manualFontSize },
++      { cols: manualColumns, fontSize },
+       sheetSongs,
+       measurements,
+       showTitles,
+       showOrderNumbers,
+     );
+-  }, [manualColumns, manualFontSize, measurements, sheetSongs, showOrderNumbers, showTitles]);                                                                 +  }, [isBencherMode, isBuzzerBeater, manualColumns, manualFontSize, measurements, sheetSongs, showOrderNumbers, showTitles]);                                  +
++  const autoConfig = useMemo(() => {
++    const fontSize = isBencherMode ? (isBuzzerBeater ? 10 : 11) : undefined;
++    return chooseAutoFitConfig(sheetSongs, measurements, showTitles, showOrderNumbers, fontSize);                                                              +  }, [isBencherMode, isBuzzerBeater, measurements, sheetSongs, showOrderNumbers, showTitles]);                                                                  
+   const activeConfig = useMemo<SheetConfig>(() => {
+     return autoFit ? autoConfig : manualConfig;
+   }, [autoConfig, autoFit, manualConfig]);
+ 
+-  const pageLayouts = useMemo(() => {
++  const rawPageLayouts = useMemo(() => {
+     return autoFit
+       ? paginateAutoSongs(sheetSongs, activeConfig, measurements, showTitles, showOrderNumbers)                                                                       : paginateManualSongs(sheetSongs, activeConfig, manualLocks, measurements, showTitles, showOrderNumbers);                                                   }, [activeConfig, autoFit, manualLocks, measurements, sheetSongs, showOrderNumbers, showTitles]);                                                             
++  useEffect(() => {
++    if (isBencherMode) {
++      const fitCount = rawPageLayouts.length > 0 ? rawPageLayouts[0].columnCounts.reduce((a, b) => a + b, 0) : 0;                                              +      
++      if (sheetSongs.length === fitCount + 1) {
++        if (!isBuzzerBeater) {
++          setIsBuzzerBeater(true);
++          updateStatus('Buzzer beater! Shrinking text to fit.');
++        }
++      } else {
++        if (isBuzzerBeater) {
++          setIsBuzzerBeater(false);
++        }
++        if (sheetSongs.length > fitCount + 1) {
++          setSheetSongs(prev => prev.slice(0, fitCount + 1));
++          updateStatus('Not enough space! Halting additions.');
++        }
++      }
++    }
++  }, [isBencherMode, rawPageLayouts, sheetSongs.length, isBuzzerBeater, setSheetSongs, updateStatus]);                                                         +
++  const pageLayouts = useMemo(() => {
++    return isBencherMode ? applyBencherModeToLayouts(rawPageLayouts, activeConfig.cols) : rawPageLayouts;                                                      +  }, [isBencherMode, rawPageLayouts, activeConfig.cols]);
++
+   useEffect(() => {
+     if (!autoFit || sheetSongs.length === 0) {
+       autoLogSignatureRef.current = '';
+@@ -2028,10 +2124,12 @@ export function SheetBuilderApp() {
+       return pageLayouts;
+     }
+ 
+-    return autoFit
++    const previewRawLayouts = autoFit
+       ? paginateAutoSongs(previewSheetSongs, activeConfig, measurements, showTitles, showOrderNumbers)                                                                : paginateManualSongs(previewSheetSongs, activeConfig, previewManualLocks, measurements, showTitles, showOrderNumbers);                                  -  }, [activeConfig, autoFit, measurements, pageLayouts, previewManualLocks, previewSheetSongs, showOrderNumbers, showTitles]);                                 +
++    return isBencherMode ? applyBencherModeToLayouts(previewRawLayouts, activeConfig.cols) : previewRawLayouts;                                                +  }, [activeConfig, autoFit, isBencherMode, measurements, pageLayouts, previewManualLocks, previewSheetSongs, showOrderNumbers, showTitles]);                   
+   const sensors = useSensors(
+     useSensor(PointerSensor, {
+@@ -2262,6 +2360,16 @@ export function SheetBuilderApp() {
+     setShowSavedSheetsModal(true);
+   }, [clearSavedSheetPreviewTimer, currentSavedSheetId, sortedSavedSheets, updateStatus, user]);                                                                
++  const [bencherLogo, setBencherLogo] = useState<string | null>(null);
++
++  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
++    if (e.target.files && e.target.files[0]) {
++      const reader = new FileReader();
++      reader.onload = (event) => setBencherLogo(event.target?.result as string);                                                                               +      reader.readAsDataURL(e.target.files[0]);
++    }
++  };
++
+   const handleCloseSavedSheetsModal = useCallback(() => {
+     clearSavedSheetPreviewTimer();
+     setPreviewSavedSheetId('');
+@@ -2446,7 +2554,7 @@ export function SheetBuilderApp() {
+       onDragEnd={handleDragEnd}
+     >
+       <div
+-        className="sb2-root"
++        className={`sb2-root ${isBencherMode ? 'sb2-bencher-mode' : ''}`}
+         style={isPhone ? ({ '--mobile-sheet-scale': mobileSheetScale } as React.CSSProperties) : undefined}                                                           >
+         <MeasurementBank
+@@ -2585,15 +2693,17 @@ export function SheetBuilderApp() {
+                 </div>
+               </div>
+ 
+-              <div className="sb2-toolbar-section" data-tour="layout-section">
+-                <div className="sb2-toolbar-section-title">Layout</div>
+-                <div className="sb2-column-controls">
+-                  <button className={!autoFit && columns === 1 ? 'active' : ''}
+ onClick={() => handleSetColumns(1)}>1</button>                                 +              {!isBencherMode && (
++                <div className="sb2-toolbar-section" data-tour="layout-section">                                                                               +                  <div className="sb2-toolbar-section-title">Layout</div>
++                  <div className="sb2-column-controls">
++                    <button className={!autoFit && columns === 1 ? 'active' : ''} onClick={() => handleSetColumns(1)}>1</button>                                                  <button className={!autoFit && columns === 2 ? 'active' : ''}
+ onClick={() => handleSetColumns(2)}>2</button>                                                    <button className={!autoFit && columns === 3 ? 'active' : ''}
+ onClick={() => handleSetColumns(3)}>3</button>                                                    <button className={autoFit ? 'active' : ''} onClick={handleSetAuto}>Auto</button>                                                            +                  </div>
+                 </div>
+-              </div>
++              )}
+ 
+               <div className="sb2-toolbar-status-wrap">
+                 <span className="sb2-status">{status}</span>
+@@ -2601,94 +2711,90 @@ export function SheetBuilderApp() {
+             </div>
+ 
+             <div data-tour="sheet-canvas">
+-              <SheetAreaDropZone enabled={activeDragData?.type === 'library-song'}>                                                                            -                {renderedPageLayouts.map((page) => (
+-                  <div key={`page-${page.pageIndex}`} className={`sb2-sheet-page ${overPageIndex === page.pageIndex ? 'drag-over' : ''}`}>                     -                  <div className="sb2-page-header" />
+-                  <div
+-                    className={`sb2-packery-grid ${columns === 2 ? 'two-columns' : ''} ${columns === 3 ? 'three-columns' : ''}`}                               -                    style={{ '--sb2-columns': columns } as React.CSSProperties}
+-                  >
+-                    {page.columns.map((column, columnIndex) => (
+-                      <div key={`page-${page.pageIndex}-column-${columnIndex}`}
+ className="sb2-sheet-column">                                                  -                        {page.slotInsertIndices[columnIndex].map((insertIndex, slotIndex) => {                                                                 -                          const positionedSong = column[slotIndex];
+-                          const isPreviewSong =
+-                            previewSongKey !== null &&
+-                            positionedSong !== undefined &&
+-                            songKey(positionedSong.song) === previewSongKey;
+-                          const slotData: SlotDragData = {
+-                            type: 'slot',
+-                            pageIndex: page.pageIndex,
+-                            columnIndex,
+-                            slotIndex,
+-                            insertIndex,
+-                            occupiedGlobalIndex: positionedSong?.globalIndex,
+-                          };
+-
+-                          const stackClassName = `sb2-slot-stack ${!positionedSong ? 'sb2-slot-stack-empty' : ''}`;                                            -                          const stackContent = (
+-                            <>
+-                              <DropSlot
+-                                slotData={slotData}
+-                                expanded={!positionedSong}
+-                                preview={false}
+-                                active={
+-                                  overSlotData?.pageIndex === slotData.pageIndex &&                                                                            -                                  overSlotData.columnIndex === slotData.columnIndex &&                                                                         -                                  overSlotData.slotIndex === slotData.slotIndex
+-                                }
+-                              />
+-                              {isPreviewSong && positionedSong && (
+-                                <PreviewSongCard
+-                                  song={positionedSong.song}
+-                                  fontSize={activeConfig.fontSize}
+-                                  showTitles={showTitles}
+-                                  showOrderNumbers={showOrderNumbers}
+-                                  orderNumber={positionedSong.orderNumber}
+-                                  columnCount={columns}
+-                                />
+-                              )}
+-                              {positionedSong && !isPreviewSong && (
+-                                <SheetSongDraggable
+-                                  positionedSong={positionedSong}
+-                                  fontSize={activeConfig.fontSize}
+-                                  showTitles={showTitles}
+-                                  showOrderNumbers={showOrderNumbers}
+-                                  columnCount={columns}
+-                                  onRemove={() => handleRemoveSong(positionedSong.song)}                                                                       -                                />
+-                              )}
+-                            </>
+-                          );
+-
+-                          return positionedSong ? (
++              {renderedPageLayouts.map((page) => (
++                <SheetAreaDropZone key={`page-dropzone-${page.pageIndex}`} enabled={activeDragData?.type === 'library-song'}>                                  +                  <div className={`sb2-sheet-page ${overPageIndex === page.pageIndex ? 'drag-over' : ''}`}>                                                    +                    {isBencherMode && page.pageIndex === 0 && (
++                      <div className="sb2-bencher-logo-upload">
++                        {bencherLogo ? (
++                          <img src={bencherLogo} alt="Uploaded Logo" className="sb2-bencher-logo-img" onClick={() => document.getElementById('logo-upload')?.click()} />                                                                       +                        ) : (
++                          <div className="sb2-bencher-logo-placeholder" onClick={() => document.getElementById('logo-upload')?.click()}>                       +                            <span>+ Upload Logo</span>
++                          </div>
++                        )}
++                        <input id="logo-upload" type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />                        +                      </div>
++                    )}
++                    <div className="sb2-page-header" />
++                    <div
++                      className={`sb2-packery-grid ${activeConfig.cols === 2 ? 'two-columns' : ''} ${activeConfig.cols === 3 ? 'three-columns' : ''}`}         +                      style={{ '--sb2-columns': activeConfig.cols } as React.CSSProperties}                                                                    +                    >
++                      {page.columns.map((column, columnIndex) => (
++                        <div key={`page-${page.pageIndex}-column-${columnIndex}`} className="sb2-sheet-column">                                                +                          {column.map((positionedSong) => (
+                             <SlotStackDropTarget
+-                              key={`page-${page.pageIndex}-column-${columnIndex}-slot-${slotIndex}`}                                                           -                              slotData={slotData}
+-                              className={stackClassName}
++                              key={`page-${page.pageIndex}-column-${columnIndex}-stack-${positionedSong.globalIndex}`}                                         +                              slotData={{
++                                type: 'slot',
++                                pageIndex: page.pageIndex,
++                                columnIndex,
++                                slotIndex: -1, // This is a placeholder, not a real slot index                                                                 +                                insertIndex: positionedSong.globalIndex,
++                                occupiedGlobalIndex: positionedSong.globalIndex,                                                                               +                              }}
++                              className="sb2-slot-stack"
+                             >
+-                              {stackContent}
++                              <DropSlot
++                                slotData={{
++                                  type: 'slot',
++                                  pageIndex: page.pageIndex,
++                                  columnIndex,
++                                  slotIndex: -1, // This is a placeholder, not a real slot index                                                               +                                  insertIndex: positionedSong.globalIndex,
++                                }}
++                                active={isSlotActive(
++                                  page.pageIndex,
++                                  columnIndex,
++                                  -1,
++                                  positionedSong.globalIndex,
++                                )}
++                              />
++                              <SheetSongDraggable
++                                positionedSong={positionedSong}
++                                fontSize={activeConfig.fontSize}
++                                showTitles={showTitles}
++                                showOrderNumbers={showOrderNumbers}
++                                columnCount={activeConfig.cols}
++                                onRemove={() => handleRemoveSong(positionedSong.globalIndex)}                                                                  +                              />
+                             </SlotStackDropTarget>
+-                          ) : (
+-                            <div
+-                              key={`page-${page.pageIndex}-column-${columnIndex}-slot-${slotIndex}`}                                                           -                              className={stackClassName}
+-                            >
+-                              {stackContent}
+-                            </div>
+-                          );
+-                        })}
+-                      </div>
+-                    ))}
+-                  </div>
+-                  <div className="sb2-page-footer">{showPageNumbers ? `${page.pageIndex + 1}` : ''}</div>                                                      +                          ))}
++                          <DropSlot
++                            slotData={{
++                              type: 'slot',
++                              pageIndex: page.pageIndex,
++                              columnIndex,
++                              slotIndex: page.slotInsertIndices[columnIndex].length - 1,                                                                       +                              insertIndex: page.slotInsertIndices[columnIndex][page.slotInsertIndices[columnIndex].length - 1],                                +                            }}
++                            active={isSlotActive(
++                              page.pageIndex,
++                              columnIndex,
++                              page.slotInsertIndices[columnIndex].length - 1,
++                              page.slotInsertIndices[columnIndex][page.slotInsertIndices[columnIndex].length - 1],                                             +                            )}
++                            expanded
++                          />
++                        </div>
++                      ))}
++                    </div>
++                    <div className="sb2-page-footer">{showPageNumbers ? `${page.pageIndex + 1}` : ''}</div>                                                                       </div>
+-                ))}
+-              </SheetAreaDropZone>
++                </SheetAreaDropZone>
++              ))}
+             </div>
+-
+-          </div>
+         </div>
+ 
+         {tourOpen && currentTourStep && tourTargetRect && (
+@@ -2773,6 +2879,8 @@ export function SheetBuilderApp() {
+           showTitles={showTitles}
+           showPageNumbers={showPageNumbers}
+           showOrderNumbers={showOrderNumbers}
++          isBencherMode={isBencherMode}
++          bencherLogo={bencherLogo}
+         />
+ 
+         <button className="sb2-sidebar-toggle" onClick={() => setSidebarOpen((value) => !value)} aria-label={sidebarOpen ? 'Close song library' : 'Open song library'}>                                                                        @@ -2780,24 +2888,17 @@ export function SheetBuilderApp() {
+         </button>
+ 
+         {showSavedSheetsModal && (
+-          <div className="sb2-sheet-browser-backdrop" onClick={(event) => {
+-            if (event.target === event.currentTarget) {
+-              handleCloseSavedSheetsModal();
+-            }
+-          }}>
+-            <div className="sb2-sheet-browser-modal">
+-              <div className="sb2-sheet-browser-header">
+-                <div>
+-                  <h2>Saved Sheets</h2>
+-                  <p>Hover a sheet name to reveal a thumbnail. Click a sheet to
+ load it into the builder.</p>                                                  -                </div>
+-                <button className="sb2-sheet-browser-close" onClick={handleCloseSavedSheetsModal} aria-label="Close saved sheets">×</button>                   +          <div className="sb2-clear-sheet-modal-backdrop">
++            <div className="sb2-clear-sheet-modal">
++              <div className="sb2-clear-sheet-modal-header">
++                <h2>Saved Sheets</h2>
++                <p>Hover a sheet name to reveal a thumbnail. Click a sheet to load it into the builder.</p>                                                                   </div>
+ 
+-              <div className="sb2-sheet-browser-body">
+-                <div className="sb2-sheet-browser-list">
++              <div className="sb2-clear-sheet-modal-body">
++                <div className="sb2-clear-sheet-modal-list">
+                   {sortedSavedSheets.length === 0 ? (
+-                    <div className="sb2-sheet-browser-empty">No saved sheets yet.</div>                                                                        +                    <div className="sb2-clear-sheet-modal-empty">No saved sheets yet.</div>                                                                                       ) : (
+                     sortedSavedSheets.map((savedSheet) => {
+                       const isCurrent = savedSheet.id === currentSavedSheetId;
+@@ -2807,25 +2908,25 @@ export function SheetBuilderApp() {
+                         <button
+                           key={savedSheet.id}
+                           type="button"
+-                          className={`sb2-sheet-browser-item ${isPreviewed ? 'active' : ''} ${isCurrent ? 'current' : ''}`}                                    +                          className={`sb2-clear-sheet-modal-item ${isPreviewed ? 'active' : ''} ${isCurrent ? 'current' : ''}`}                                                           onMouseEnter={() => handlePreviewSavedSheetIntent(savedSheet.id)}                                                                                               onMouseLeave={clearSavedSheetPreviewTimer}
+                           onFocus={() => handlePreviewSavedSheetFocus(savedSheet.id)}                                                                                                     onClick={() => handleLoadSavedSheet(savedSheet.id)}
+                         >
+-                          <span className="sb2-sheet-browser-item-title">{savedSheet.title}</span>                                                             +                          <span className="sb2-clear-sheet-modal-item-title">{savedSheet.title}</span>                                                                                  </button>
+                       );
+                     })
+                   )}
+                 </div>
+ 
+-                <div className="sb2-sheet-browser-preview">
++                <div className="sb2-clear-sheet-modal-preview">
+                   {!savedSheetPreview ? (
+-                    <div className="sb2-sheet-browser-empty">Hover a sheet name
+ to preview it.</div>                                                           +                    <div className="sb2-clear-sheet-modal-empty">Hover a sheet name to preview it.</div>                                                                          ) : (
+                     <div
+-                      className="sb2-sheet-browser-thumbnail-wrap sb2-sheet-browser-thumbnail-panel"                                                           +                      className="sb2-clear-sheet-modal-thumbnail-wrap sb2-clear
+-sheet-modal-thumbnail-panel"                                                                          role="button"
+                       tabIndex={0}
+                       aria-label={`Open saved sheet ${savedSheetPreview.sheet.title}`}                                                                         @@ -2837,12 +2938,12 @@ export function SheetBuilderApp() {
+                         }
+                       }}
+                     >
+-                      <div className="sb2-sheet-browser-thumbnail-header">
++                      <div className="sb2-clear-sheet-modal-thumbnail-header">
+                         <div>
+-                          <div className="sb2-sheet-browser-thumbnail-title">{savedSheetPreview.sheet.title}</div>                                             -                          <div className="sb2-sheet-browser-thumbnail-date">Updated {formatSavedSheetDate(savedSheetPreview.sheet.updatedAt)}</div>            +                          <div className="sb2-clear-sheet-modal-thumbnail-title">{savedSheetPreview.sheet.title}</div>                                         +                          <div className="sb2-clear-sheet-modal-thumbnail-date">Updated {formatSavedSheetDate(savedSheetPreview.sheet.updatedAt)}</div>                                 </div>
+-                        <div className="sb2-sheet-browser-thumbnail-meta">
++                        <div className="sb2-clear-sheet-modal-thumbnail-meta">
+                           <span>{savedSheetPreview.sheet.songs.length} songs</span>                                                                                                       <span>{savedSheetPreview.pages.length} page{savedSheetPreview.pages.length === 1 ? '' : 's'}</span>                                                             <span>{savedSheetPreview.config.cols} col</span>
+@@ -2850,16 +2951,16 @@ export function SheetBuilderApp() {
+                       </div>
+ 
+                       <div
+-                        className={`sb2-sheet-browser-scroll-hint ${savedSheetPreview.pages.length > 1 ? 'visible' : 'hidden'}`}                               +                        className={`sb2-clear-sheet-modal-scroll-hint ${savedSheetPreview.pages.length > 1 ? 'visible' : 'hidden'}`}                                                    aria-hidden={savedSheetPreview.pages.length <= 1}
+                       >
+                         {savedSheetPreview.pages.length > 1 ? 'Scroll to preview all pages' : ''}                                                                                     </div>
+ 
+                       {savedSheetPreview.pages.map((page) => (
+-                        <div key={page.pageIndex} className="sb2-sheet-browser-page-frame">                                                                    -                          <div className="sb2-sheet-browser-page-scale">
+-                            <div className="sb2-sheet-page sb2-sheet-page-thumbnail">                                                                          +                        <div key={page.pageIndex} className="sb2-clear-sheet-modal-page-frame">                                                                +                          <div className="sb2-clear-sheet-modal-page-scale">
++                            <div className="sb2-clear-sheet-modal-page sb2-clear-sheet-modal-page-thumbnail">                                                                                 <div className="sb2-page-header" />
+                               <div
+                                 className={`sb2-packery-grid sb2-packery-grid-thumbnail ${savedSheetPreview.config.cols === 2 ? 'two-columns' : ''} ${savedSheetPreview.config.cols === 3 ? 'three-columns' : ''}`}                            

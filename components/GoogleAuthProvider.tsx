@@ -13,12 +13,15 @@ import {
   savePreferences,
   loadSavedSheets,
   saveSavedSheets,
+  loadSavedBencherLayouts,
+  saveSavedBencherLayouts,
   generateId,
   setOnTokenRefreshed,
   getStoredEmail,
   type GoogleUser,
   type PrivateSong,
   type SavedSheet,
+  type SavedBencherLayout,
   type UserPreferences,
 } from '@/lib/google-drive';
 
@@ -38,6 +41,9 @@ interface GoogleAuthState {
   removeSong: (id: string) => Promise<void>;
   editSong: (id: string, updates: Partial<Pick<PrivateSong, 'title' | 'artist' | 'lyrics'>>) => Promise<void>;
   saveSheet: (sheet: Omit<SavedSheet, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<SavedSheet>;
+  bencherLayouts: SavedBencherLayout[];
+  saveBencherLayout: (layout: Omit<SavedBencherLayout, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<SavedBencherLayout>;
+  deleteBencherLayout: (id: string) => Promise<void>;
   setPref: (key: string, value: unknown) => void;
 }
 
@@ -90,6 +96,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [privateSongs, setPrivateSongs] = useState<PrivateSong[]>([]);
   const [savedSheets, setSavedSheets] = useState<SavedSheet[]>([]);
+  const [bencherLayouts, setBencherLayouts] = useState<SavedBencherLayout[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences>({});
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -99,11 +106,12 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const reloadDriveData = useCallback(async () => {
-    const [songs, prefs, sheets] = await Promise.all([loadPrivateSongs(), loadPreferences(), loadSavedSheets()]);
+    const [songs, prefs, sheets, bLayouts] = await Promise.all([loadPrivateSongs(), loadPreferences(), loadSavedSheets(), loadSavedBencherLayouts()]);
     setPrivateSongs(songs);
     prefsRef.current = prefs;
     setPreferences(prefs);
     setSavedSheets(sheets);
+    setBencherLayouts(bLayouts);
   }, []);
 
   // Init GIS on mount + try restoring previous session
@@ -201,6 +209,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setPrivateSongs([]);
     setSavedSheets([]);
+    setBencherLayouts([]);
     prefsRef.current = {};
     setPreferences({});
   }, []);
@@ -259,6 +268,35 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     return nextSheet;
   }, [savedSheets]);
 
+  const saveBencherLayout = useCallback(async (layout: Omit<SavedBencherLayout, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
+    const now = new Date().toISOString();
+    const existing = layout.id ? bencherLayouts.find((entry) => entry.id === layout.id) : null;
+
+    if (!existing && bencherLayouts.length >= MAX_SAVED_SHEETS) {
+      throw new Error(`Saved bencher layout limit reached (${MAX_SAVED_SHEETS} max)`);
+    }
+
+    const nextLayout: SavedBencherLayout = {
+      ...layout,
+      id: existing?.id ?? generateId(),
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    };
+    const nextLayouts = existing
+      ? bencherLayouts.map((entry) => (entry.id === nextLayout.id ? nextLayout : entry))
+      : [...bencherLayouts, nextLayout];
+
+    setBencherLayouts(nextLayouts);
+    await saveSavedBencherLayouts(nextLayouts);
+    return nextLayout;
+  }, [bencherLayouts]);
+
+  const deleteBencherLayout = useCallback(async (id: string) => {
+    const nextLayouts = bencherLayouts.filter((entry) => entry.id !== id);
+    setBencherLayouts(nextLayouts);
+    await saveSavedBencherLayouts(nextLayouts);
+  }, [bencherLayouts]);
+
   // Debounced preference setter — updates state immediately, saves to Drive after 500ms idle
   const setPref = useCallback((key: string, value: unknown) => {
     prefsRef.current = { ...prefsRef.current, [key]: value };
@@ -270,7 +308,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GoogleAuthContext.Provider value={{ user, privateSongs, savedSheets, preferences, loading, restoring, ready, authError, signIn, signOut, addSong, addSongs, removeSong, editSong, saveSheet, setPref }}>
+    <GoogleAuthContext.Provider value={{ user, privateSongs, savedSheets, preferences, loading, restoring, ready, authError, signIn, signOut, addSong, addSongs, removeSong, editSong, saveSheet, bencherLayouts, saveBencherLayout, deleteBencherLayout, setPref }}>
       {children}
     </GoogleAuthContext.Provider>
   );

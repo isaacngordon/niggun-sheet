@@ -30,7 +30,7 @@ interface Song {
   youtube?: string;
 }
 
-interface SongData {
+export interface SongData {
   title: string;
   artist: string;
   lyrics: string;
@@ -41,7 +41,7 @@ interface SheetConfig {
   fontSize: number;
 }
 
-interface PositionedSong {
+export interface PositionedSong {
   song: SongData;
   globalIndex: number;
   orderNumber: number;
@@ -68,7 +68,7 @@ interface ConfigMeasurement {
   hasOverflow: boolean;
 }
 
-interface SlotDragData {
+export interface SlotDragData {
   type: 'slot';
   pageIndex: number;
   columnIndex: number;
@@ -86,7 +86,7 @@ interface SheetSongDragData {
   orderNumber: number;
 }
 
-interface LibrarySongDragData {
+export interface LibrarySongDragData {
   type: 'library-song';
   song: SongData;
 }
@@ -964,7 +964,7 @@ function formatSavedSheetDate(value: string) {
   }
 }
 
-function SheetCardContent({
+export function SheetCardContent({
   song,
   fontSize,
   showTitles,
@@ -1019,7 +1019,7 @@ function SheetCardContent({
   );
 }
 
-function SidebarSongDraggable({
+export function SidebarSongDraggable({
   dragId,
   song,
   used,
@@ -1056,7 +1056,7 @@ function SidebarSongDraggable({
   );
 }
 
-function DropSlot({
+export function DropSlot({
   slotData,
   active,
   expanded = false,
@@ -1075,7 +1075,7 @@ function DropSlot({
   return <div ref={setNodeRef} className={`sb2-drop-slot ${expanded ? 'sb2-drop-slot-expanded' : ''} ${preview ? 'preview' : ''} ${active || isOver ? 'active' : ''}`} />;
 }
 
-function SlotStackDropTarget({
+export function SlotStackDropTarget({
   slotData,
   className,
   children,
@@ -1092,7 +1092,7 @@ function SlotStackDropTarget({
   return <div ref={setNodeRef} className={className}>{children}</div>;
 }
 
-function PreviewSongCard({
+export function PreviewSongCard({
   song,
   fontSize,
   showTitles,
@@ -1187,7 +1187,7 @@ function PrintSheetPages({
   );
 }
 
-function SheetSongDraggable({
+export function SheetSongDraggable({
   positionedSong,
   fontSize,
   showTitles,
