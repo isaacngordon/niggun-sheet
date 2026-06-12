@@ -61,9 +61,74 @@
     "sources": {
       "youtube:pSiwTwYYO94": {
         "version": 3,
-        "clips": [],
+        "clips": [
+          {
+            "verseIndex": 0,
+            "start": 25.71
+          },
+          {
+            "verseIndex": 0,
+            "start": 42.18
+          },
+          {
+            "verseIndex": 0,
+            "start": 61.16
+          },
+          {
+            "verseIndex": 0,
+            "start": 77.08
+          },
+          {
+            "verseIndex": 1,
+            "start": 91.89
+          },
+          {
+            "verseIndex": 2,
+            "start": 98.65
+          },
+          {
+            "verseIndex": 3,
+            "start": 105.76
+          },
+          {
+            "verseIndex": 4,
+            "start": 112.62
+          },
+          {
+            "verseIndex": 1,
+            "start": 118.28
+          },
+          {
+            "verseIndex": 2,
+            "start": 126.31
+          },
+          {
+            "verseIndex": 3,
+            "start": 133.22
+          },
+          {
+            "verseIndex": 4,
+            "start": 140.15
+          },
+          {
+            "verseIndex": 5,
+            "start": 147.96
+          },
+          {
+            "verseIndex": 5,
+            "start": 154.37
+          },
+          {
+            "verseIndex": 6,
+            "start": 160.89
+          },
+          {
+            "verseIndex": 7,
+            "start": 167.03
+          }
+        ],
         "inPoint": null,
-        "outPoint": 83.47,
+        "outPoint": 176.08,
         "useClipEdgeBounds": true
       }
     },
@@ -308,6 +373,9 @@
         "useClipEdgeBounds": true
       }
     },
-    "sourceLabels": {}
+    "sourceLabels": {
+      "youtube:zV_GSoaOJFo": "Sruly Williger",
+      "youtube:-DACmtfohHE": "Chassidim"
+    }
   }
 }

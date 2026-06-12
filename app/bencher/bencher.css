@@ -11,63 +11,15 @@
   display: grid;
   flex: 1;
   min-height: 0;
-  grid-template-columns: minmax(280px, 360px) 1fr;
-  gap: 12px;
-  padding: 10px 16px 10px;
+  grid-template-columns: 280px 1fr;
+  gap: 0;
+  padding: 0;
   overflow: hidden;
 }
 
 .bencher-sidebar {
   height: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid rgba(255, 212, 48, 0.22);
-  border-radius: 24px;
-  background: rgba(19, 19, 19, 0.96);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-}
-
-.bencher-sidebar-header {
-  padding: 10px 16px 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.bencher-sidebar h1 {
-  margin: 0 0 2px;
-  font-size: 16px;
-  letter-spacing: 0.04em;
-}
-
-.bencher-sidebar p {
-  margin: 0;
-  color: rgba(247, 242, 223, 0.72);
-  font-size: 0.78rem;
-  line-height: 1.3;
-}
-
-.bencher-search {
-  width: calc(100% - 28px);
-  margin: 8px 14px;
-  padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 10px;
-  background: #050505;
-  color: #fff;
-  font: inherit;
-}
-
-.bencher-song-library {
-  display: grid;
-  gap: 10px;
-  flex: 1;
   min-height: 0;
-  overflow: auto;
-  padding: 0 14px 18px;
-}
-
-.bencher-song-library .sb2-song-item {
-  touch-action: none;
 }
 
 .bencher-song-option {
@@ -106,40 +58,11 @@
 
 .bencher-actions {
   flex-shrink: 0;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 4px 0 8px;
-  background: #0d0d0d;
+  margin-bottom: 10px;
 }
 
-.bencher-actions button {
-  padding: 7px 14px;
-  border: 1px solid rgba(255, 212, 48, 0.45);
-  border-radius: 10px;
-  background: #181818;
-  color: #ffd430;
-  font-weight: 800;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
-
-.bencher-actions button.bencher-action-active {
-  background: rgba(255, 212, 48, 0.18);
-  border-color: #ffd430;
-}
-
-.bencher-actions-divider {
-  width: 1px;
-  align-self: stretch;
-  background: rgba(255, 212, 48, 0.2);
-  margin: 4px 2px;
-}
-
-.bencher-save-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.bencher-mode-switch-wrap {
+  width: 246px;
 }
 
 .bencher-title-input {
@@ -166,6 +89,11 @@
 .bencher-title-input:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.bencher-modal-title-input {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* ── Bencher modals ──────────────────────────────────────────── */
@@ -336,24 +264,335 @@
 
 
 .bencher-pages {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: grid;
-  justify-items: center;
-  gap: 28px;
-  overflow-y: auto;
-  padding-bottom: 40px;
+  place-items: start center;
+  overflow: hidden;
+  padding-inline: clamp(48px, 8vw, 88px);
+  padding-bottom: 0;
+}
+
+.bencher-page-flutter {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  pointer-events: none;
+  z-index: 26;
+  opacity: 0;
+  perspective: 1800px;
+  overflow: visible;
+}
+
+.bencher-page-flutter.is-active {
+  opacity: 1;
+}
+
+.bencher-page-flutter-sheet {
+  grid-area: 1 / 1;
+  width: min(100%, 850px);
+  height: 100%;
+  aspect-ratio: 768 / 994;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(244, 239, 228, 0.9) 48%, rgba(228, 219, 198, 0.74));
+  box-shadow:
+    0 22px 44px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(120, 98, 46, 0.08) inset;
+  opacity: 0;
+  transform-origin: left center;
+  will-change: transform, opacity, filter;
+  filter: blur(0.35px);
+}
+
+.bencher-pages-fluttering .bencher-flipbook {
+  animation: bencher-flipbook-flutter 560ms cubic-bezier(0.18, 0.86, 0.16, 1);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet {
+  transform-origin: left center;
+  clip-path: polygon(0 0, 27% 0, 12% 100%, 0 100%);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet {
+  transform-origin: right center;
+  clip-path: polygon(100% 0, 73% 0, 88% 100%, 100% 100%);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet-1 {
+  animation: bencher-page-flutter-forward-1 560ms cubic-bezier(0.18, 0.82, 0.2, 1);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet-2 {
+  animation: bencher-page-flutter-forward-2 560ms cubic-bezier(0.16, 0.84, 0.18, 1);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet-3 {
+  animation: bencher-page-flutter-forward-3 560ms cubic-bezier(0.14, 0.86, 0.18, 1);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet-4 {
+  animation: bencher-page-flutter-forward-4 560ms cubic-bezier(0.14, 0.88, 0.16, 1);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet-5 {
+  animation: bencher-page-flutter-forward-5 560ms cubic-bezier(0.12, 0.9, 0.16, 1);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet-1 {
+  animation: bencher-page-flutter-backward-1 560ms cubic-bezier(0.18, 0.82, 0.2, 1);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet-2 {
+  animation: bencher-page-flutter-backward-2 560ms cubic-bezier(0.16, 0.84, 0.18, 1);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet-3 {
+  animation: bencher-page-flutter-backward-3 560ms cubic-bezier(0.14, 0.86, 0.18, 1);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet-4 {
+  animation: bencher-page-flutter-backward-4 560ms cubic-bezier(0.14, 0.88, 0.16, 1);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet-5 {
+  animation: bencher-page-flutter-backward-5 560ms cubic-bezier(0.12, 0.9, 0.16, 1);
+}
+
+@keyframes bencher-flipbook-flutter {
+  0% {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+  16% {
+    transform: translateX(-12px) rotateZ(-0.28deg);
+    filter: brightness(1.03);
+  }
+  38% {
+    transform: translateX(26px) rotateZ(0.5deg);
+    filter: brightness(0.99);
+  }
+  62% {
+    transform: translateX(-14px) rotateZ(-0.24deg);
+    filter: brightness(1.02);
+  }
+  100% {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+}
+
+@keyframes bencher-page-flutter-forward-1 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  14% { opacity: 0.22; }
+  38% { opacity: 0.42; transform: translate3d(36px, -3px, 0) rotateY(-26deg) rotateZ(-1.1deg) skewY(-1deg); }
+  100% { opacity: 0; transform: translate3d(160px, -8px, 0) rotateY(-58deg) rotateZ(-4.2deg) skewY(-2.2deg); }
+}
+
+@keyframes bencher-page-flutter-forward-2 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  18% { opacity: 0.28; }
+  44% { opacity: 0.48; transform: translate3d(58px, -6px, 0) rotateY(-34deg) rotateZ(-2deg) skewY(-1.4deg); }
+  100% { opacity: 0; transform: translate3d(230px, -14px, 0) rotateY(-68deg) rotateZ(-6deg) skewY(-3.1deg); }
+}
+
+@keyframes bencher-page-flutter-forward-3 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  22% { opacity: 0.32; }
+  48% { opacity: 0.54; transform: translate3d(84px, -10px, 0) rotateY(-42deg) rotateZ(-2.8deg) skewY(-1.8deg); }
+  100% { opacity: 0; transform: translate3d(300px, -22px, 0) rotateY(-80deg) rotateZ(-7.6deg) skewY(-4deg); }
+}
+
+@keyframes bencher-page-flutter-forward-4 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  28% { opacity: 0.36; }
+  54% { opacity: 0.56; transform: translate3d(112px, -14px, 0) rotateY(-50deg) rotateZ(-3.4deg) skewY(-2.1deg); }
+  100% { opacity: 0; transform: translate3d(378px, -30px, 0) rotateY(-84deg) rotateZ(-9deg) skewY(-4.8deg); }
+}
+
+@keyframes bencher-page-flutter-forward-5 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  34% { opacity: 0.4; }
+  58% { opacity: 0.6; transform: translate3d(142px, -18px, 0) rotateY(-58deg) rotateZ(-4.2deg) skewY(-2.4deg); }
+  100% { opacity: 0; transform: translate3d(462px, -38px, 0) rotateY(-88deg) rotateZ(-10.4deg) skewY(-5.4deg); }
+}
+
+@keyframes bencher-page-flutter-backward-1 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  14% { opacity: 0.22; }
+  38% { opacity: 0.42; transform: translate3d(-36px, -3px, 0) rotateY(26deg) rotateZ(1.1deg) skewY(1deg); }
+  100% { opacity: 0; transform: translate3d(-160px, -8px, 0) rotateY(58deg) rotateZ(4.2deg) skewY(2.2deg); }
+}
+
+@keyframes bencher-page-flutter-backward-2 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  18% { opacity: 0.28; }
+  44% { opacity: 0.48; transform: translate3d(-58px, -6px, 0) rotateY(34deg) rotateZ(2deg) skewY(1.4deg); }
+  100% { opacity: 0; transform: translate3d(-230px, -14px, 0) rotateY(68deg) rotateZ(6deg) skewY(3.1deg); }
+}
+
+@keyframes bencher-page-flutter-backward-3 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  22% { opacity: 0.32; }
+  48% { opacity: 0.54; transform: translate3d(-84px, -10px, 0) rotateY(42deg) rotateZ(2.8deg) skewY(1.8deg); }
+  100% { opacity: 0; transform: translate3d(-300px, -22px, 0) rotateY(80deg) rotateZ(7.6deg) skewY(4deg); }
+}
+
+@keyframes bencher-page-flutter-backward-4 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  28% { opacity: 0.36; }
+  54% { opacity: 0.56; transform: translate3d(-112px, -14px, 0) rotateY(50deg) rotateZ(3.4deg) skewY(2.1deg); }
+  100% { opacity: 0; transform: translate3d(-378px, -30px, 0) rotateY(84deg) rotateZ(9deg) skewY(4.8deg); }
+}
+
+@keyframes bencher-page-flutter-backward-5 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  34% { opacity: 0.4; }
+  58% { opacity: 0.6; transform: translate3d(-142px, -18px, 0) rotateY(58deg) rotateZ(4.2deg) skewY(2.4deg); }
+  100% { opacity: 0; transform: translate3d(-462px, -38px, 0) rotateY(88deg) rotateZ(10.4deg) skewY(5.4deg); }
+}
+
+.bencher-page-turn-button {
+  position: absolute;
+  top: 50%;
+  z-index: 30;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: clamp(52px, 5vw, 72px);
+  height: clamp(92px, 18vh, 132px);
+  border: 1px solid rgba(255, 212, 48, 0.32);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(32, 32, 32, 0.96), rgba(14, 14, 14, 0.96));
+  box-shadow: 0 18px 28px rgba(0, 0, 0, 0.35);
+  color: #ffd430;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.bencher-page-turn-button-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1;
+  opacity: 0.78;
+}
+
+.bencher-page-turn-button-number {
+  font-size: clamp(24px, 2.4vw, 34px);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bencher-page-turn-button:hover:not(:disabled),
+.bencher-page-turn-button:focus-visible:not(:disabled) {
+  background: linear-gradient(180deg, rgba(52, 52, 52, 0.98), rgba(18, 18, 18, 0.98));
+  border-color: rgba(255, 212, 48, 0.68);
+  transform: translateY(-50%) scale(1.02);
+}
+
+.bencher-page-turn-button:focus-visible {
+  outline: 2px solid rgba(255, 212, 48, 0.55);
+  outline-offset: 3px;
+}
+
+.bencher-page-turn-button:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.bencher-page-turn-button-left {
+  left: max(10px, calc(50% - min(425px, 50%) - clamp(56px, 7vw, 92px)));
+}
+
+.bencher-page-turn-button-right {
+  right: max(10px, calc(50% - min(425px, 50%) - clamp(56px, 7vw, 92px)));
+}
+
+.bencher-flipbook {
+  width: min(100%, 850px) !important;
+  height: 100%;
+  aspect-ratio: 768 / 994;
+  margin: 0 auto !important;
+  overflow: visible !important;
+}
+
+.bencher-flipbook .stf__wrapper,
+.bencher-flipbook .stf__block {
+  overflow: visible !important;
+}
+
+.bencher-flipbook .stf__outerShadow,
+.bencher-flipbook .stf__innerShadow,
+.bencher-flipbook .stf__hardShadow,
+.bencher-flipbook .stf__hardInnerShadow {
+  pointer-events: none !important;
+}
+
+.bencher-flipbook .stf__item {
+  background: transparent !important;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+}
+
+.bencher-flip-sheet {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.bencher-flip-sheet .bencher-page {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
 }
 
 .bencher-page {
   position: relative;
+  isolation: isolate;
   width: min(100%, 850px);
   aspect-ratio: 768 / 994;
   background-color: #fff;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+}
+
+.bencher-page-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bencher-page::before,
+.bencher-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+}
+
+.bencher-page::before {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.1), transparent 5%, transparent 94%, rgba(0, 0, 0, 0.12)),
+    radial-gradient(ellipse at 96% 4%, rgba(255, 255, 255, 0.4), transparent 16%);
+  mix-blend-mode: multiply;
+  opacity: 0.42;
+}
+
+.bencher-page::after {
+  inset: 0 0 0 auto;
+  width: 10%;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.08));
+  opacity: 0.55;
 }
 
 .bencher-logo-target {
@@ -451,6 +690,39 @@
   background: rgba(242, 203, 5, 0.05);
 }
 
+.bencher-page-turn-zone {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  color: #17110a;
+  cursor: pointer;
+  z-index: 30;
+  overflow: hidden;
+  padding: 0;
+}
+
+.bencher-page-turn-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(242, 203, 5, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.bencher-page-turn-zone:hover::before,
+.bencher-page-turn-zone:focus-visible::before {
+  opacity: 1;
+  transform: scaleX(1.04);
+}
+
+.bencher-page-turn-zone:focus-visible {
+  outline: 3px solid rgba(242, 203, 5, 0.55);
+  outline-offset: 3px;
+}
+
 .bencher-drop-hint {
   position: absolute;
   inset: 8px;
@@ -494,15 +766,6 @@
 }
 
 /* Analytics privacy widget — transparent on bencher page */
-body.bencher-active .header-container {
-  height: 40px;
-  padding: 0 1rem;
-}
-
-body.bencher-active .header-logo-image {
-  height: 26px;
-}
-
 body.bencher-active .analytics-pref-trigger {
   background: transparent;
   border: 0;
@@ -528,6 +791,35 @@ body.bencher-active .analytics-pref-trigger:hover {
     position: static;
     max-height: none;
   }
+
+  .bencher-actions {
+    padding: 10px 8px;
+    gap: 8px;
+  }
+
+  .bencher-actions .sb2-toolbar-section,
+  .bencher-mode-switch-wrap {
+    width: 100%;
+    margin-left: 0;
+    min-height: 0;
+  }
+
+  .bencher-actions .sb2-toolbar-action-row,
+  .bencher-actions .sb2-column-controls {
+    justify-content: center;
+  }
+
+  .bencher-actions button {
+    flex: 1 1 auto;
+  }
+
+  .bencher-builder-mode-switch {
+    width: 100%;
+  }
+
+  .bencher-builder-mode-switch .sb2-builder-mode-option {
+    flex: 1 1 0;
+  }
 }
 
 @media print {
@@ -547,7 +839,8 @@ body.bencher-active .analytics-pref-trigger:hover {
 
   .bencher-app header,
   .bencher-sidebar,
-  .bencher-actions {
+  .bencher-actions,
+  .bencher-page-turn-button {
     display: none !important;
   }
 
@@ -556,6 +849,7 @@ body.bencher-active .analytics-pref-trigger:hover {
   .bencher-preview,
   .bencher-pages {
     display: block;
+    width: 8.5in !important;
     height: auto !important;
     max-height: none !important;
     overflow: visible !important;
@@ -564,22 +858,82 @@ body.bencher-active .analytics-pref-trigger:hover {
     background: #fff;
   }
 
+  .bencher-flipbook,
+  .bencher-flipbook .stf__wrapper,
+  .bencher-flipbook .stf__block {
+    display: block !important;
+    position: static !important;
+    width: 8.5in !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+  }
+
+  .bencher-flipbook .stf__item,
+  .bencher-flip-sheet {
+    display: block !important;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 8.5in !important;
+    height: 11in !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    transform: none !important;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .bencher-flipbook .stf__item:last-child,
+  .bencher-flip-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .bencher-pages-single .bencher-page-active,
+  .bencher-pages-single .bencher-page-inactive {
+    display: block !important;
+    width: 8.5in !important;
+    max-width: none !important;
+    height: 11in !important;
+  }
+
   .bencher-page {
-    width: 8.5in;
-    height: 11in;
+    display: block !important;
+    box-sizing: border-box;
+    width: 8.5in !important;
+    max-width: none !important;
+    height: 11in !important;
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none;
-    break-after: page;
-    page-break-after: always;
+    break-after: auto;
+    page-break-after: auto;
+    break-before: auto;
+    page-break-before: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
     overflow: hidden;
   }
 
-  .bencher-page:last-child {
-    break-after: auto;
-    page-break-after: auto;
+  .bencher-flip-sheet .bencher-page {
+    width: 8.5in !important;
+    height: 11in !important;
+    max-width: none !important;
+  }
+
+  .bencher-page::before,
+  .bencher-page::after {
+    display: none !important;
   }
 
   .bencher-page-footer {

@@ -14,6 +14,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import AddSongModal from '@/components/AddSongModal';
 import { useDevice } from '@/hooks/useDevice';
@@ -29,6 +30,8 @@ interface Song {
   drive?: string;
   youtube?: string;
 }
+
+type SheetCardFontSize = number | string;
 
 export interface SongData {
   title: string;
@@ -243,6 +246,10 @@ const CONFIGS: SheetConfig[] = [
 ];
 
 const SAFE_FONT_SIZES = [14, 13, 12, 11, 10, 9, 8, 7];
+const ONE_COLUMN_MIN_FONT_SIZE = 14;
+const ONE_COLUMN_MAX_FONT_SIZE = 20;
+const ONE_COLUMN_FONT_SIZE_DROP_PER_SONG = 2;
+const ONE_COLUMN_FONT_SIZE_STEP = 0.5;
 
 function songKey(song: SongData) {
   return `${song.title}|${song.artist}`;
@@ -569,10 +576,30 @@ function chooseAutoFitConfig(
     return CONFIGS[0];
   }
 
-  // Auto-fit must follow CONFIGS exactly as the source of truth for
-  // the column/font-size progression.
+  const dynamicOneColumnConfig = resolveOneColumnDynamicConfig(
+    songs,
+    measurements,
+    showTitles,
+    showOrderNumbers,
+    (config) => paginateAutoSongs(songs, config, measurements, showTitles, showOrderNumbers),
+  );
+
+  if (dynamicOneColumnConfig) {
+    const oneColumnPages = paginateAutoSongs(songs, dynamicOneColumnConfig, measurements, showTitles, showOrderNumbers);
+    if (oneColumnPages.length <= 1) {
+      return dynamicOneColumnConfig;
+    }
+  }
+
+  const candidateConfigs = dynamicOneColumnConfig
+    ? dedupeConfigs([dynamicOneColumnConfig, ...CONFIGS.filter((config) => config.cols !== 1)])
+    : CONFIGS;
+
+  // Auto-fit keeps the existing CONFIGS progression for multi-column layouts.
+  // One-column is an exception: it expands to the largest font size that
+  // preserves its minimum page count.
   // It should not create a second page while a later config can keep the sheet on one page.
-  for (const config of CONFIGS) {
+  for (const config of candidateConfigs) {
     if (!configCanRenderWithoutOverflow(config, songs, measurements, showTitles, showOrderNumbers)) continue;
 
     const pages = paginateAutoSongs(songs, config, measurements, showTitles, showOrderNumbers);
@@ -590,7 +617,7 @@ function chooseAutoFitConfig(
   let bestAverageFill = Number.NEGATIVE_INFINITY;
   let bestMinFill = Number.NEGATIVE_INFINITY;
 
-  CONFIGS.forEach((config, index) => {
+  candidateConfigs.forEach((config, index) => {
     const pages = paginateAutoSongs(songs, config, measurements, showTitles, showOrderNumbers);
     const overflowPenalty = configCanRenderWithoutOverflow(config, songs, measurements, showTitles, showOrderNumbers) ? 0 : 1;
     const pageCount = pages.length;
@@ -640,7 +667,7 @@ function chooseAutoFitConfig(
       (overflowPenalty === bestOverflowPenalty && pageCount === bestPageCount && fontSize === bestFontSize && columnCount === bestColumnCount && lastPageFill > bestLastPageFill) ||
       (overflowPenalty === bestOverflowPenalty && pageCount === bestPageCount && fontSize === bestFontSize && columnCount === bestColumnCount && lastPageFill === bestLastPageFill && averageFill > bestAverageFill) ||
       (overflowPenalty === bestOverflowPenalty && pageCount === bestPageCount && fontSize === bestFontSize && columnCount === bestColumnCount && lastPageFill === bestLastPageFill && averageFill === bestAverageFill && minFill > bestMinFill) ||
-      (overflowPenalty === bestOverflowPenalty && pageCount === bestPageCount && lastPageFill === bestLastPageFill && averageFill === bestAverageFill && minFill === bestMinFill && index < CONFIGS.indexOf(bestConfig));
+      (overflowPenalty === bestOverflowPenalty && pageCount === bestPageCount && lastPageFill === bestLastPageFill && averageFill === bestAverageFill && minFill === bestMinFill && index < candidateConfigs.indexOf(bestConfig));
 
     if (isBetter) {
       bestConfig = config;
@@ -765,13 +792,90 @@ function configCanRenderWithoutOverflow(
   return songs.every((song) => getSongHeight(song, config, measurements, showTitles, showOrderNumbers) <= PAGE_CONTENT_HEIGHT);
 }
 
-function resolveManualOverflowConfig(
-  preferredConfig: SheetConfig,
+function resolveOneColumnDynamicConfig(
   songs: SongData[],
   measurements: Record<string, ConfigMeasurement>,
   showTitles: boolean,
   showOrderNumbers: boolean,
+  paginate: (config: SheetConfig) => PageLayout[],
 ) {
+  const minStep = Math.round(ONE_COLUMN_MIN_FONT_SIZE / ONE_COLUMN_FONT_SIZE_STEP);
+  const maxFontSize = Math.max(
+    ONE_COLUMN_MIN_FONT_SIZE,
+    ONE_COLUMN_MAX_FONT_SIZE - Math.max(songs.length - 1, 0) * ONE_COLUMN_FONT_SIZE_DROP_PER_SONG,
+  );
+  const maxStep = Math.round(maxFontSize / ONE_COLUMN_FONT_SIZE_STEP);
+  const pageCountCache = new Map<number, number>();
+
+  const getFontSizeForStep = (step: number) => Number((step * ONE_COLUMN_FONT_SIZE_STEP).toFixed(2));
+
+  const getPageCount = (step: number) => {
+    const cached = pageCountCache.get(step);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const pageCount = paginate({ cols: 1, fontSize: getFontSizeForStep(step) }).length;
+    pageCountCache.set(step, pageCount);
+    return pageCount;
+  };
+
+  const fitsAtStep = (step: number, targetPageCount: number) => {
+    const config = { cols: 1, fontSize: getFontSizeForStep(step) };
+    if (!configCanRenderWithoutOverflow(config, songs, measurements, showTitles, showOrderNumbers)) {
+      return false;
+    }
+
+    return getPageCount(step) <= targetPageCount;
+  };
+
+  const minPageCount = getPageCount(minStep);
+  if (!fitsAtStep(minStep, minPageCount)) {
+    return null;
+  }
+
+  let low = minStep;
+  let high = maxStep;
+  let bestStep = minStep;
+
+  while (low <= high) {
+    const step = Math.floor((low + high) / 2);
+    if (fitsAtStep(step, minPageCount)) {
+      bestStep = step;
+      low = step + 1;
+    } else {
+      high = step - 1;
+    }
+  }
+
+  return {
+    cols: 1,
+    fontSize: getFontSizeForStep(bestStep),
+  } satisfies SheetConfig;
+}
+
+function resolveManualOverflowConfig(
+  preferredConfig: SheetConfig,
+  songs: SongData[],
+  manualLocks: number[][],
+  measurements: Record<string, ConfigMeasurement>,
+  showTitles: boolean,
+  showOrderNumbers: boolean,
+) {
+  if (preferredConfig.cols === 1) {
+    const dynamicConfig = resolveOneColumnDynamicConfig(
+      songs,
+      measurements,
+      showTitles,
+      showOrderNumbers,
+      (config) => paginateManualSongs(songs, config, manualLocks, measurements, showTitles, showOrderNumbers),
+    );
+
+    if (dynamicConfig) {
+      return dynamicConfig;
+    }
+  }
+
   if (
     songs.length === 0 ||
     configCanRenderWithoutOverflow(preferredConfig, songs, measurements, showTitles, showOrderNumbers)
@@ -974,7 +1078,7 @@ export function SheetCardContent({
   onRemove,
 }: {
   song: SongData;
-  fontSize: number;
+  fontSize: SheetCardFontSize;
   showTitles: boolean;
   showOrderNumbers: boolean;
   orderNumber: number;
@@ -1101,7 +1205,7 @@ export function PreviewSongCard({
   columnCount,
 }: {
   song: SongData;
-  fontSize: number;
+  fontSize: SheetCardFontSize;
   showTitles: boolean;
   showOrderNumbers: boolean;
   orderNumber: number;
@@ -1196,7 +1300,7 @@ export function SheetSongDraggable({
   onRemove,
 }: {
   positionedSong: PositionedSong;
-  fontSize: number;
+  fontSize: SheetCardFontSize;
   showTitles: boolean;
   showOrderNumbers: boolean;
   columnCount: number;
@@ -1294,6 +1398,8 @@ export function SheetBuilderApp() {
   const [manualFontSize, setManualFontSize] = useState(14);
   const [sheetTitle, setSheetTitle] = useState(typeof preferences.sbSheetTitle === 'string' ? preferences.sbSheetTitle : DEFAULT_SHEET_TITLE);
   const [currentSavedSheetId, setCurrentSavedSheetId] = useState(typeof preferences.sbCurrentSavedSheetId === 'string' ? preferences.sbCurrentSavedSheetId : '');
+  const [showSaveSheetModal, setShowSaveSheetModal] = useState(false);
+  const [saveDraftSheetTitle, setSaveDraftSheetTitle] = useState('');
   const [showSavedSheetsModal, setShowSavedSheetsModal] = useState(false);
   const [showOverwriteSheetModal, setShowOverwriteSheetModal] = useState(false);
   const [overwriteTargetSheetId, setOverwriteTargetSheetId] = useState('');
@@ -1766,6 +1872,7 @@ export function SheetBuilderApp() {
       : resolveManualOverflowConfig(
           { cols: previewSavedSheet.manualColumns, fontSize: previewSavedSheet.manualFontSize },
           previewSavedSheet.songs,
+          previewSavedSheet.manualLocks,
           measurements,
           previewSavedSheet.showTitles,
           previewSavedSheet.showOrderNumbers,
@@ -1859,21 +1966,16 @@ export function SheetBuilderApp() {
     showTitles,
   ]);
 
-  useEffect(() => {
-    if (autoFit) {
-      setManualFontSize(autoConfig.fontSize);
-    }
-  }, [autoConfig.fontSize, autoFit]);
-
   const manualConfig = useMemo(() => {
     return resolveManualOverflowConfig(
       { cols: manualColumns, fontSize: manualFontSize },
       sheetSongs,
+      manualLocks,
       measurements,
       showTitles,
       showOrderNumbers,
     );
-  }, [manualColumns, manualFontSize, measurements, sheetSongs, showOrderNumbers, showTitles]);
+  }, [manualColumns, manualFontSize, manualLocks, measurements, sheetSongs, showOrderNumbers, showTitles]);
 
   const activeConfig = useMemo<SheetConfig>(() => {
     return autoFit ? autoConfig : manualConfig;
@@ -2143,15 +2245,8 @@ export function SheetBuilderApp() {
     }
   }, [setPref, user]);
 
-  const handleSheetTitleChange = useCallback((value: string) => {
-    setSheetTitle(value);
-    if (user) {
-      setPref('sbSheetTitle', value);
-    }
-  }, [setPref, user]);
-
-  const executeSaveSheet = useCallback(async (targetSheetId?: string) => {
-    const trimmedTitle = sheetTitle.trim();
+  const executeSaveSheet = useCallback(async (title: string, targetSheetId?: string) => {
+    const trimmedTitle = title.trim();
     const savedSheet = await saveSheet({
       id: targetSheetId,
       title: trimmedTitle,
@@ -2168,35 +2263,50 @@ export function SheetBuilderApp() {
     persistSheetIdentity(savedSheet.title, savedSheet.id);
     updateStatus(`Saved "${savedSheet.title}"`);
     return savedSheet;
-  }, [autoFit, manualColumns, manualFontSize, manualLocks, persistSheetIdentity, saveSheet, sheetSongs, sheetTitle, showOrderNumbers, showPageNumbers, showTitles, updateStatus]);
+  }, [autoFit, manualColumns, manualFontSize, manualLocks, persistSheetIdentity, saveSheet, sheetSongs, showOrderNumbers, showPageNumbers, showTitles, updateStatus]);
 
-  const handleSaveCurrentSheet = useCallback(async () => {
+  const saveNamedSheet = useCallback(async (title: string, overwriteId?: string) => {
     if (!user) {
       updateStatus('Sign in to save sheets to Google Drive');
       return;
     }
 
-    const trimmedTitle = sheetTitle.trim();
+    const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       updateStatus('Enter a sheet title first');
       return;
     }
 
     try {
-      const shouldOverwriteCurrent = currentSavedSheet !== null && currentSavedSheet.title.trim() === trimmedTitle;
-      await executeSaveSheet(shouldOverwriteCurrent ? currentSavedSheetId || undefined : undefined);
+      const matching = sortedSavedSheets.find(
+        (entry) => entry.title.trim() === trimmedTitle && (currentSavedSheetId ? entry.id === currentSavedSheetId : true),
+      );
+      await executeSaveSheet(trimmedTitle, overwriteId ?? matching?.id ?? currentSavedSheetId ?? undefined);
+      setShowSaveSheetModal(false);
+      setShowOverwriteSheetModal(false);
     } catch (error) {
       console.error('[SheetBuilder] Failed to save sheet:', error);
 
       if (error instanceof Error && error.message.includes('Saved sheet limit reached')) {
         setOverwriteTargetSheetId(currentSavedSheetId || sortedSavedSheets[0]?.id || '');
+        setShowSaveSheetModal(false);
         setShowOverwriteSheetModal(true);
         return;
       }
 
       updateStatus('Failed to save sheet');
     }
-  }, [currentSavedSheet, currentSavedSheetId, executeSaveSheet, sheetTitle, sortedSavedSheets, updateStatus, user]);
+  }, [currentSavedSheetId, executeSaveSheet, sortedSavedSheets, updateStatus, user]);
+
+  const handleOpenSaveSheetModal = useCallback(() => {
+    if (!user) {
+      updateStatus('Sign in to save sheets to Google Drive');
+      return;
+    }
+
+    setSaveDraftSheetTitle(sheetTitle);
+    setShowSaveSheetModal(true);
+  }, [sheetTitle, updateStatus, user]);
 
   const handleConfirmOverwriteSheet = useCallback(async () => {
     if (!overwriteTargetSheetId) {
@@ -2205,13 +2315,13 @@ export function SheetBuilderApp() {
     }
 
     try {
-      await executeSaveSheet(overwriteTargetSheetId);
+      await saveNamedSheet(saveDraftSheetTitle || sheetTitle, overwriteTargetSheetId);
       setShowOverwriteSheetModal(false);
     } catch (error) {
       console.error('[SheetBuilder] Failed to overwrite sheet:', error);
       updateStatus('Failed to overwrite sheet');
     }
-  }, [executeSaveSheet, overwriteTargetSheetId, updateStatus]);
+  }, [overwriteTargetSheetId, saveDraftSheetTitle, saveNamedSheet, sheetTitle, updateStatus]);
 
   const handleCancelOverwriteSheet = useCallback(() => {
     setShowOverwriteSheetModal(false);
@@ -2544,23 +2654,6 @@ export function SheetBuilderApp() {
 
           <div className="sb2-main-area">
             <div className="sb2-toolbar" data-tour="toolbar">
-              <div className="sb2-toolbar-section sb2-toolbar-section-primary" data-tour="sheet-section">
-                <div className="sb2-toolbar-section-title">Sheet</div>
-                <div className="sb2-sheet-save-group">
-                  <input
-                    type="text"
-                    className="sb2-sheet-title-input"
-                    placeholder="Name this sheet"
-                    value={sheetTitle}
-                    onChange={(event) => handleSheetTitleChange(event.target.value)}
-                  />
-                  <div className="sb2-toolbar-action-row">
-                    <button className="sb2-toolbar-button-strong" onClick={handleSaveCurrentSheet} disabled={savedSheetsDisabled}>Save</button>
-                    <button onClick={handleOpenSavedSheetsModal} disabled={savedSheetsDisabled}>Library</button>
-                  </div>
-                </div>
-              </div>
-
               <div className="sb2-toolbar-section sb2-toolbar-section-utility" data-tour="actions-section">
                 <div className="sb2-toolbar-section-title">Actions</div>
                 <div className="sb2-toolbar-toggle-row">
@@ -2585,6 +2678,16 @@ export function SheetBuilderApp() {
                 </div>
               </div>
 
+              <div className="sb2-toolbar-section" data-tour="sheet-section">
+                <div className="sb2-toolbar-section-title">Sheet</div>
+                <div className="sb2-sheet-save-group">
+                  <div className="sb2-toolbar-action-row">
+                    <button className="sb2-toolbar-button-strong" onClick={handleOpenSaveSheetModal} disabled={savedSheetsDisabled}>Save</button>
+                    <button onClick={handleOpenSavedSheetsModal} disabled={savedSheetsDisabled}>Library</button>
+                  </div>
+                </div>
+              </div>
+
               <div className="sb2-toolbar-section" data-tour="layout-section">
                 <div className="sb2-toolbar-section-title">Layout</div>
                 <div className="sb2-column-controls">
@@ -2596,7 +2699,10 @@ export function SheetBuilderApp() {
               </div>
 
               <div className="sb2-toolbar-status-wrap">
-                <span className="sb2-status">{status}</span>
+                <div className="sb2-builder-mode-switch" aria-label="Builder mode">
+                  <button type="button" className="sb2-builder-mode-option active" aria-pressed="true">Sheet Mode</button>
+                  <Link className="sb2-builder-mode-option" href="/bencher">Bencher Mode</Link>
+                </div>
               </div>
             </div>
 
@@ -2892,6 +2998,45 @@ export function SheetBuilderApp() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {showSaveSheetModal && (
+          <div className="sb2-sheet-browser-backdrop" onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setShowSaveSheetModal(false);
+            }
+          }}>
+            <form
+              className="sb2-overwrite-modal sb2-save-modal"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void saveNamedSheet(saveDraftSheetTitle);
+              }}
+            >
+              <div className="sb2-overwrite-modal-header">
+                <h2>Save Sheet</h2>
+                <p>Choose a name for this sheet.</p>
+              </div>
+
+              <div className="sb2-save-modal-body">
+                <input
+                  type="text"
+                  className="sb2-sheet-title-input sb2-save-modal-input"
+                  placeholder="Sheet name"
+                  value={saveDraftSheetTitle}
+                  onChange={(event) => setSaveDraftSheetTitle(event.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="sb2-overwrite-modal-footer">
+                <button type="button" onClick={() => setShowSaveSheetModal(false)}>Cancel</button>
+                <button type="submit" className="sb2-overwrite-confirm-btn" disabled={!saveDraftSheetTitle.trim()}>
+                  Save
+                </button>
+              </div>
+            </form>
           </div>
         )}
 

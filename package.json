@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "bencher:render-pdf": "swift scripts/render-bencher-pdf.swift benchingForSitepdf.pdf public/assets/bencher Bencher-2pg && swift scripts/render-bencher-pdf.swift benchingForSite4pgs.pdf public/assets/bencher Bencher-4pg",
     "waveforms:generate": "node scripts/generate-waveforms.mjs",
     "test": "jest",
     "test:e2e": "npx playwright test"
@@ -25,9 +26,10 @@
     "framer-motion": "^12.38.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
-    "next": "^16.2.4",
+    "next": "^16.2.6",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-pageflip": "^2.0.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

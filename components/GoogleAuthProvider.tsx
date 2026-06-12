@@ -44,7 +44,49 @@ interface GoogleAuthState {
   bencherLayouts: SavedBencherLayout[];
   saveBencherLayout: (layout: Omit<SavedBencherLayout, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<SavedBencherLayout>;
   deleteBencherLayout: (id: string) => Promise<void>;
+  clearPrivateSongs: () => Promise<void>;
+  clearSavedSheets: () => Promise<void>;
+  clearBencherLayouts: () => Promise<void>;
+  clearPreferences: () => Promise<void>;
+  clearAllStoredData: () => Promise<void>;
+  downloadTransferXml: () => void;
+  readTransferXmlFile: (file: File) => Promise<TransferFilePreview>;
+  importTransferXmlFile: (file: File, options?: TransferImportOptions) => Promise<TransferImportSummary>;
   setPref: (key: string, value: unknown) => void;
+}
+
+export interface TransferImportOptions {
+  privateSongs?: boolean;
+  savedSheets?: boolean;
+  bencherLayouts?: boolean;
+  preferences?: boolean;
+  privateSongIds?: string[];
+  savedSheetIds?: string[];
+  bencherLayoutIds?: string[];
+}
+
+export interface TransferPreviewItem {
+  id: string;
+  title: string;
+  subtitle: string;
+}
+
+export interface TransferFilePreview {
+  sourceEmail: string | null;
+  exportedAt: string;
+  privateSongs: TransferPreviewItem[];
+  savedSheets: TransferPreviewItem[];
+  bencherLayouts: TransferPreviewItem[];
+  preferencesCount: number;
+}
+
+export interface TransferImportSummary {
+  sourceEmail: string | null;
+  exportedAt: string;
+  privateSongsCount: number;
+  savedSheetsCount: number;
+  bencherLayoutsCount: number;
+  preferencesCount: number;
 }
 
 const GoogleAuthContext = createContext<GoogleAuthState | null>(null);
@@ -52,6 +94,230 @@ const GoogleAuthContext = createContext<GoogleAuthState | null>(null);
 const DEFAULT_CLIENT_ID = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || '').trim();
 const BETA_CLIENT_ID = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_BETA || '').trim();
 const MAX_SAVED_SHEETS = 3;
+const TRANSFER_SCHEMA_VERSION = 1;
+
+interface TransferPayload {
+  schemaVersion: number;
+  exportedAt: string;
+  sourceEmail: string | null;
+  privateSongs: PrivateSong[];
+  preferences: UserPreferences;
+  savedSheets: SavedSheet[];
+  bencherLayouts: SavedBencherLayout[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isSavedSheetSong(value: unknown): value is SavedSheet['songs'][number] {
+  if (!isRecord(value)) return false;
+  return typeof value.title === 'string' && typeof value.artist === 'string' && typeof value.lyrics === 'string';
+}
+
+function isPrivateSong(value: unknown): value is PrivateSong {
+  if (!isRecord(value)) return false;
+  if (
+    typeof value.id !== 'string' ||
+    typeof value.title !== 'string' ||
+    typeof value.artist !== 'string' ||
+    typeof value.lyrics !== 'string' ||
+    typeof value.createdAt !== 'string'
+  ) {
+    return false;
+  }
+  if (value.audioUrl !== undefined && typeof value.audioUrl !== 'string') return false;
+  if (value.driveLink !== undefined && typeof value.driveLink !== 'string') return false;
+  if (
+    value.youtubeLinks !== undefined &&
+    (!Array.isArray(value.youtubeLinks) || value.youtubeLinks.some((entry) => typeof entry !== 'string'))
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function isSavedSheet(value: unknown): value is SavedSheet {
+  if (!isRecord(value)) return false;
+  if (
+    typeof value.id !== 'string' ||
+    typeof value.title !== 'string' ||
+    !Array.isArray(value.songs) ||
+    value.songs.some((song) => !isSavedSheetSong(song)) ||
+    typeof value.showTitles !== 'boolean' ||
+    typeof value.showPageNumbers !== 'boolean' ||
+    typeof value.showOrderNumbers !== 'boolean' ||
+    typeof value.autoFit !== 'boolean' ||
+    typeof value.manualColumns !== 'number' ||
+    typeof value.manualFontSize !== 'number' ||
+    !Array.isArray(value.manualLocks) ||
+    value.manualLocks.some(
+      (lockRow) => !Array.isArray(lockRow) || lockRow.some((lockIndex) => typeof lockIndex !== 'number'),
+    ) ||
+    typeof value.createdAt !== 'string' ||
+    typeof value.updatedAt !== 'string'
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function isSavedBencherLayout(value: unknown): value is SavedBencherLayout {
+  if (!isRecord(value)) return false;
+  if (
+    typeof value.id !== 'string' ||
+    typeof value.title !== 'string' ||
+    !Array.isArray(value.songs) ||
+    value.songs.some((song) => !isSavedSheetSong(song)) ||
+    (value.logoSrc !== null && value.logoSrc !== undefined && typeof value.logoSrc !== 'string') ||
+    typeof value.showTitles !== 'boolean' ||
+    typeof value.createdAt !== 'string' ||
+    typeof value.updatedAt !== 'string'
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function escapeXml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
+}
+
+function utf8ToBase64(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
+}
+
+function base64ToUtf8(value: string) {
+  const binary = atob(value);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function createTransferXml(payload: TransferPayload) {
+  const serialized = JSON.stringify(payload);
+  const encoded = utf8ToBase64(serialized);
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    `<niggunSheetTransfer schemaVersion="${TRANSFER_SCHEMA_VERSION}">`,
+    `  <meta exportedAt="${escapeXml(payload.exportedAt)}" sourceEmail="${escapeXml(payload.sourceEmail ?? '')}" />`,
+    `  <payload encoding="base64">${encoded}</payload>`,
+    '</niggunSheetTransfer>',
+  ].join('\n');
+}
+
+function parseTransferXml(xmlText: string): TransferPayload {
+  const parser = new DOMParser();
+  const documentNode = parser.parseFromString(xmlText, 'application/xml');
+  const parserError = documentNode.querySelector('parsererror');
+  if (parserError) {
+    throw new Error('Invalid XML file.');
+  }
+
+  const root = documentNode.querySelector('niggunSheetTransfer');
+  if (!root) {
+    throw new Error('Transfer file missing niggunSheetTransfer root node.');
+  }
+
+  const payloadNode = root.querySelector('payload');
+  if (!payloadNode) {
+    throw new Error('Transfer file missing payload node.');
+  }
+
+  const encoding = payloadNode.getAttribute('encoding');
+  if (encoding !== 'base64') {
+    throw new Error('Transfer payload encoding is unsupported.');
+  }
+
+  const rawPayload = payloadNode.textContent?.trim() ?? '';
+  if (!rawPayload) {
+    throw new Error('Transfer payload is empty.');
+  }
+
+  let parsedPayload: unknown;
+  try {
+    parsedPayload = JSON.parse(base64ToUtf8(rawPayload));
+  } catch {
+    throw new Error('Transfer payload could not be decoded.');
+  }
+
+  if (!isRecord(parsedPayload)) {
+    throw new Error('Transfer payload is malformed.');
+  }
+
+  const schemaVersion = Number(parsedPayload.schemaVersion);
+  if (schemaVersion !== TRANSFER_SCHEMA_VERSION) {
+    throw new Error('Transfer file schema version is not supported.');
+  }
+
+  const privateSongs = Array.isArray(parsedPayload.privateSongs) ? parsedPayload.privateSongs.filter(isPrivateSong) : [];
+  const savedSheets = Array.isArray(parsedPayload.savedSheets) ? parsedPayload.savedSheets.filter(isSavedSheet) : [];
+  const bencherLayouts = Array.isArray(parsedPayload.bencherLayouts)
+    ? parsedPayload.bencherLayouts.filter(isSavedBencherLayout)
+    : [];
+  const preferences = isRecord(parsedPayload.preferences) ? parsedPayload.preferences : {};
+
+  return {
+    schemaVersion,
+    exportedAt: typeof parsedPayload.exportedAt === 'string' ? parsedPayload.exportedAt : new Date().toISOString(),
+    sourceEmail: typeof parsedPayload.sourceEmail === 'string' ? parsedPayload.sourceEmail : null,
+    privateSongs,
+    preferences,
+    savedSheets,
+    bencherLayouts,
+  };
+}
+
+function createTransferPreview(payload: TransferPayload): TransferFilePreview {
+  return {
+    sourceEmail: payload.sourceEmail,
+    exportedAt: payload.exportedAt,
+    privateSongs: payload.privateSongs.map((song) => ({
+      id: song.id,
+      title: song.title,
+      subtitle: song.artist || 'Unknown artist',
+    })),
+    savedSheets: payload.savedSheets.map((sheet) => ({
+      id: sheet.id,
+      title: sheet.title,
+      subtitle: `${sheet.songs.length} song${sheet.songs.length === 1 ? '' : 's'}`,
+    })),
+    bencherLayouts: payload.bencherLayouts.map((layout) => ({
+      id: layout.id,
+      title: layout.title,
+      subtitle: `${layout.songs.length} song${layout.songs.length === 1 ? '' : 's'}`,
+    })),
+    preferencesCount: Object.keys(payload.preferences).length,
+  };
+}
+
+function filterTransferItems<T extends { id: string }>(items: T[], selectedIds?: string[]) {
+  if (!selectedIds) return items;
+  const selected = new Set(selectedIds);
+  return items.filter((item) => selected.has(item.id));
+}
+
+function mergeTransferItems<T extends { id: string }>(currentItems: T[], incomingItems: T[]) {
+  const merged = [...currentItems];
+  incomingItems.forEach((incomingItem) => {
+    const existingIndex = merged.findIndex((currentItem) => currentItem.id === incomingItem.id);
+    if (existingIndex >= 0) {
+      merged[existingIndex] = incomingItem;
+      return;
+    }
+    merged.push(incomingItem);
+  });
+  return merged;
+}
 
 function resolveClientIdForCurrentHost(): string {
   if (typeof window !== 'undefined' && window.location.hostname === 'beta.niggunsheet.com') {
@@ -297,6 +563,146 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     await saveSavedBencherLayouts(nextLayouts);
   }, [bencherLayouts]);
 
+  const clearPrivateSongs = useCallback(async () => {
+    setPrivateSongs([]);
+    await savePrivateSongs([]);
+  }, []);
+
+  const clearSavedSheets = useCallback(async () => {
+    setSavedSheets([]);
+    await saveSavedSheets([]);
+  }, []);
+
+  const clearBencherLayouts = useCallback(async () => {
+    setBencherLayouts([]);
+    await saveSavedBencherLayouts([]);
+  }, []);
+
+  const clearPreferences = useCallback(async () => {
+    prefsRef.current = {};
+    setPreferences({});
+    if (prefsSaveTimer.current) {
+      clearTimeout(prefsSaveTimer.current);
+      prefsSaveTimer.current = null;
+    }
+    await savePreferences({});
+  }, []);
+
+  const clearAllStoredData = useCallback(async () => {
+    prefsRef.current = {};
+    setPrivateSongs([]);
+    setSavedSheets([]);
+    setBencherLayouts([]);
+    setPreferences({});
+    if (prefsSaveTimer.current) {
+      clearTimeout(prefsSaveTimer.current);
+      prefsSaveTimer.current = null;
+    }
+    await Promise.all([
+      savePrivateSongs([]),
+      saveSavedSheets([]),
+      saveSavedBencherLayouts([]),
+      savePreferences({}),
+    ]);
+  }, []);
+
+  const downloadTransferXml = useCallback(() => {
+    if (!user) {
+      throw new Error('Sign in before downloading transfer data.');
+    }
+
+    const transferPayload: TransferPayload = {
+      schemaVersion: TRANSFER_SCHEMA_VERSION,
+      exportedAt: new Date().toISOString(),
+      sourceEmail: user.email,
+      privateSongs,
+      preferences,
+      savedSheets,
+      bencherLayouts,
+    };
+    const xml = createTransferXml(transferPayload);
+
+    const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const dateStamp = new Date().toISOString().slice(0, 10);
+
+    anchor.href = url;
+    anchor.download = `niggunsheet-transfer-${dateStamp}.niggun`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }, [bencherLayouts, preferences, privateSongs, savedSheets, user]);
+
+  const readTransferXmlFile = useCallback(async (file: File) => {
+    const fileText = await file.text();
+    return createTransferPreview(parseTransferXml(fileText));
+  }, []);
+
+  const importTransferXmlFile = useCallback(async (file: File, options: TransferImportOptions = {}) => {
+    if (!user) {
+      throw new Error('Sign in before importing transfer data.');
+    }
+
+    const importOptions = {
+      privateSongs: options.privateSongs ?? true,
+      savedSheets: options.savedSheets ?? true,
+      bencherLayouts: options.bencherLayouts ?? true,
+      preferences: options.preferences ?? true,
+    };
+
+    if (!importOptions.privateSongs && !importOptions.savedSheets && !importOptions.bencherLayouts && !importOptions.preferences) {
+      throw new Error('Choose at least one thing to import.');
+    }
+
+    const fileText = await file.text();
+    const transferPayload = parseTransferXml(fileText);
+    const selectedPrivateSongs = importOptions.privateSongs ? filterTransferItems(transferPayload.privateSongs, options.privateSongIds) : [];
+    const selectedSavedSheets = importOptions.savedSheets ? filterTransferItems(transferPayload.savedSheets, options.savedSheetIds) : [];
+    const selectedBencherLayouts = importOptions.bencherLayouts ? filterTransferItems(transferPayload.bencherLayouts, options.bencherLayoutIds) : [];
+    const nextPrivateSongs = importOptions.privateSongs ? mergeTransferItems(privateSongs, selectedPrivateSongs) : privateSongs;
+    const nextSavedSheets = importOptions.savedSheets ? mergeTransferItems(savedSheets, selectedSavedSheets) : savedSheets;
+    const nextBencherLayouts = importOptions.bencherLayouts ? mergeTransferItems(bencherLayouts, selectedBencherLayouts) : bencherLayouts;
+
+    if (importOptions.savedSheets && nextSavedSheets.length > MAX_SAVED_SHEETS) {
+      throw new Error(`Import would leave this account with ${nextSavedSheets.length} sheets, but the limit is ${MAX_SAVED_SHEETS}. Uncheck a sheet first.`);
+    }
+    if (importOptions.bencherLayouts && nextBencherLayouts.length > MAX_SAVED_SHEETS) {
+      throw new Error(`Import would leave this account with ${nextBencherLayouts.length} benchers, but the limit is ${MAX_SAVED_SHEETS}. Uncheck a bencher first.`);
+    }
+
+    const saveTasks: Promise<unknown>[] = [];
+
+    if (importOptions.privateSongs) saveTasks.push(savePrivateSongs(nextPrivateSongs));
+    if (importOptions.preferences) saveTasks.push(savePreferences(transferPayload.preferences));
+    if (importOptions.savedSheets) saveTasks.push(saveSavedSheets(nextSavedSheets));
+    if (importOptions.bencherLayouts) saveTasks.push(saveSavedBencherLayouts(nextBencherLayouts));
+
+    await Promise.all(saveTasks);
+
+    if (importOptions.privateSongs) setPrivateSongs(nextPrivateSongs);
+    if (importOptions.preferences) {
+      if (prefsSaveTimer.current) {
+        clearTimeout(prefsSaveTimer.current);
+        prefsSaveTimer.current = null;
+      }
+      prefsRef.current = transferPayload.preferences;
+      setPreferences(transferPayload.preferences);
+    }
+    if (importOptions.savedSheets) setSavedSheets(nextSavedSheets);
+    if (importOptions.bencherLayouts) setBencherLayouts(nextBencherLayouts);
+
+    return {
+      sourceEmail: transferPayload.sourceEmail,
+      exportedAt: transferPayload.exportedAt,
+      privateSongsCount: selectedPrivateSongs.length,
+      savedSheetsCount: selectedSavedSheets.length,
+      bencherLayoutsCount: selectedBencherLayouts.length,
+      preferencesCount: importOptions.preferences ? Object.keys(transferPayload.preferences).length : 0,
+    };
+  }, [bencherLayouts, privateSongs, savedSheets, user]);
+
   // Debounced preference setter — updates state immediately, saves to Drive after 500ms idle
   const setPref = useCallback((key: string, value: unknown) => {
     prefsRef.current = { ...prefsRef.current, [key]: value };
@@ -308,7 +714,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GoogleAuthContext.Provider value={{ user, privateSongs, savedSheets, preferences, loading, restoring, ready, authError, signIn, signOut, addSong, addSongs, removeSong, editSong, saveSheet, bencherLayouts, saveBencherLayout, deleteBencherLayout, setPref }}>
+    <GoogleAuthContext.Provider value={{ user, privateSongs, savedSheets, preferences, loading, restoring, ready, authError, signIn, signOut, addSong, addSongs, removeSong, editSong, saveSheet, bencherLayouts, saveBencherLayout, deleteBencherLayout, clearPrivateSongs, clearSavedSheets, clearBencherLayouts, clearPreferences, clearAllStoredData, downloadTransferXml, readTransferXmlFile, importTransferXmlFile, setPref }}>
       {children}
     </GoogleAuthContext.Provider>
   );

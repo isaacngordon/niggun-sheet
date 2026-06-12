@@ -310,7 +310,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [isTimelineScrubbing, setIsTimelineScrubbing] = useState(false);
-  const [activeMediaSourceKey, setActiveMediaSourceKey] = useState<string | null>(null);
+  const [selectedMediaSourceKey, setSelectedMediaSourceKey] = useState<string | null>(null);
   const [savedSourceLabels, setSavedSourceLabels] = useState<Record<string, string>>({});
   const [editSourceLabels, setEditSourceLabels] = useState<Record<string, string>>({});
   const [manualTargetVerseIndex, setManualTargetVerseIndex] = useState<number | null>(0);
@@ -326,19 +326,16 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
   );
   const defaultMediaSourceKey = mediaSources[0]?.key ?? null;
   const requestedTimingSourceKey = searchParams.get('timingSource');
+  const activeMediaSourceKey = useMemo(() => {
+    if (requestedTimingSourceKey && mediaSources.some((source) => source.key === requestedTimingSourceKey)) {
+      return requestedTimingSourceKey;
+    }
+    if (selectedMediaSourceKey && mediaSources.some((source) => source.key === selectedMediaSourceKey)) {
+      return selectedMediaSourceKey;
+    }
+    return defaultMediaSourceKey;
+  }, [defaultMediaSourceKey, mediaSources, requestedTimingSourceKey, selectedMediaSourceKey]);
   const activeMediaSource = mediaSources.find((source) => source.key === activeMediaSourceKey) ?? mediaSources[0] ?? null;
-
-  useEffect(() => {
-    setActiveMediaSourceKey((current) => {
-      if (requestedTimingSourceKey && mediaSources.some((source) => source.key === requestedTimingSourceKey)) {
-        return requestedTimingSourceKey;
-      }
-      if (current && mediaSources.some((source) => source.key === current)) {
-        return current;
-      }
-      return defaultMediaSourceKey;
-    });
-  }, [defaultMediaSourceKey, mediaSources, requestedTimingSourceKey]);
 
   useEffect(() => {
     setCurrentTime(0);
@@ -346,6 +343,13 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
     setYtPlaying(false);
     ytPlayerRef.current = null;
   }, [activeMediaSourceKey]);
+
+  const buildTimingSourceHref = useCallback((sourceKey: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('timingSource', sourceKey);
+    const query = params.toString();
+    return query ? `/songs/${slug}?${query}` : `/songs/${slug}`;
+  }, [searchParams, slug]);
 
   // Load saved timings
   useEffect(() => {
@@ -1019,20 +1023,22 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
             {mediaSources.length > 1 && (
               <div className="song-detail-source-switcher" role="tablist" aria-label="Timing source selector">
                 {mediaSources.map((source) => (
-                  <button
+                  <Link
                     key={source.key}
-                    type="button"
+                    href={buildTimingSourceHref(source.key)}
+                    replace
+                    scroll={false}
                     role="tab"
                     aria-selected={activeMediaSource?.key === source.key}
                     className={`song-detail-source-pill${activeMediaSource?.key === source.key ? ' active' : ''}`}
                     onClick={() => {
                       if (source.key === activeMediaSource?.key) return;
                       cancelTiming();
-                      setActiveMediaSourceKey(source.key);
+                      setSelectedMediaSourceKey(source.key);
                     }}
                   >
                     {source.label}
-                  </button>
+                  </Link>
                 ))}
               </div>
             )}

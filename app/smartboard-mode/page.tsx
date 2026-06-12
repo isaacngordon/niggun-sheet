@@ -93,6 +93,8 @@ function SmartboardAudioPlayer({
   seekRequest?: { time: number; nonce: number } | null;
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const progressFrameRef = useRef<number | null>(null);
+  const lastProgressTickRef = useRef(0);
   const [playing, setPlaying] = useState(false);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -105,6 +107,47 @@ function SmartboardAudioPlayer({
     const audio = audioRef.current;
     if (!audio) return;
 
+    const stopProgressLoop = () => {
+      if (progressFrameRef.current != null) {
+        cancelAnimationFrame(progressFrameRef.current);
+        progressFrameRef.current = null;
+      }
+      lastProgressTickRef.current = 0;
+    };
+
+    const emitProgressTick = (force = false) => {
+      const nextTime = audio.currentTime || 0;
+      const nextDuration = audio.duration > 0 ? audio.duration : duration;
+      if (windowEnd != null && nextTime >= windowEnd) {
+        const capped = Math.min(windowEnd, nextDuration || windowEnd);
+        audio.currentTime = capped;
+        audio.pause();
+        setProgress(capped);
+        if (nextDuration > 0) setDuration(nextDuration);
+        onTick?.(capped, nextDuration, false);
+        return;
+      }
+      const now = performance.now();
+      if (!force && now - lastProgressTickRef.current < 80) return;
+      lastProgressTickRef.current = now;
+      setProgress(nextTime);
+      if (audio.duration > 0) setDuration(audio.duration);
+      onTick?.(nextTime, nextDuration, !audio.paused);
+    };
+
+    const startProgressLoop = () => {
+      stopProgressLoop();
+      const step = () => {
+        emitProgressTick(false);
+        if (!audio.paused) {
+          progressFrameRef.current = requestAnimationFrame(step);
+        } else {
+          progressFrameRef.current = null;
+        }
+      };
+      progressFrameRef.current = requestAnimationFrame(step);
+    };
+
     const handleCanPlay = () => {
       setReady(true);
       setLoading(false);
@@ -113,23 +156,17 @@ function SmartboardAudioPlayer({
       onTick?.(audio.currentTime || 0, nextDuration, !audio.paused);
     };
     const handleTimeUpdate = () => {
-      const nextTime = audio.currentTime || 0;
-      const nextDuration = audio.duration > 0 ? audio.duration : duration;
-      if (windowEnd != null && nextTime >= windowEnd) {
-        audio.currentTime = Math.min(windowEnd, nextDuration || windowEnd);
-        audio.pause();
-      }
-      setProgress(nextTime);
-      if (audio.duration > 0) setDuration(audio.duration);
-      onTick?.(nextTime, nextDuration, !audio.paused);
+      emitProgressTick(true);
     };
     const handlePlay = () => {
       setPlaying(true);
-      onTick?.(audio.currentTime || 0, audio.duration || 0, true);
+      emitProgressTick(true);
+      startProgressLoop();
     };
     const handlePause = () => {
       setPlaying(false);
-      onTick?.(audio.currentTime || 0, audio.duration || 0, false);
+      stopProgressLoop();
+      emitProgressTick(true);
     };
 
     setReady(audio.readyState >= 2);
@@ -145,6 +182,7 @@ function SmartboardAudioPlayer({
     audio.addEventListener('ended', handlePause);
 
     return () => {
+      stopProgressLoop();
       audio.removeEventListener('loadedmetadata', handleCanPlay);
       audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
@@ -287,7 +325,8 @@ function SmartboardYouTubePlayer({
   const [duration, setDuration] = useState(0);
   const windowStart = Math.max(0, inPoint ?? 0);
   const windowEnd = outPoint != null && outPoint > windowStart ? outPoint : null;
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressFrameRef = useRef<number | null>(null);
+  const lastProgressTickRef = useRef(0);
   const hostRef = useRef<HTMLDivElement>(null);
   const destroyedRef = useRef(false);
 
@@ -367,15 +406,29 @@ function SmartboardYouTubePlayer({
     return () => {
       cancelled = true;
       destroyedRef.current = true;
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (progressFrameRef.current != null) cancelAnimationFrame(progressFrameRef.current);
       try { playerRef.current?.destroy?.(); } catch {}
     };
   }, [videoId, onTick, windowEnd]);
 
   // Track progress while playing
   useEffect(() => {
+    const stopProgressLoop = () => {
+      if (progressFrameRef.current != null) {
+        cancelAnimationFrame(progressFrameRef.current);
+        progressFrameRef.current = null;
+      }
+      lastProgressTickRef.current = 0;
+    };
+
     if (playing) {
-      intervalRef.current = setInterval(() => {
+      const step = () => {
+        const now = performance.now();
+        if (now - lastProgressTickRef.current < 80) {
+          progressFrameRef.current = requestAnimationFrame(step);
+          return;
+        }
+        lastProgressTickRef.current = now;
         const t = playerRef.current?.getCurrentTime?.() || 0;
         const d = playerRef.current?.getDuration?.() || 0;
         if (windowEnd != null && t >= windowEnd && playerRef.current) {
@@ -392,11 +445,14 @@ function SmartboardYouTubePlayer({
         setProgress(t);
         if (d > 0) setDuration(d);
         onTick?.(t, d, true);
-      }, 250);
+        progressFrameRef.current = requestAnimationFrame(step);
+      };
+      stopProgressLoop();
+      progressFrameRef.current = requestAnimationFrame(step);
     } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      stopProgressLoop();
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return stopProgressLoop;
   }, [playing, onTick, windowEnd]);
 
   useEffect(() => {
@@ -533,6 +589,7 @@ function SmartboardContent() {
   const [playbackTime, setPlaybackTime] = useState(0);
   const [playbackDuration, setPlaybackDuration] = useState(0);
   const [seekRequest, setSeekRequest] = useState<{ time: number; nonce: number } | null>(null);
+  const [useNativeAndroidAnimation, setUseNativeAndroidAnimation] = useState(false);
   const linesRef = useRef<(HTMLSpanElement | null)[]>([]);
   const handlePlaybackTick = useCallback((time: number, duration: number) => {
     setPlaybackTime(time);
@@ -595,6 +652,7 @@ function SmartboardContent() {
       setViewportSize({ width: window.innerWidth, height: window.innerHeight });
     };
 
+    setUseNativeAndroidAnimation(/Android/i.test(window.navigator.userAgent));
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -689,6 +747,9 @@ function SmartboardContent() {
 
   const probeRef = useRef<HTMLSpanElement>(null);
   const wheelAnimationRef = useRef<number | null>(null);
+  const wheelNativeAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wheelMoveFrameRef = useRef<number | null>(null);
+  const wheelPendingPositionRef = useRef<number | null>(null);
   const wheelPointerIdRef = useRef<number | null>(null);
   const isWheelDraggingRef = useRef(false);
   const wheelDragStartYRef = useRef(0);
@@ -744,6 +805,15 @@ function SmartboardContent() {
       cancelAnimationFrame(wheelAnimationRef.current);
       wheelAnimationRef.current = null;
     }
+    if (wheelNativeAnimationTimerRef.current != null) {
+      clearTimeout(wheelNativeAnimationTimerRef.current);
+      wheelNativeAnimationTimerRef.current = null;
+    }
+    if (wheelMoveFrameRef.current != null) {
+      cancelAnimationFrame(wheelMoveFrameRef.current);
+      wheelMoveFrameRef.current = null;
+    }
+    wheelPendingPositionRef.current = null;
     setIsWheelAnimating(false);
   }, []);
 
@@ -756,6 +826,18 @@ function SmartboardContent() {
     if (Math.abs(end - start) < 0.001) {
       setWheelPosition(end);
       if (seekOnComplete) seekToSequenceIndex(Math.round(end));
+      return;
+    }
+
+    if (useNativeAndroidAnimation) {
+      setIsWheelAnimating(false);
+      setWheelPosition(end);
+      if (seekOnComplete) {
+        wheelNativeAnimationTimerRef.current = setTimeout(() => {
+          wheelNativeAnimationTimerRef.current = null;
+          seekToSequenceIndex(Math.round(end));
+        }, resolvedDuration);
+      }
       return;
     }
 
@@ -777,7 +859,7 @@ function SmartboardContent() {
     };
 
     wheelAnimationRef.current = requestAnimationFrame(step);
-  }, [clampWheelPosition, getWheelAnimationDuration, seekToSequenceIndex, stopWheelAnimation, wheelPosition]);
+  }, [clampWheelPosition, getWheelAnimationDuration, seekToSequenceIndex, stopWheelAnimation, useNativeAndroidAnimation, wheelPosition]);
 
   useEffect(() => {
     if (activeSeqIndex < 0 || isWheelDragging || isWheelAnimating) return;
@@ -792,6 +874,7 @@ function SmartboardContent() {
 
   const handleWheelPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (timelineSequence.length === 0) return;
+    e.preventDefault();
     stopWheelAnimation();
     wheelPointerIdRef.current = e.pointerId;
     isWheelDraggingRef.current = false;
@@ -800,23 +883,32 @@ function SmartboardContent() {
     wheelLastYRef.current = e.clientY;
     wheelLastTsRef.current = performance.now();
     wheelVelocityRef.current = 0;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
   }, [activeSeqIndex, stopWheelAnimation, timelineSequence.length, wheelPosition]);
 
   const handleWheelPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (wheelPointerIdRef.current !== e.pointerId) return;
+    e.preventDefault();
     const dy = e.clientY - wheelDragStartYRef.current;
     if (!isWheelDraggingRef.current) {
       if (Math.abs(dy) < WHEEL_DRAG_THRESHOLD_PX) return;
       isWheelDraggingRef.current = true;
       setIsWheelDragging(true);
-      try { (e.currentTarget as Element).setPointerCapture(e.pointerId); } catch {}
       wheelLastYRef.current = e.clientY;
       wheelLastTsRef.current = performance.now();
       wheelVelocityRef.current = 0;
     }
 
     const nextPosition = clampWheelPosition(wheelDragStartPositionRef.current - dy / WHEEL_STEP_PX);
-    setWheelPosition(nextPosition);
+    wheelPendingPositionRef.current = nextPosition;
+    if (wheelMoveFrameRef.current == null) {
+      wheelMoveFrameRef.current = requestAnimationFrame(() => {
+        wheelMoveFrameRef.current = null;
+        const pendingPosition = wheelPendingPositionRef.current;
+        if (pendingPosition == null) return;
+        setWheelPosition(pendingPosition);
+      });
+    }
 
     const now = performance.now();
     const deltaY = e.clientY - wheelLastYRef.current;
@@ -831,11 +923,18 @@ function SmartboardContent() {
 
   const handleWheelPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (wheelPointerIdRef.current !== e.pointerId) return;
+    e.preventDefault();
     const totalDy = Math.abs(e.clientY - wheelDragStartYRef.current);
     const wasDragging = isWheelDraggingRef.current;
     const releaseVelocity = wheelVelocityRef.current;
+    const releasePosition = wheelPendingPositionRef.current ?? wheelPosition;
     wheelPointerIdRef.current = null;
     wheelVelocityRef.current = 0;
+    wheelPendingPositionRef.current = null;
+    if (wheelMoveFrameRef.current != null) {
+      cancelAnimationFrame(wheelMoveFrameRef.current);
+      wheelMoveFrameRef.current = null;
+    }
     isWheelDraggingRef.current = false;
     setIsWheelDragging(false);
     try {
@@ -850,7 +949,8 @@ function SmartboardContent() {
 
     if (!wasDragging) return;
 
-    const projected = clampWheelPosition((wheelPosition >= 0 ? wheelPosition : 0) + releaseVelocity * 180);
+    setWheelPosition(releasePosition);
+    const projected = clampWheelPosition((releasePosition >= 0 ? releasePosition : 0) + releaseVelocity * 180);
     finishWheelInteraction(projected);
   }, [clampWheelPosition, finishWheelInteraction, wheelPosition, WHEEL_DRAG_THRESHOLD_PX]);
 
@@ -1009,6 +1109,7 @@ function SmartboardContent() {
                 const isCurrent = absOffset < 0.22;
                 const scale = 0.84 + easedFocus * 0.2;
                 const fEm = fontSize * (0.8 + easedFocus * 0.78);
+                const androidScale = scale * (0.8 + easedFocus * 0.78);
                 const opacity = 0.5 + easedFocus * 0.5;
                 const blur = (1 - easedFocus) * 0.75;
                 const direction = rawOffset === 0 ? 0 : rawOffset / absOffset;
@@ -1030,7 +1131,9 @@ function SmartboardContent() {
                     style={{
                       position: 'absolute',
                       left: '50%',
-                      top: `calc(50% + ${FOCUS_CENTER_OFFSET}px + ${translateY}px)`,
+                      top: useNativeAndroidAnimation
+                        ? `calc(50% + ${FOCUS_CENTER_OFFSET}px)`
+                        : `calc(50% + ${FOCUS_CENTER_OFFSET}px + ${translateY}px)`,
                       display: 'block',
                       width: '100%',
                       minHeight: '1.65em',
@@ -1039,13 +1142,19 @@ function SmartboardContent() {
                       borderRadius: 12,
                       transition: isWheelDragging || isWheelAnimating
                         ? 'none'
-                        : 'opacity 220ms cubic-bezier(0.22, 1, 0.36, 1), font-size 240ms cubic-bezier(0.22, 1, 0.36, 1), transform 240ms cubic-bezier(0.22, 1, 0.36, 1), filter 240ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1), background 220ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        : useNativeAndroidAnimation
+                          ? 'opacity 220ms cubic-bezier(0.22, 1, 0.36, 1), transform 240ms cubic-bezier(0.22, 1, 0.36, 1)'
+                          : 'opacity 220ms cubic-bezier(0.22, 1, 0.36, 1), font-size 240ms cubic-bezier(0.22, 1, 0.36, 1), transform 240ms cubic-bezier(0.22, 1, 0.36, 1), filter 240ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1), background 220ms cubic-bezier(0.22, 1, 0.36, 1)',
                       opacity,
-                      fontSize: `${fEm}em`,
+                      fontSize: useNativeAndroidAnimation ? `${fontSize}em` : `${fEm}em`,
                       fontWeight: easedFocus > 0.72 ? 700 : 400,
-                      transform: `translate(-50%, -50%) scale(${scale})`,
+                      transform: useNativeAndroidAnimation
+                        ? `translate3d(-50%, -50%, 0) translate3d(0, ${translateY}px, 0) scale(${androidScale})`
+                        : `translate(-50%, -50%) scale(${scale})`,
                       transformOrigin: 'center center',
-                      filter: `blur(${blur}px)`,
+                      filter: useNativeAndroidAnimation ? 'none' : `blur(${blur}px)`,
+                      willChange: useNativeAndroidAnimation ? 'transform, opacity' : undefined,
+                      backfaceVisibility: useNativeAndroidAnimation ? 'hidden' : undefined,
                       boxShadow: 'none',
                       background: 'transparent',
                       color: darkMode ? 'white' : 'black',

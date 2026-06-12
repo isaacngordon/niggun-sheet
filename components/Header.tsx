@@ -18,6 +18,7 @@ export default function Header() {
   const [showBetaVersion, setShowBetaVersion] = useState(false);
   const showSheetBuilderTour = pathname === '/sheet-builder';
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || 'dev';
+  const betaAppVersion = process.env.NEXT_PUBLIC_APP_VERSION_BETA || '1.2';
 
   useEffect(() => {
     setShowBetaVersion(window.location.hostname === 'beta.niggunsheet.com');
@@ -33,7 +34,6 @@ export default function Header() {
     { href: '/', label: 'Home' },
     { href: '/songs', label: 'Song Directory' },
     { href: '/sheet-builder', label: 'Sheet Builder', badge: 'new' },
-    { href: '/bencher', label: 'Bencher Creator' },
     { href: '/contact', label: 'Contact' },
   ];
 
@@ -41,7 +41,7 @@ export default function Header() {
     <header className="header">
       {showBetaVersion && (
         <div className="header-version-banner" role="status" aria-label="Beta version">
-          Beta v{appVersion}
+          Beta v{betaAppVersion}
         </div>
       )}
       <div className="header-container">
@@ -89,7 +89,9 @@ export default function Header() {
           {showSheetBuilderTour && (
             <button className="header-tour-btn" onClick={handleStartSheetBuilderTour}>Tour</button>
           )}
-          <HeaderAuthControls />
+          <div className="header-auth-desktop">
+            <HeaderAuthControls />
+          </div>
           
           {/* Mobile menu button */}
           <button 
@@ -105,6 +107,9 @@ export default function Header() {
               )}
             </svg>
           </button>
+          <div className="header-auth-mobile-pill">
+            <HeaderAuthControls />
+          </div>
           <NiggunSheetDownloadButton className="btn-primary header-download-btn">
             Download Sheet
           </NiggunSheetDownloadButton>

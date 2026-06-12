@@ -12,8 +12,12 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
+import Link from 'next/link';
+import HTMLFlipBook from 'react-pageflip';
+import AddSongModal from '@/components/AddSongModal';
 import Header from '@/components/Header';
 import { useOptionalGoogleAuth } from '@/components/GoogleAuthProvider';
+import type { PrivateSong } from '@/lib/google-drive';
 import {
   DropSlot,
   PreviewSongCard,
@@ -25,10 +29,15 @@ import {
   type SongData,
 } from '@/app/sheet-builder-v2/SheetBuilderApp';
 import {
-  BENCHER_LOGO_RECT,
-  BENCHER_PAGES,
-  BENCHER_SONG_DROP_RECT,
+  type BencherPagePlacement,
+  type BencherRect,
+  BENCHER_MODE_CONFIGS,
+  DEFAULT_BENCHER_MODE,
+  type BencherMode,
   getBencherPageBackground,
+  getBencherLogoPlacement,
+  getBencherPages,
+  getBencherSongDropPlacement,
   rectToCss,
   skipEveryOtherLineBreakWithinWidth,
 } from './bencher-layout';
@@ -54,8 +63,31 @@ interface LibrarySongDragData {
 }
 
 type BencherDragData = SlotDragData | SheetSongDragData | LibrarySongDragData;
+type BencherTurnHint = { yRatio: number };
 
 const BENCHER_SONG_FONT_SIZE = 12;
+const BENCHER_DESIGN_PAGE_WIDTH = 768;
+const BENCHER_FONT_FALLBACK_WIDTH_RATIO = 4.3 / BENCHER_SONG_FONT_SIZE;
+const BENCHER_TURN_EDGE_INSET = 10;
+const BENCHER_TURN_Y_INSET = 2;
+const BENCHER_MULTI_PAGE_FLUTTER_STEP_MS = 140;
+const BENCHER_MULTI_PAGE_FLUTTER_SETTLE_MS = 420;
+
+function getBencherTurnOrigin(
+  boundsRect: { left: number; top: number; pageWidth: number; height: number },
+  direction: 'forward' | 'backward',
+  turnHint?: BencherTurnHint,
+) {
+  const useBottomCorner = (turnHint?.yRatio ?? 0) >= 0.5;
+
+  return {
+    x:
+      direction === 'forward'
+        ? boundsRect.left + boundsRect.pageWidth * 2 - BENCHER_TURN_EDGE_INSET
+        : boundsRect.left + BENCHER_TURN_EDGE_INSET,
+    y: boundsRect.top + (useBottomCorner ? boundsRect.height - BENCHER_TURN_Y_INSET : BENCHER_TURN_Y_INSET),
+  };
+}
 
 function songKey(song: SongData) {
   return `${song.title}|${song.artist}`;
@@ -65,24 +97,48 @@ function cloneSong<T extends SongData>(song: T): T {
   return { ...song, title: song.title, artist: song.artist, lyrics: song.lyrics };
 }
 
-function measureBencherLyricLine(line: string) {
+function clampBencherPage(pageNumber: number, pageCount: number) {
+  return Math.max(1, Math.min(pageCount, pageNumber));
+}
+
+function getRenderedBencherTextMetrics(element: HTMLElement, rectWidthPercent: number) {
+  const pageElement = element.closest('.bencher-page');
+  const renderedPageWidth =
+    pageElement instanceof HTMLElement ? pageElement.getBoundingClientRect().width : 0;
+  const renderedDropZoneWidth = element.getBoundingClientRect().width;
+  const fallbackPageWidth =
+    rectWidthPercent > 0 ? renderedDropZoneWidth / (rectWidthPercent / 100) : BENCHER_DESIGN_PAGE_WIDTH;
+  const pageWidth = renderedPageWidth > 0 ? renderedPageWidth : fallbackPageWidth;
+  const scale = pageWidth > 0 ? pageWidth / BENCHER_DESIGN_PAGE_WIDTH : 1;
+
+  return {
+    renderedDropZoneWidth,
+    scale,
+    fontSize: Number((BENCHER_SONG_FONT_SIZE * scale).toFixed(2)),
+  };
+}
+
+function measureBencherLyricLine(line: string, fontSize: number) {
   if (typeof document === 'undefined') {
-    return line.length * 4.3;
+    return line.length * fontSize * BENCHER_FONT_FALLBACK_WIDTH_RATIO;
   }
 
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
 
   if (!context) {
-    return line.length * 4.3;
+    return line.length * fontSize * BENCHER_FONT_FALLBACK_WIDTH_RATIO;
   }
 
-  context.font = `${BENCHER_SONG_FONT_SIZE}px var(--font-frank-ruhl-libre), var(--font-noto-serif-hebrew), Arial, Helvetica, sans-serif`;
+  context.font = `${fontSize}px var(--font-frank-ruhl-libre), var(--font-noto-serif-hebrew), Arial, Helvetica, sans-serif`;
   return context.measureText(line).width;
 }
 
-function formatDraggedBencherSong<T extends SongData>(song: T, maxLineWidth: number): T {
-  return { ...song, lyrics: skipEveryOtherLineBreakWithinWidth(song.lyrics || '', maxLineWidth, measureBencherLyricLine) };
+function formatDraggedBencherSong<T extends SongData>(song: T, maxLineWidth: number, fontSize: number): T {
+  return {
+    ...song,
+    lyrics: skipEveryOtherLineBreakWithinWidth(song.lyrics || '', maxLineWidth, (line) => measureBencherLyricLine(line, fontSize)),
+  };
 }
 
 function songsOrderEqual(a: SongData[], b: SongData[]) {
@@ -95,12 +151,14 @@ function isSlotDragData(value: unknown): value is SlotDragData {
 }
 
 function SongDropZone({
+  pagePlacement,
   positionedSongs,
   activeSlot,
   previewSongKey,
   showTitles,
   onRemove,
 }: {
+  pagePlacement: BencherPagePlacement;
   positionedSongs: PositionedSong[];
   activeSlot: SlotDragData | null;
   previewSongKey: string | null;
@@ -109,7 +167,17 @@ function SongDropZone({
 }) {
   const dropZoneRef = useRef<HTMLElement>(null);
   const [maxLyricLineWidth, setMaxLyricLineWidth] = useState(Number.POSITIVE_INFINITY);
+  const [songFontSize, setSongFontSize] = useState(BENCHER_SONG_FONT_SIZE);
+  const [isPrinting, setIsPrinting] = useState(false);
   const slots = Array.from({ length: positionedSongs.length + 1 }, (_, slotIndex) => slotIndex);
+
+  const printContentWidth = useMemo(() => {
+    const designDropZoneWidth = BENCHER_DESIGN_PAGE_WIDTH * (pagePlacement.rect.width / 100);
+    return Math.max(0, designDropZoneWidth - 24);
+  }, [pagePlacement.rect.width]);
+
+  const effectiveSongFontSize = isPrinting ? BENCHER_SONG_FONT_SIZE : songFontSize;
+  const effectiveMaxLyricLineWidth = isPrinting ? printContentWidth : maxLyricLineWidth;
 
   useEffect(() => {
     const element = dropZoneRef.current;
@@ -117,30 +185,59 @@ function SongDropZone({
       return;
     }
 
-    const updateMaxLineWidth = () => {
-      const contentWidth = element.clientWidth - 24;
+    const updateTextMetrics = () => {
+      const { renderedDropZoneWidth, scale, fontSize } = getRenderedBencherTextMetrics(element, pagePlacement.rect.width);
+      const contentWidth = renderedDropZoneWidth - 24 * scale;
       setMaxLyricLineWidth(Math.max(0, contentWidth));
+      setSongFontSize(fontSize);
     };
 
-    updateMaxLineWidth();
+    updateTextMetrics();
+
+    window.addEventListener('resize', updateTextMetrics);
+    window.visualViewport?.addEventListener('resize', updateTextMetrics);
 
     if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', updateMaxLineWidth);
-      return () => window.removeEventListener('resize', updateMaxLineWidth);
+      return () => {
+        window.removeEventListener('resize', updateTextMetrics);
+        window.visualViewport?.removeEventListener('resize', updateTextMetrics);
+      };
     }
 
-    const observer = new ResizeObserver(updateMaxLineWidth);
+    const observer = new ResizeObserver(updateTextMetrics);
     observer.observe(element);
 
-    return () => observer.disconnect();
+    const pageElement = element.closest('.bencher-page');
+    if (pageElement instanceof HTMLElement) {
+      observer.observe(pageElement);
+    }
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateTextMetrics);
+      window.visualViewport?.removeEventListener('resize', updateTextMetrics);
+    };
+  }, [pagePlacement.rect.width]);
+
+  useEffect(() => {
+    const handleBeforePrint = () => setIsPrinting(true);
+    const handleAfterPrint = () => setIsPrinting(false);
+
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
   }, []);
 
   return (
     <section
       ref={dropZoneRef}
       className="bencher-song-drop-zone"
-      style={rectToCss(BENCHER_SONG_DROP_RECT)}
-      aria-label="Drop songs in the left third of page two"
+      style={rectToCss(pagePlacement.rect)}
+      aria-label={`Drop songs on page ${pagePlacement.pageNumber}`}
       data-testid="bencher-song-drop-zone"
     >
       <div className="sb2-packery-grid bencher-sheet-builder-grid" style={{ '--sb2-columns': 1 } as CSSProperties}>
@@ -150,12 +247,12 @@ function SongDropZone({
             const displayPositionedSong = positionedSong
               ? {
                 ...positionedSong,
-                song: formatDraggedBencherSong(positionedSong.song, maxLyricLineWidth),
+                song: formatDraggedBencherSong(positionedSong.song, effectiveMaxLyricLineWidth, effectiveSongFontSize),
               }
               : undefined;
             const slotData: SlotDragData = {
               type: 'slot',
-              pageIndex: 1,
+              pageIndex: pagePlacement.pageNumber - 1,
               columnIndex: 0,
               slotIndex: insertIndex,
               insertIndex,
@@ -172,7 +269,7 @@ function SongDropZone({
                 {displayPositionedSong && isPreviewSong ? (
                   <PreviewSongCard
                     song={displayPositionedSong.song}
-                    fontSize={BENCHER_SONG_FONT_SIZE}
+                    fontSize={effectiveSongFontSize}
                     showTitles={showTitles}
                     showOrderNumbers={false}
                     orderNumber={displayPositionedSong.orderNumber}
@@ -183,7 +280,7 @@ function SongDropZone({
                   !isPreviewSong ? (
                     <SheetSongDraggable
                       positionedSong={displayPositionedSong}
-                      fontSize={BENCHER_SONG_FONT_SIZE}
+                      fontSize={effectiveSongFontSize}
                       showTitles={showTitles}
                       showOrderNumbers={false}
                       columnCount={1}
@@ -213,25 +310,185 @@ function SongDropZone({
 }
 
 export default function BencherApp() {
+  const [pageMode, setPageMode] = useState<BencherMode>(DEFAULT_BENCHER_MODE);
   const [songs, setSongs] = useState<Song[]>([]);
+  const [sidebarTab, setSidebarTab] = useState<'library' | 'my'>('library');
   const [search, setSearch] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [showTitles, setShowTitles] = useState(true);
+  const [currentPreviewPage, setCurrentPreviewPage] = useState(1);
   const [activeDragData, setActiveDragData] = useState<BencherDragData | null>(null);
   const [activeSlot, setActiveSlot] = useState<SlotDragData | null>(null);
   const [libraryPreviewActive, setLibraryPreviewActive] = useState(false);
   const [bencerTitle, setBencherTitle] = useState('');
   const [currentBencherLayoutId, setCurrentBencherLayoutId] = useState<string | null>(null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveDraftTitle, setSaveDraftTitle] = useState('');
   const [showBencherLibrary, setShowBencherLibrary] = useState(false);
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [overwriteTargetId, setOverwriteTargetId] = useState('');
+  const [pageFlutterDirection, setPageFlutterDirection] = useState<'forward' | 'backward' | null>(null);
   const overSlotRef = useRef<SlotDragData | null>(null);
   const previewSelectedSongsRef = useRef<Song[] | null>(null);
   const dragSnapshotSongsRef = useRef<Song[] | null>(null);
+  const currentPreviewPageRef = useRef(1);
+  const isPageTurningRef = useRef(false);
+  const pageTurnFallbackRef = useRef<number | null>(null);
+  const multiPageFlutterTimeoutsRef = useRef<number[]>([]);
+  const flipBookRef = useRef<{
+    pageFlip: () => {
+      getCurrentPageIndex: () => number;
+      flip: (page: number, corner?: 'top' | 'bottom') => void;
+      getBoundsRect: () => { left: number; top: number; pageWidth: number; height: number };
+      flipNext: (corner?: 'top' | 'bottom') => void;
+      flipPrev: (corner?: 'top' | 'bottom') => void;
+      turnToPage: (page: number) => void;
+      flipController?: {
+        flip: (globalPos: { x: number; y: number }) => void;
+      };
+    } | undefined;
+  } | null>(null);
+  const pagesRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const auth = useOptionalGoogleAuth();
+  const bencherPages = useMemo(() => getBencherPages(pageMode), [pageMode]);
+  const bencherLogoPlacement = useMemo(() => getBencherLogoPlacement(pageMode), [pageMode]);
+  const bencherSongDropPlacement = useMemo(() => getBencherSongDropPlacement(pageMode), [pageMode]);
+  const bencherPageCount = bencherPages.length;
+  const songDropPageNumber = bencherSongDropPlacement.pageNumber;
+  const clampPage = useCallback((pageNumber: number) => clampBencherPage(pageNumber, bencherPageCount), [bencherPageCount]);
+
+  const clearMultiPageFlutter = useCallback(() => {
+    multiPageFlutterTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    multiPageFlutterTimeoutsRef.current = [];
+    setPageFlutterDirection(null);
+  }, []);
+
+  const flipToPage = useCallback((targetPage: number, turnHint?: BencherTurnHint) => {
+    if (isPageTurningRef.current) {
+      return;
+    }
+
+    const clampedTargetPage = clampPage(targetPage);
+    const flip = flipBookRef.current?.pageFlip();
+    const sourcePage = flip ? clampPage(flip.getCurrentPageIndex() + 1) : currentPreviewPageRef.current;
+
+    if (pageTurnFallbackRef.current) {
+      window.clearTimeout(pageTurnFallbackRef.current);
+      pageTurnFallbackRef.current = null;
+    }
+
+    clearMultiPageFlutter();
+
+    if (clampedTargetPage === sourcePage) {
+      currentPreviewPageRef.current = clampedTargetPage;
+      setCurrentPreviewPage(clampedTargetPage);
+      isPageTurningRef.current = false;
+      return;
+    }
+
+    if (flip && Math.abs(clampedTargetPage - sourcePage) > 1) {
+      const direction = clampedTargetPage < sourcePage ? 'backward' : 'forward';
+      const step = direction === 'forward' ? 1 : -1;
+      const flutterPages = Array.from(
+        { length: Math.abs(clampedTargetPage - sourcePage) },
+        (_, index) => sourcePage + step * (index + 1),
+      );
+
+      isPageTurningRef.current = true;
+      setPageFlutterDirection(direction);
+
+      flutterPages.forEach((pageNumber, index) => {
+        const timeoutId = window.setTimeout(() => {
+          currentPreviewPageRef.current = pageNumber;
+          setCurrentPreviewPage(pageNumber);
+
+          if (pageNumber === clampedTargetPage) {
+            flip.turnToPage(clampedTargetPage - 1);
+          }
+        }, index * BENCHER_MULTI_PAGE_FLUTTER_STEP_MS);
+
+        multiPageFlutterTimeoutsRef.current.push(timeoutId);
+      });
+
+      multiPageFlutterTimeoutsRef.current.push(window.setTimeout(() => {
+        isPageTurningRef.current = false;
+        setPageFlutterDirection(null);
+        multiPageFlutterTimeoutsRef.current = [];
+      }, flutterPages.length * BENCHER_MULTI_PAGE_FLUTTER_STEP_MS + BENCHER_MULTI_PAGE_FLUTTER_SETTLE_MS));
+
+      return;
+    }
+
+    if (flip) {
+      isPageTurningRef.current = true;
+      const boundsRect = flip.getBoundsRect();
+      const turnOrigin = getBencherTurnOrigin(boundsRect, clampedTargetPage < sourcePage ? 'backward' : 'forward', turnHint);
+
+      if (flip.flipController?.flip) {
+        flip.flipController.flip(turnOrigin);
+      }
+
+      pageTurnFallbackRef.current = window.setTimeout(() => {
+        const currentPage = clampPage(flip.getCurrentPageIndex() + 1);
+        if (currentPage !== clampedTargetPage || currentPreviewPageRef.current !== clampedTargetPage) {
+          flip.turnToPage(clampedTargetPage - 1);
+          currentPreviewPageRef.current = clampedTargetPage;
+          setCurrentPreviewPage(clampedTargetPage);
+        }
+        isPageTurningRef.current = false;
+        pageTurnFallbackRef.current = null;
+      }, 1100);
+    } else {
+      currentPreviewPageRef.current = clampedTargetPage;
+      setCurrentPreviewPage(clampedTargetPage);
+    }
+  }, [clampPage]);
+
+  const turnToPage = useCallback((targetPage: number) => {
+    const clampedTargetPage = clampPage(targetPage);
+    const flip = flipBookRef.current?.pageFlip();
+    if (pageTurnFallbackRef.current) {
+      window.clearTimeout(pageTurnFallbackRef.current);
+      pageTurnFallbackRef.current = null;
+    }
+    if (flip) {
+      flip.turnToPage(clampedTargetPage - 1);
+    }
+    currentPreviewPageRef.current = clampedTargetPage;
+    setCurrentPreviewPage(clampedTargetPage);
+  }, [clampPage]);
+
+  const saveNamedLayout = useCallback(async (title: string, overwriteId?: string) => {
+    if (!auth?.user) return;
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    try {
+      const matching = auth.bencherLayouts.find(
+        (l) => l.title.trim() === trimmed && (currentBencherLayoutId ? l.id === currentBencherLayoutId : true),
+      );
+      const saved = await auth.saveBencherLayout({
+        id: overwriteId ?? matching?.id ?? currentBencherLayoutId ?? undefined,
+        title: trimmed,
+        songs: selectedSongs.map((s) => ({ title: s.title, artist: s.artist, lyrics: s.lyrics })),
+        logoSrc,
+        showTitles,
+      });
+      setBencherTitle(trimmed);
+      setCurrentBencherLayoutId(saved.id);
+      setShowSaveModal(false);
+      setShowOverwriteModal(false);
+    } catch {
+      if (auth.bencherLayouts.length >= 3) {
+        setOverwriteTargetId(currentBencherLayoutId ?? auth.bencherLayouts[0]?.id ?? '');
+        setShowSaveModal(false);
+        setShowOverwriteModal(true);
+      }
+    }
+  }, [auth, currentBencherLayoutId, logoSrc, selectedSongs, showTitles]);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,15 +523,54 @@ export default function BencherApp() {
     });
   }, [search, songs]);
 
+  const privateSongsAsSongs = useMemo<Song[]>(() =>
+    (auth?.privateSongs ?? []).map((song) => ({
+      title: song.title,
+      artist: song.artist,
+      lyrics: song.lyrics,
+      youtube: song.youtubeLinks?.join(' ') || '',
+      drive: song.driveLink || '',
+    })),
+  [auth?.privateSongs]);
+
+  const filteredPrivateSongs = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) {
+      return privateSongsAsSongs;
+    }
+
+    return privateSongsAsSongs.filter((song) => {
+      const haystack = `${song.title} ${song.artist ?? ''}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [privateSongsAsSongs, search]);
+
   const usedSongKeys = useMemo(() => new Set(selectedSongs.map(songKey)), [selectedSongs]);
+
+  const handleSavePrivateSong = useCallback(async (song: Omit<PrivateSong, 'id' | 'createdAt'>) => {
+    if (!auth) {
+      return;
+    }
+
+    await auth.addSong(song);
+  }, [auth]);
+
+  const handleSavePrivateSongs = useCallback(async (privateSongs: Omit<PrivateSong, 'id' | 'createdAt'>[]) => {
+    if (!auth) {
+      return;
+    }
+
+    await auth.addSongs(privateSongs);
+  }, [auth]);
 
   const addSong = useCallback((song: Song) => {
     if (usedSongKeys.has(songKey(song))) {
       return;
     }
 
+    turnToPage(songDropPageNumber);
     setSelectedSongs((current) => [...current, cloneSong(song)]);
-  }, [usedSongKeys]);
+  }, [songDropPageNumber, turnToPage, usedSongKeys]);
 
   const removeSong = useCallback((indexToRemove: number) => {
     setSelectedSongs((current) => current.filter((_, index) => index !== indexToRemove));
@@ -338,10 +634,10 @@ export default function BencherApp() {
       song,
       globalIndex: index,
       orderNumber: index + 1,
-      pageIndex: 1,
+      pageIndex: songDropPageNumber - 1,
       columnIndex: 0,
     }));
-  }, [renderedSongs]);
+  }, [renderedSongs, songDropPageNumber]);
 
   const previewSongKey = useMemo(() => {
     if (activeDragData?.type === 'library-song' || activeDragData?.type === 'sheet-song') {
@@ -362,6 +658,9 @@ export default function BencherApp() {
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const nextActiveDragData = (event.active.data.current as BencherDragData | null) ?? null;
+    if (nextActiveDragData?.type === 'library-song' || nextActiveDragData?.type === 'sheet-song') {
+      turnToPage(songDropPageNumber);
+    }
     overSlotRef.current = null;
     previewSelectedSongsRef.current = null;
     setLibraryPreviewActive(false);
@@ -370,7 +669,7 @@ export default function BencherApp() {
         ? selectedSongs.map(cloneSong)
         : null;
     setActiveDragData(nextActiveDragData);
-  }, [selectedSongs]);
+  }, [selectedSongs, songDropPageNumber, turnToPage]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const overData = event.over?.data.current as BencherDragData | undefined;
@@ -469,7 +768,7 @@ export default function BencherApp() {
     return pointerWithin(args);
   }, [activeDragData]);
 
-  const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -478,12 +777,85 @@ export default function BencherApp() {
     const reader = new FileReader();
     reader.onload = () => setLogoSrc(String(reader.result ?? ''));
     reader.readAsDataURL(file);
-  };
+  }, []);
 
   useEffect(() => {
     document.body.classList.add('bencher-active');
-    return () => document.body.classList.remove('bencher-active');
-  }, []);
+    return () => {
+      document.body.classList.remove('bencher-active');
+      if (pageTurnFallbackRef.current) {
+        window.clearTimeout(pageTurnFallbackRef.current);
+        pageTurnFallbackRef.current = null;
+      }
+      clearMultiPageFlutter();
+    };
+  }, [clearMultiPageFlutter]);
+
+  useEffect(() => {
+    if (pageTurnFallbackRef.current) {
+      window.clearTimeout(pageTurnFallbackRef.current);
+      pageTurnFallbackRef.current = null;
+    }
+
+    clearMultiPageFlutter();
+
+    isPageTurningRef.current = false;
+    currentPreviewPageRef.current = 1;
+    setCurrentPreviewPage(1);
+
+    const flip = flipBookRef.current?.pageFlip();
+    if (flip) {
+      flip.turnToPage(0);
+    }
+  }, [clearMultiPageFlutter, pageMode]);
+
+  const bencherPageNodes = useMemo(() => bencherPages.map((page) => (
+    <div
+      key={page.pageNumber}
+      className="bencher-flip-sheet"
+      aria-label={`Bencher page ${page.pageNumber}`}
+    >
+      <div
+        className={`bencher-page bencher-page-${page.pageNumber} ${activeSlot?.pageIndex === page.pageNumber - 1 ? 'drag-over' : ''}`}
+        data-testid={`bencher-page-${page.pageNumber}`}
+        data-measure-root={`bencher-page-${page.pageNumber}`}
+      >
+        <img
+          className="bencher-page-art"
+          src={getBencherPageBackground(pageMode, page.pageNumber)}
+          alt=""
+          aria-hidden="true"
+        />
+
+        {page.pageNumber === bencherLogoPlacement.pageNumber && (
+          <button
+            type="button"
+            className="bencher-logo-target"
+            style={rectToCss(bencherLogoPlacement.rect)}
+            onClick={() => fileInputRef.current?.click()}
+            aria-label={`Upload rectangular logo for page ${bencherLogoPlacement.pageNumber}`}
+            data-testid="bencher-logo-target"
+          >
+            {logoSrc ? <img src={logoSrc} alt="Uploaded logo" /> : <span>Upload logo</span>}
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoChange} />
+          </button>
+        )}
+
+        {page.pageNumber === bencherSongDropPlacement.pageNumber && (
+          <SongDropZone
+            pagePlacement={bencherSongDropPlacement}
+            positionedSongs={positionedSongs}
+            activeSlot={activeSlot}
+            previewSongKey={previewSongKey}
+            showTitles={showTitles}
+            onRemove={removeSong}
+          />
+        )}
+
+        <div className="bencher-page-footer" aria-hidden>Printed at NiggunSheet.com</div>
+      </div>
+    </div>
+  )), [activeSlot, bencherLogoPlacement, bencherPages, bencherSongDropPlacement, handleLogoChange, logoSrc, pageMode, positionedSongs, previewSongKey, removeSong, showTitles]);
 
   return (
     <DndContext
@@ -498,151 +870,322 @@ export default function BencherApp() {
         <Header />
 
         <main className="bencher-workspace">
-          <aside className="bencher-sidebar" aria-label="Song library">
-            <div className="bencher-sidebar-header">
-              <h1>Bencher Builder</h1>
-              <p>Drag songs into the left third of page two.</p>
-            </div>
-
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search songs..."
-              className="bencher-search"
-            />
-
-            <div className="bencher-song-library">
-              {filteredSongs.map((song, index) => {
-                const normalizedSong = cloneSong(song);
-                const key = songKey(normalizedSong);
-
-                return (
-                <div key={`bencher-library-${index}-${key}`} data-testid="bencher-library-song">
-                  <SidebarSongDraggable
-                    dragId={`bencher-library:${index}:${key}`}
-                    song={normalizedSong}
-                    used={usedSongKeys.has(key)}
-                    onDoubleClick={() => addSong(normalizedSong)}
-                  />
-                </div>
-                );
-              })}
-            </div>
-          </aside>
-
-          <section className="bencher-preview" aria-label="Two-page bencher preview">
-            <div className="bencher-actions">
-              <button type="button" onClick={() => setSelectedSongs([])}>Clear songs</button>
-              <button
-                type="button"
-                className={showTitles ? '' : 'bencher-action-active'}
-                onClick={() => setShowTitles((v) => !v)}
-              >
-                {showTitles ? 'Hide titles' : 'Show titles'}
-              </button>
-
-              <span className="bencher-actions-divider" aria-hidden />
-
-              <div className="bencher-save-group">
-                <input
-                  type="text"
-                  className="bencher-title-input"
-                  placeholder="Name this layout"
-                  value={bencerTitle}
-                  onChange={(event) => setBencherTitle(event.target.value)}
-                  disabled={!auth?.user}
-                  title={!auth?.user ? 'Sign in to save layouts' : undefined}
-                />
+          <aside className="sb2-sidebar bencher-sidebar" aria-label="Song library">
+            <div className="sb2-sidebar-header">
+              <div className="sb2-sidebar-tabs">
                 <button
-                  type="button"
-                  disabled={!auth?.user}
-                  title={!auth?.user ? 'Sign in to save layouts' : 'Save layout'}
-                  onClick={async () => {
-                    if (!auth?.user) return;
-                    const trimmed = bencerTitle.trim();
-                    if (!trimmed) return;
-                    try {
-                      const matching = auth.bencherLayouts.find(
-                        (l) => l.title.trim() === trimmed && (currentBencherLayoutId ? l.id === currentBencherLayoutId : true),
-                      );
-                      const saved = await auth.saveBencherLayout({
-                        id: matching?.id ?? currentBencherLayoutId ?? undefined,
-                        title: trimmed,
-                        songs: selectedSongs.map((s) => ({ title: s.title, artist: s.artist, lyrics: s.lyrics })),
-                        logoSrc,
-                        showTitles,
-                      });
-                      setCurrentBencherLayoutId(saved.id);
-                    } catch {
-                      if (auth.bencherLayouts.length >= 3) {
-                        setOverwriteTargetId(currentBencherLayoutId ?? auth.bencherLayouts[0]?.id ?? '');
-                        setShowOverwriteModal(true);
-                      }
-                    }
-                  }}
+                  className={`sb2-sidebar-tab ${sidebarTab === 'library' ? 'active' : ''}`}
+                  onClick={() => setSidebarTab('library')}
+                  title="Browse the public song library"
                 >
-                  Save
+                  Song Library
                 </button>
                 <button
-                  type="button"
-                  disabled={!auth?.user}
-                  title={!auth?.user ? 'Sign in to access saved layouts' : 'Browse saved layouts'}
-                  onClick={() => {
-                    if (!auth?.user) return;
-                    setShowBencherLibrary(true);
-                  }}
+                  className={`sb2-sidebar-tab ${sidebarTab === 'my' ? 'active' : ''}`}
+                  onClick={() => setSidebarTab('my')}
+                  title="Browse your private songs"
                 >
-                  Library
+                  My Songs{(auth?.privateSongs.length ?? 0) > 0 ? ` (${auth?.privateSongs.length ?? 0})` : ''}
                 </button>
               </div>
+              <input
+                type="text"
+                className="sb2-search-box"
+                placeholder="Search songs..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                title="Search songs by title or artist"
+              />
+            </div>
+            <div className="sb2-sidebar-hint"><strong>Tip:</strong> Drag songs to page {songDropPageNumber} or double-click to add them. Drag cards on the page to reorder.</div>
 
-              <span className="bencher-actions-divider" aria-hidden />
+            {sidebarTab === 'library' ? (
+              <div className="sb2-songs-list">
+                {filteredSongs.map((song, index) => {
+                  const normalizedSong = cloneSong(song);
+                  const key = songKey(normalizedSong);
 
-              <button type="button" onClick={() => window.print()}>Print</button>
+                  return (
+                    <div key={`bencher-library-${index}-${key}`} data-testid="bencher-library-song">
+                      <SidebarSongDraggable
+                        dragId={`library:${index}:${key}`}
+                        song={normalizedSong}
+                        used={usedSongKeys.has(key)}
+                        onDoubleClick={() => addSong(normalizedSong)}
+                      />
+                    </div>
+                  );
+                })}
+                {songs.length === 0 && <div className="sb2-loading">Loading songs...</div>}
+              </div>
+            ) : (
+              <div className="sb2-songs-list">
+                {!auth?.user ? (
+                  <div className="sb2-my-songs-signin">
+                    <p>Sign in from the header to access your private songs.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="sb2-my-songs-toolbar">
+                      <button className="sb2-my-songs-add-btn" onClick={() => setShowAddForm(true)} title="Add a private song to your Bencher library">+ Add Song</button>
+                    </div>
+                    <AddSongModal open={showAddForm} onClose={() => setShowAddForm(false)} onSave={handleSavePrivateSong} onSaveBulk={handleSavePrivateSongs} />
+                    {filteredPrivateSongs.length === 0 ? (
+                      <div className="sb2-loading">{search ? 'No matches' : 'No private songs yet. Add songs from the Song Library.'}</div>
+                    ) : (
+                      filteredPrivateSongs.map((song, index) => {
+                        const normalizedSong = cloneSong(song);
+                        const key = songKey(normalizedSong);
+
+                        return (
+                          <SidebarSongDraggable
+                            key={`bencher-private-${index}-${key}`}
+                            dragId={`library:private:${index}:${key}`}
+                            song={normalizedSong}
+                            used={usedSongKeys.has(key)}
+                            privateItem
+                            onDoubleClick={() => addSong(normalizedSong)}
+                          />
+                        );
+                      })
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </aside>
+
+          <section className="bencher-preview" aria-label="Bencher preview">
+            <div className="sb2-toolbar bencher-actions">
+              <div className="sb2-toolbar-section">
+                <div className="sb2-toolbar-section-title">Songs</div>
+                <div className="sb2-toolbar-action-row">
+                <button type="button" onClick={() => setSelectedSongs([])} title="Remove all songs from this bencher">Clear songs</button>
+                <button
+                  type="button"
+                  className={showTitles ? '' : 'active'}
+                  onClick={() => setShowTitles((v) => !v)}
+                  title={showTitles ? 'Hide song titles on the bencher pages' : 'Show song titles on the bencher pages'}
+                >
+                  {showTitles ? 'Hide titles' : 'Show titles'}
+                </button>
+                </div>
+              </div>
+
+              <div className="sb2-toolbar-section">
+                <div className="sb2-toolbar-section-title">Style</div>
+                <div className="sb2-column-controls" aria-label="Bencher mode">
+                  {BENCHER_MODE_CONFIGS.map((config) => (
+                    <button
+                      key={`bencher-mode-${config.mode}`}
+                      type="button"
+                      className={pageMode === config.mode ? 'active' : ''}
+                      aria-label={`Use ${config.mode} mode`}
+                      aria-pressed={pageMode === config.mode}
+                      data-testid={`bencher-mode-${config.mode}`}
+                      onClick={() => setPageMode(config.mode)}
+                      title={config.mode === '2-page' ? 'Use the double-sided bencher layout' : 'Use the booklet bencher layout'}
+                    >
+                      {config.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="sb2-toolbar-section">
+                <div className="sb2-toolbar-section-title">Current Page</div>
+                <div className="sb2-column-controls" aria-label="Bencher page">
+                  {bencherPages.map((page) => (
+                    <button
+                      key={`bencher-page-nav-${page.pageNumber}`}
+                      type="button"
+                      className={currentPreviewPage === page.pageNumber ? 'active' : ''}
+                      aria-label={`Show page ${page.pageNumber}`}
+                      aria-pressed={currentPreviewPage === page.pageNumber}
+                      onClick={() => flipToPage(page.pageNumber)}
+                      title={`Jump to page ${page.pageNumber}`}
+                    >
+                      {page.pageNumber}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="sb2-toolbar-section">
+                <div className="sb2-toolbar-section-title">Save</div>
+                <div className="sb2-toolbar-action-row">
+                  <button
+                    type="button"
+                    disabled={!auth?.user}
+                    title={!auth?.user ? 'Sign in to save layouts' : 'Save layout'}
+                    onClick={() => {
+                      if (!auth?.user) return;
+                      setSaveDraftTitle(bencerTitle);
+                      setShowSaveModal(true);
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!auth?.user}
+                    title={!auth?.user ? 'Sign in to access saved layouts' : 'Browse saved layouts'}
+                    onClick={() => {
+                      if (!auth?.user) return;
+                      setShowBencherLibrary(true);
+                    }}
+                  >
+                    Library
+                  </button>
+                </div>
+              </div>
+
+              <div className="sb2-toolbar-section">
+                <div className="sb2-toolbar-section-title">Actions</div>
+                <div className="sb2-toolbar-action-row">
+                  <button type="button" onClick={() => window.print()} title="Print the current bencher">Print</button>
+                </div>
+              </div>
+
+              <div className="sb2-toolbar-status-wrap bencher-mode-switch-wrap">
+                <div className="sb2-builder-mode-switch bencher-builder-mode-switch" aria-label="Builder mode">
+                  <Link className="sb2-builder-mode-option" href="/sheet-builder" title="Switch to Sheet Builder">Sheet Mode</Link>
+                  <button type="button" className="sb2-builder-mode-option active" aria-pressed="true" title="You are in Bencher Mode">Bencher Mode</button>
+                </div>
+              </div>
             </div>
 
-            <div className="bencher-pages" data-testid="bencher-pages">
-              {BENCHER_PAGES.map((page) => (
-                <div
-                  key={page.pageNumber}
-                  className={`bencher-page bencher-page-${page.pageNumber} ${activeSlot?.pageIndex === page.pageNumber - 1 ? 'drag-over' : ''}`}
-                  style={{ backgroundImage: `url('${getBencherPageBackground(page.pageNumber)}')` }}
-                  aria-label={`Bencher page ${page.pageNumber}`}
-                  data-testid={`bencher-page-${page.pageNumber}`}
-                  data-measure-root={`bencher-page-${page.pageNumber}`}
-                >
-                  {page.pageNumber === 1 && (
-                    <button
-                      type="button"
-                      className="bencher-logo-target"
-                      style={rectToCss(BENCHER_LOGO_RECT)}
-                      onClick={() => fileInputRef.current?.click()}
-                      aria-label="Upload rectangular logo for top right of page one"
-                      data-testid="bencher-logo-target"
-                    >
-                      {logoSrc ? <img src={logoSrc} alt="Uploaded logo" /> : <span>Upload logo</span>}
-                      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoChange} />
-                    </button>
-                  )}
+            <div
+              ref={pagesRef}
+              className={`bencher-pages ${pageFlutterDirection ? `bencher-pages-fluttering bencher-pages-fluttering-${pageFlutterDirection}` : ''}`}
+              data-testid="bencher-pages"
+            >
+              <div className={`bencher-page-flutter ${pageFlutterDirection ? 'is-active' : ''}`} aria-hidden>
+                <span className="bencher-page-flutter-sheet bencher-page-flutter-sheet-1" />
+                <span className="bencher-page-flutter-sheet bencher-page-flutter-sheet-2" />
+                <span className="bencher-page-flutter-sheet bencher-page-flutter-sheet-3" />
+                <span className="bencher-page-flutter-sheet bencher-page-flutter-sheet-4" />
+                <span className="bencher-page-flutter-sheet bencher-page-flutter-sheet-5" />
+              </div>
+              {(() => {
+                const previousPage = clampPage(currentPreviewPage - 1);
+                return (
+              <button
+                type="button"
+                className="bencher-page-turn-button bencher-page-turn-button-left"
+                aria-label={`Flip to page ${previousPage}`}
+                title={`Flip to page ${previousPage}`}
+                data-testid="bencher-turn-left-button"
+                onClick={() => flipToPage(previousPage, { yRatio: 0.5 })}
+                disabled={currentPreviewPage === 1}
+              >
+                <span className="bencher-page-turn-button-label" aria-hidden>Page</span>
+                <span className="bencher-page-turn-button-number" aria-hidden>{previousPage}</span>
+              </button>
+                );
+              })()}
 
-                  {page.pageNumber === 2 && (
-                    <SongDropZone
-                      positionedSongs={positionedSongs}
-                      activeSlot={activeSlot}
-                      previewSongKey={previewSongKey}
-                      showTitles={showTitles}
-                      onRemove={removeSong}
-                    />
-                  )}
+              <HTMLFlipBook
+                key={pageMode}
+                ref={flipBookRef}
+                className="bencher-flipbook"
+                style={{}}
+                width={768}
+                height={994}
+                size="stretch"
+                minWidth={450}
+                maxWidth={850}
+                minHeight={582}
+                maxHeight={1100}
+                startPage={0}
+                drawShadow
+                flippingTime={900}
+                usePortrait
+                startZIndex={10}
+                autoSize={false}
+                maxShadowOpacity={0.55}
+                showCover={false}
+                mobileScrollSupport={false}
+                clickEventForward
+                useMouseEvents={false}
+                swipeDistance={30}
+                showPageCorners={false}
+                disableFlipByClick={false}
+                renderOnlyPageLengthChange={false}
+                onChangeState={(event) => {
+                  const turning = event.data === 'flipping';
+                  isPageTurningRef.current = turning;
+                }}
+                onFlip={(event) => {
+                  if (pageTurnFallbackRef.current !== null) {
+                    window.clearTimeout(pageTurnFallbackRef.current);
+                    pageTurnFallbackRef.current = null;
+                  }
+                  const nextPage = clampPage((event.data as number) + 1);
+                  currentPreviewPageRef.current = nextPage;
+                  isPageTurningRef.current = false;
+                  setCurrentPreviewPage(nextPage);
+                }}
+              >
+              {bencherPageNodes}
+              </HTMLFlipBook>
 
-                  <div className="bencher-page-footer" aria-hidden>Printed at NiggunSheet.com</div>
-                </div>
-              ))}
+              {(() => {
+                const nextPage = clampPage(currentPreviewPage + 1);
+                return (
+              <button
+                type="button"
+                className="bencher-page-turn-button bencher-page-turn-button-right"
+                aria-label={`Flip to page ${nextPage}`}
+                title={`Flip to page ${nextPage}`}
+                data-testid="bencher-turn-right-button"
+                onClick={() => flipToPage(nextPage, { yRatio: 0.5 })}
+                disabled={currentPreviewPage === bencherPageCount}
+              >
+                <span className="bencher-page-turn-button-label" aria-hidden>Page</span>
+                <span className="bencher-page-turn-button-number" aria-hidden>{nextPage}</span>
+              </button>
+                );
+              })()}
             </div>
           </section>
         </main>
       </div>
+
+      {showSaveModal && auth?.user && (
+        <div
+          className="bencher-modal-backdrop"
+          onClick={(event) => { if (event.target === event.currentTarget) setShowSaveModal(false); }}
+        >
+          <form
+            className="bencher-modal bencher-modal-save"
+            onSubmit={(event) => {
+              event.preventDefault();
+              saveNamedLayout(saveDraftTitle);
+            }}
+          >
+            <div className="bencher-modal-header">
+              <h2>Save Bencher Layout</h2>
+              <button type="button" className="bencher-modal-close" onClick={() => setShowSaveModal(false)} aria-label="Close">×</button>
+            </div>
+            <div className="bencher-modal-body">
+              <p className="bencher-modal-overwrite-desc">Choose a name for this layout:</p>
+              <input
+                type="text"
+                className="bencher-title-input bencher-modal-title-input"
+                placeholder="Layout name"
+                value={saveDraftTitle}
+                onChange={(event) => setSaveDraftTitle(event.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="bencher-modal-footer">
+              <button type="button" onClick={() => setShowSaveModal(false)}>Cancel</button>
+              <button type="submit" className="bencher-modal-confirm" disabled={!saveDraftTitle.trim()}>Save</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {showBencherLibrary && auth?.user && (
         <div
@@ -665,6 +1208,7 @@ export default function BencherApp() {
                       <button
                         type="button"
                         className="bencher-modal-item-load"
+                        title={`Load ${layout.title}`}
                         onClick={() => {
                           setSelectedSongs(layout.songs.map((s) => ({ ...s })) as Song[]);
                           setLogoSrc(layout.logoSrc);
@@ -682,6 +1226,7 @@ export default function BencherApp() {
                         className="bencher-modal-item-delete"
                         onClick={() => auth.deleteBencherLayout(layout.id)}
                         aria-label={`Delete ${layout.title}`}
+                        title={`Delete ${layout.title}`}
                       >
                         ×
                       </button>
@@ -726,19 +1271,7 @@ export default function BencherApp() {
                 disabled={!overwriteTargetId}
                 onClick={async () => {
                   if (!overwriteTargetId || !auth) return;
-                  try {
-                    const saved = await auth.saveBencherLayout({
-                      id: overwriteTargetId,
-                      title: bencerTitle.trim(),
-                      songs: selectedSongs.map((s) => ({ title: s.title, artist: s.artist, lyrics: s.lyrics })),
-                      logoSrc,
-                      showTitles,
-                    });
-                    setCurrentBencherLayoutId(saved.id);
-                    setShowOverwriteModal(false);
-                  } catch {
-                    // ignore
-                  }
+                  saveNamedLayout(saveDraftTitle || bencerTitle, overwriteTargetId);
                 }}
               >
                 Overwrite

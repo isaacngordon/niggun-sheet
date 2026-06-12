@@ -357,14 +357,13 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
       pdfRef.current = pdf;
       const blob = pdf.output('blob');
       const blobUrl = URL.createObjectURL(blob);
-      const dataUrl = pdf.output('datauristring');
 
       if (printSourceRef.current) {
         try { URL.revokeObjectURL(printSourceRef.current); } catch {}
       }
 
       printSourceRef.current = blobUrl;
-      setPreviewSource(dataUrl);
+      setPreviewSource(blobUrl);
       setState('ready');
     } catch (err) {
       console.error('PDF generation error:', err);
