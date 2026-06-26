@@ -86,6 +86,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${frankRuhlLibre.variable} ${notoSerifHebrew.variable} ${dmSans.variable}`}>
       <body>
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         {children}
         {process.env.NODE_ENV === 'development' && <DebugRectTool />}
         <AnalyticsPreferences />
