@@ -582,7 +582,7 @@ function SmartboardContent() {
   const slugParam = searchParams.get('slug');
   const audioParam = searchParams.get('audio');
   const youtubeParam = searchParams.get('youtube');
-  const { user, preferences, setPref } = useGoogleAuth();
+  const { user, preferences, setPref, ready: authReady } = useGoogleAuth();
 
   const [darkMode, setDarkMode] = useState(true);
   const [fontSize, setFontSize] = useState(3); // em units
@@ -599,6 +599,8 @@ function SmartboardContent() {
   const [playbackDuration, setPlaybackDuration] = useState(0);
   const [seekRequest, setSeekRequest] = useState<{ time: number; nonce: number } | null>(null);
   const [useNativeAndroidAnimation, setUseNativeAndroidAnimation] = useState(false);
+  
+  // start as false to avoid SSR flash. We'll turn it true in useEffect if needed.
   const [showQuickStart, setShowQuickStart] = useState(false);
   const linesRef = useRef<(HTMLSpanElement | null)[]>([]);
   
@@ -656,7 +658,7 @@ function SmartboardContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined' || !authReady) {
       return;
     }
 
@@ -668,7 +670,7 @@ function SmartboardContent() {
     } else {
       setShowQuickStart(false);
     }
-  }, [preferences]);
+  }, [preferences, authReady]);
 
   const handleDismissQuickStart = useCallback(() => {
     setShowQuickStart(false);
@@ -1090,7 +1092,7 @@ function SmartboardContent() {
         minHeight: '100vh',
       }}
     >
-      {!playheadOn && showQuickStart && (
+      {showQuickStart === true && !playheadOn && (
         <div
           style={{
             position: 'fixed',
