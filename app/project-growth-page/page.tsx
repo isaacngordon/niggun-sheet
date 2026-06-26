@@ -22,7 +22,7 @@ export default function ProjectGrowthPage() {
         <h1 style={{ fontSize: '2.5rem', marginBottom: 20 }}>Growing Our Project</h1>
         <div
           style={{
-            backgroundColor: 'rgb(255, 218, 42)',
+            backgroundColor: '#f2cb05',
             height: 5,
             width: 100,
             margin: '0 auto 30px',
@@ -86,7 +86,7 @@ export default function ProjectGrowthPage() {
           style={{
             display: 'inline-block',
             backgroundColor: '#0d0d0d',
-            color: 'rgb(255, 218, 42)',
+            color: '#f2cb05',
             fontWeight: 'bold',
             padding: '12px 30px',
             borderRadius: 4,
@@ -109,7 +109,7 @@ export default function ProjectGrowthPage() {
           href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: 'rgb(255, 218, 42)', margin: '0 10px', textDecoration: 'none' }}
+          style={{ color: '#f2cb05', margin: '0 10px', textDecoration: 'none' }}
         >
           Download Niggun Sheet
         </a>
@@ -117,7 +117,7 @@ export default function ProjectGrowthPage() {
           href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: 'rgb(255, 218, 42)', margin: '0 10px', textDecoration: 'none' }}
+          style={{ color: '#f2cb05', margin: '0 10px', textDecoration: 'none' }}
         >
           Download Simcha Sheet
         </a>

@@ -591,7 +591,7 @@ body.song-directory {
 }
 
 #navbar a:hover {
-    color: rgb(255, 218, 42); /* Your specified yellow */
+    color: #f2cb05; /* Your specified yellow */
     text-decoration: none;
 }
 
@@ -625,7 +625,7 @@ body.song-directory {
 }
 
 #navbar a:hover {
-    color: rgb(255, 218, 42); /* Your specified yellow */
+    color: #f2cb05; /* Your specified yellow */
     text-decoration: none;
 }
 
@@ -647,7 +647,7 @@ body.song-directory {
 }
 
 #footer a:hover {
-    color: rgb(255, 218, 42); /* Your specified yellow */
+    color: #f2cb05; /* Your specified yellow */
     text-decoration: none;
 }
 
@@ -690,11 +690,11 @@ body.song-directory {
   }
   
   .text-yellow-400 {
-    color: rgb(255, 218, 42);
+    color: #f2cb05;
   }
   
   .bg-yellow-400 {
-    background-color: rgb(255, 218, 42);
+    background-color: #f2cb05;
   }
   
   .hover\:bg-yellow-500:hover {
@@ -702,7 +702,7 @@ body.song-directory {
   }
   
   .hover\:text-yellow-400:hover {
-    color: rgb(255, 218, 42);
+    color: #f2cb05;
   }
   
   .hover\:bg-gray-800:hover {
@@ -982,7 +982,7 @@ body.song-directory {
   }
   
   .bg-yellow-400 {
-    background-color: rgb(255, 218, 42);
+    background-color: #f2cb05;
   }
   
   .hover\:bg-yellow-500:hover {
