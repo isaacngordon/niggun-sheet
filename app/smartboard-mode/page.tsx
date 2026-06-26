@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
+import QuickInstructions from '@/components/QuickInstructions';
 import { extractYouTubeId, ensureYTApi, fmt, warmYouTubeConnections } from '@/lib/youtube';
 import { buildMediaTimingSources, deriveBoundsFromClipEdges, normalizeTimingBounds, type StoredTimingClip, type StoredTimingData, type TimingBounds } from '@/lib/timings';
 import React from 'react';
+import AuthBoundary from '@/components/AuthBoundary';
 
 function isTimeWithinBounds(currentTime: number, bounds: TimingBounds): boolean {
   if (bounds.inPoint != null && currentTime < bounds.inPoint) return false;
@@ -572,9 +574,16 @@ function SmartboardYouTubePlayer({
   );
 }
 
+import { useGoogleAuth } from '@/components/GoogleAuthProvider';
+
 function SmartboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const slugParam = searchParams.get('slug');
+  const audioParam = searchParams.get('audio');
+  const youtubeParam = searchParams.get('youtube');
+  const { user, preferences, setPref } = useGoogleAuth();
+
   const [darkMode, setDarkMode] = useState(true);
   const [fontSize, setFontSize] = useState(3); // em units
   const [viewportSize, setViewportSize] = useState({ width: 1920, height: 1080 });
@@ -590,7 +599,9 @@ function SmartboardContent() {
   const [playbackDuration, setPlaybackDuration] = useState(0);
   const [seekRequest, setSeekRequest] = useState<{ time: number; nonce: number } | null>(null);
   const [useNativeAndroidAnimation, setUseNativeAndroidAnimation] = useState(false);
+  const [showQuickStart, setShowQuickStart] = useState(false);
   const linesRef = useRef<(HTMLSpanElement | null)[]>([]);
+  
   const handlePlaybackTick = useCallback((time: number, duration: number) => {
     setPlaybackTime(time);
     if (duration > 0) setPlaybackDuration(duration);
@@ -603,10 +614,7 @@ function SmartboardContent() {
   }, []);
 
   useEffect(() => {
-    const slugParam = searchParams.get('slug');
     const lyricsParam = searchParams.get('lyrics');
-    const audioParam = searchParams.get('audio');
-    const youtubeParam = searchParams.get('youtube');
     const timingSourceParam = searchParams.get('timingSource');
     const fallbackSourceKey = buildMediaTimingSources(audioParam, youtubeParam ? [youtubeParam] : [])[0]?.key ?? null;
     if (lyricsParam) {
@@ -646,6 +654,33 @@ function SmartboardContent() {
       setDarkMode(true);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const dismissedInSession = window.sessionStorage.getItem('smartboard-guide-dismissed-session') === '1';
+    const dismissedInAccount = preferences?.sbSmartboardGuideDismissed === true;
+
+    if (!dismissedInSession && !dismissedInAccount) {
+      setShowQuickStart(true);
+    } else {
+      setShowQuickStart(false);
+    }
+  }, [preferences]);
+
+  const handleDismissQuickStart = useCallback(() => {
+    setShowQuickStart(false);
+
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('smartboard-guide-dismissed-session', '1');
+    }
+
+    if (user && setPref) {
+      setPref('sbSmartboardGuideDismissed', true);
+    }
+  }, [user, setPref]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -744,6 +779,17 @@ function SmartboardContent() {
   }, [previewPlaybackTime, timedPlayheadOn, timelineSequence]);
 
   const hasTimedPlayhead = timelineSequence.length > 0;
+  const smartboardGuideSteps = hasTimedPlayhead
+    ? [
+      'Press Start Playhead to make the words follow the timing for you.',
+      'Click any line if you want to jump to that part.',
+      'Use the font buttons at the bottom to make the words bigger or smaller.',
+    ]
+    : [
+      'Tap any line to start manual mode.',
+      'Tap another line when you want to move the highlight.',
+      'Use the font buttons at the bottom to make the words bigger or smaller.',
+    ];
 
   const probeRef = useRef<HTMLSpanElement>(null);
   const wheelAnimationRef = useRef<number | null>(null);
@@ -1044,6 +1090,27 @@ function SmartboardContent() {
         minHeight: '100vh',
       }}
     >
+      {!playheadOn && showQuickStart && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 'min(92vw, 760px)',
+            zIndex: 12,
+          }}
+        >
+          <QuickInstructions
+            title="How Smartboard mode works"
+            steps={smartboardGuideSteps}
+            note={hasTimedPlayhead ? 'This song already has timing saved.' : 'This song does not have timing saved yet.'}
+            tone="dark"
+            compact
+            onDismiss={handleDismissQuickStart}
+          />
+        </div>
+      )}
       {/* Song lyrics */}
       {timedPlayheadOn && timelineSequence.length > 0 ? (
         // TELEPROMPTER MODE: custom wheel viewport
@@ -1418,14 +1485,16 @@ function SmartboardContent() {
 
 export default function SmartboardModePage() {
   return (
-    <Suspense
-      fallback={
-        <div style={{ background: 'black', color: 'white', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          Loading...
-        </div>
-      }
-    >
-      <SmartboardContent />
-    </Suspense>
+    <AuthBoundary>
+      <Suspense
+        fallback={
+          <div style={{ background: 'black', color: 'white', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            Loading...
+          </div>
+        }
+      >
+        <SmartboardContent />
+      </Suspense>
+    </AuthBoundary>
   );
 }
