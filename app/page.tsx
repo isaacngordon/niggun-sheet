@@ -51,7 +51,7 @@ export default function HomePage() {
               <div className="home-kicker">The Jewish Music Resource</div>
               <h1 className="home-title">Create printable kumzitz sheets and project lyrics on-screen.</h1>
               <p className="home-summary">
-                Find your favorite niggunim, read the lyrics, and instantly generate formatting-ready PDFs or a Smartboard display for your class or kumzitz.
+                Find your favorite niggunim, read the lyrics, and instantly generate pre-formatted PDFs or a Smartboard display for your class or kumzitz.
               </p>
               
               {/* Applying Hick's Law: Simplify the primary call to action to reduce cognitive load */}
