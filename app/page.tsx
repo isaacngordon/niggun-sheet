@@ -49,7 +49,7 @@ export default function HomePage() {
           <div className="container home-hero-grid" style={{ alignItems: 'center' }}>
             <div className="home-copy">
               <div className="home-kicker">The Jewish Music Resource</div>
-              <h1 className="home-title">Create printable kumzitz sheets and project lyrics.</h1>
+              <h1 className="home-title">Create printable kumzitz sheets and project lyrics on-screen.</h1>
               <p className="home-summary">
                 Find your favorite niggunim, read the lyrics, and instantly generate formatting-ready PDFs or a Smartboard display for your class or kumzitz.
               </p>
