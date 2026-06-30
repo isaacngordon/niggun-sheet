@@ -4,165 +4,99 @@ import Footer from '@/components/Footer';
 import NiggunSheetDownloadButton from '@/components/NiggunSheetDownloadButton';
 
 const builderSteps = [
-  'Find your song',
-  'Tap to focus on a line',
-  'Enter playhead mode',
-  'Watch as the auto-timed lyrics do the rest',
+  'Search the library and open the song you need.',
+  'Add it to a printable sheet and choose the layout you want.',
+  'Put it on screen, karaoke style, when the room needs to follow along.',
+  'Reuse the same set for practice, class, or a kumzitz.',
 ];
+
+const primaryPaths = [
+  {
+    number: '01',
+    eyebrow: 'Fastest route',
+    title: 'Find the song',
+    copy: 'Open the database to see lyrics and music put together for a learning experience like no other.',
+    href: '/songs',
+    cta: 'Open Song Directory',
+  },
+  {
+    number: '02',
+    eyebrow: 'Most flexible',
+    title: 'Build Your Own',
+    copy: 'Use the drag-and-drop builder to make your very own kumzits sheet.',
+    href: '/sheet-builder',
+    cta: 'Open Sheet Builder',
+    featured: true,
+  },
+  {
+    number: '03',
+    eyebrow: 'Print-first',
+    title: 'Grab a ready-made sheet',
+    copy: 'If you want the whole shebang, download the ready-made sheet with all you need for a kumzits.',
+    href: '/bencher',
+    cta: 'Get the ready-made sheet',
+  },
+];
+
+const heroPills = ['Song library', 'Sheet builder', 'Smartboard mode'];
 
 export default function HomePage() {
   return (
     <>
       <Header />
-      <main className="home-shell">
+      <main id="main-content" className="home-shell">
         <section className="home-hero">
-          <div className="container home-hero-grid">
+          <div className="container home-hero-grid" style={{ alignItems: 'center' }}>
             <div className="home-copy">
-              <div className="home-kicker">Built for the kumzitz</div>
-              <h1 className="home-title">Add your songs. Build your sheet. Run the room.</h1>
+              <div className="home-kicker">The Jewish Music Resource</div>
+              <h1 className="home-title">Create printable kumzitz sheets and project lyrics.</h1>
               <p className="home-summary">
-                Niggun Sheet isnt a streaming site, its not a lyrics site, its a combination of
-                both. Letting you read, practice, print your own, or show it in your classroom.
-                This site is built for anyone who wants to learn or share a niggun
+                Find your favorite niggunim, read the lyrics, and instantly generate formatting-ready PDFs or a Smartboard display for your class or kumzitz.
               </p>
-              <div className="home-search-shell">
-                <BuilderMotionPreview />
-              </div>
-              <div className="home-primary-actions">
-                <Link href="/sheet-builder" className="home-button home-button-primary">
-                  Open Sheet Builder
+              
+              {/* Applying Hick's Law: Simplify the primary call to action to reduce cognitive load */}
+              <div className="home-primary-actions" style={{ marginTop: '2rem' }}>
+                <Link href="/sheet-builder" className="home-button home-button-primary" style={{ padding: '1rem 2rem', fontSize: '1.25rem' }}>
+                  Start a New Sheet
                 </Link>
-                <Link href="/songs" className="home-button home-button-secondary">
-                  Browse Song Directory
+                <Link href="/songs" className="home-button home-button-secondary" style={{ padding: '1rem 2rem', fontSize: '1.25rem' }}>
+                  Search the Song Library
                 </Link>
-              </div>
-              <div className="home-download-strip">
-                <span className="home-download-label">Need the ready-made sheets?</span>
-                <div className="home-download-actions">
-                  <NiggunSheetDownloadButton className="home-mini-button home-mini-button-primary">
-                    Niggun Sheet PDF
-                  </NiggunSheetDownloadButton>
-                  <a
-                    href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="home-mini-button home-mini-button-secondary"
-                  >
-                    Simcha Sheet PDF
-                  </a>
-                </div>
               </div>
             </div>
 
             <div className="home-preview-panel" aria-hidden="true">
-              <div className="home-preview-window">
-                <div className="home-preview-topbar">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                <div className="home-preview-card home-preview-stage-card">
-                  <div className="home-preview-stage-head">
-                    <span className="home-preview-eyebrow">Smartboard mode</span>
-                    <span className="home-preview-status">Live</span>
-                  </div>
-                  <div className="home-preview-stage-screen">
-                    <div className="home-preview-stage-glow" />
-                    <div className="home-preview-stage-scan" />
-                    <div className="home-preview-stage-line home-preview-stage-line-current">
-                      כִּי קָרוֹב אֵלֶיךָ הַדָּבָר מְאֹד
-                    </div>
-                    <div className="home-preview-stage-line home-preview-stage-line-next">
-                      בְּפִיךָ וּבִלְבָבְךָ לַעֲשֹׂתוֹ
-                    </div>
-                    <div className="home-preview-stage-caption">Ki Karov in smartboard mode</div>
-                  </div>
-                  <div className="home-preview-progress home-preview-progress-animated">
-                    <span className="filled" />
-                  </div>
-                </div>
-
-                <div className="home-preview-columns">
-                  <div className="home-preview-card home-preview-library">
-                    <div className="home-preview-eyebrow">Song library</div>
-                    <div className="home-preview-search">Search: ki karov</div>
-                    <div className="home-preview-song-list">
-                      <div className="home-preview-song-row active">
-                        <strong>Ki Karov</strong>
-                        <span>Eitan Katz</span>
-                      </div>
-                      <div className="home-preview-song-row">
-                        <strong>Kol Haolam Kulo</strong>
-                        <span>Rabbi Dovit Chait</span>
-                      </div>
-                      <div className="home-preview-song-row">
-                        <strong>Keser</strong>
-                        <span>Isaac Honig</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="home-preview-card home-preview-sheet">
-                    <div className="home-preview-eyebrow">Live sheet</div>
-                    <div className="home-preview-sheet-title">Motzaei Shabbos Set</div>
-                    <ol className="home-preview-setlist">
-                      <li>Ki Karov</li>
-                      <li>Kol Haolam Kulo</li>
-                      <li>Keser</li>
-                      <li>Lev Tahor</li>
-                    </ol>
-                    <div className="home-preview-layout-note">2 columns. English titles. Compact spacing.</div>
-                  </div>
-                </div>
-              </div>
+              <HomeWorkflowPreview />
             </div>
           </div>
         </section>
 
-        <section className="home-routes-section">
+        {/* Applying Miller's Law & Chunking: Organize features into distinct, scannable units */}
+        <section className="home-routes-section" style={{ backgroundColor: 'rgba(0,0,0,0.02)', padding: '5rem 0' }}>
           <div className="container">
-            <div className="home-section-intro">
-              <div className="home-section-kicker home-section-kicker-sentence">start from the beginning</div>
-              <h2 className="home-section-title">the core features</h2>
+            <div className="home-section-intro" style={{ textAlign: 'center', marginBottom: '4rem', maxWidth: '800px', margin: '0 auto 4rem' }}>
+              <div className="home-section-kicker">Choose Your Path</div>
+              <h2 className="home-section-title">What do you need to do today?</h2>
               <p className="home-section-copy">
-                The three parts that make up this project
+                Whether you need a quick lyric check or a full printout for 100 people, simply pick the tool you need.
               </p>
             </div>
 
             <div className="home-route-grid">
-              <article className="home-route-card">
-                <div className="home-route-number">01</div>
-                <h3 className="home-route-title">Find the song</h3>
-                <p className="home-route-copy">
-                  Open the database to see lyrics and music put together
-                  for a learning experience like no other
-                </p>
-                <Link href="/songs" className="home-route-link">
-                  Open Song Directory
-                </Link>
-              </article>
-
-              <article className="home-route-card featured">
-                <div className="home-route-number">02</div>
-                <h3 className="home-route-title">Build Your Own</h3>
-                <p className="home-route-copy">
-                  Use the drag-and-drop builder to make your very own kumzits sheet
-                </p>
-                <Link href="/sheet-builder" className="home-route-link">
-                  Open Sheet Builder
-                </Link>
-              </article>
-
-              <article className="home-route-card">
-                <div className="home-route-number">03</div>
-                <h3 className="home-route-title">Grab a ready-made sheet</h3>
-                <p className="home-route-copy">
-                  If you want the whole shebang, download the ready made sheet with all you need for a kumzits
-                </p>
-                <NiggunSheetDownloadButton className="home-route-button">
-                  Download Niggun Sheet
-                </NiggunSheetDownloadButton>
-              </article>
+              {primaryPaths.map((path) => (
+                <article
+                  key={path.href}
+                  className={`home-route-card${path.featured ? ' featured' : ''}`}
+                >
+                  <div className="home-route-number">{path.number}</div>
+                  <div className="home-route-eyebrow">{path.eyebrow}</div>
+                  <h3 className="home-route-title">{path.title}</h3>
+                  <p className="home-route-copy">{path.copy}</p>
+                  <Link href={path.href} className="home-route-link">
+                    {path.cta}
+                  </Link>
+                </article>
+              ))}
             </div>
           </div>
         </section>
@@ -170,22 +104,36 @@ export default function HomePage() {
         <section className="home-builder-section">
           <div className="container home-builder-grid">
             <div className="home-builder-copy">
-              <div className="home-section-kicker">Why the smarboard mode?</div>
-              <h2 className="home-section-title">geared for classrooms. Easy to navigate on the fly.</h2>
+              <div className="home-section-kicker">What happens after you open the builder?</div>
+              <h2 className="home-section-title">The workflow stays in the same order every time.</h2>
               <p className="home-section-copy">
-                Gone are the days of copy and pasting from online and fumbling with word processors
-                to show something on the board. This one&apos;s purpose built.
+                Search, add, arrange, then present. The interface is built so the next useful
+                action stays close to the one you just finished.
               </p>
             </div>
 
-            <ol className="home-builder-steps">
-              {builderSteps.map((step, index) => (
-                <li key={step} className="home-builder-step">
-                  <span className="home-builder-step-number">{index + 1}</span>
-                  <span className="home-builder-step-copy">{step}</span>
-                </li>
-              ))}
-            </ol>
+            <div className="home-builder-side">
+              <ol className="home-builder-steps">
+                {builderSteps.map((step, index) => (
+                  <li key={step} className="home-builder-step">
+                    <span className="home-builder-step-number">{index + 1}</span>
+                    <span className="home-builder-step-copy">{step}</span>
+                  </li>
+                ))}
+              </ol>
+
+              <article className="home-support-card">
+                <div className="home-support-kicker">Also available</div>
+                <h3 className="home-support-title">Need benching instead of a song sheet?</h3>
+                <p className="home-support-copy">
+                  Bencher mode starts with the print layout, so you can focus on the logo, format,
+                  and back-page songs instead of building from scratch.
+                </p>
+                <Link href="/bencher" className="home-route-link">
+                  Open Bencher Builder
+                </Link>
+              </article>
+            </div>
           </div>
         </section>
       </main>
@@ -195,117 +143,52 @@ export default function HomePage() {
   );
 }
 
-function BuilderMotionPreview() {
+function HomeWorkflowPreview() {
   return (
-    <div className="home-builder-gif" aria-hidden="true">
-      <div className="home-builder-gif-window">
-        <div className="home-builder-gif-header">
-          <span />
-          <span />
-          <span />
-          <div className="home-builder-gif-label">Sheet Builder in action</div>
+    <div className="home-workflow">
+      <div className="home-workflow-header">
+        <div>
+          <div className="home-preview-eyebrow">Typical workflow</div>
+          <div className="home-workflow-title">From search to classroom in one pass</div>
         </div>
-        <div className="home-builder-gif-body">
-          <div className="home-builder-gif-library-panel">
-            <div className="home-builder-gif-library-tabs">
-              <div className="home-builder-gif-library-tab active">Song Library</div>
-              <div className="home-builder-gif-library-tab">My Songs</div>
-            </div>
-            <div className="home-builder-gif-search">Search: ki karov</div>
-            <div className="home-builder-gif-tip">
-              <strong>Tip:</strong> Drag songs to the sheet or double-click to add them.
-            </div>
-            <div className="home-builder-gif-song home-builder-gif-song-1">
-              <span>Ki Karov</span>
-              <small>Eitan Katz</small>
-            </div>
-            <div className="home-builder-gif-song home-builder-gif-song-2">
-              <span>Kol Haolam Kulo</span>
-              <small>Rabbi Dovit Chait</small>
-            </div>
-            <div className="home-builder-gif-song home-builder-gif-song-3">
-              <span>Keser</span>
-              <small>Isaac Honig</small>
-            </div>
-            <div className="home-builder-gif-song home-builder-gif-song-4">
-              <span>Lev Tahor</span>
-              <small>Yeedle Werdyger</small>
-            </div>
+        <div className="home-workflow-badge">3 core steps</div>
+      </div>
+
+      <div className="home-workflow-grid">
+        <article className="home-workflow-step">
+          <span className="home-workflow-step-number">1</span>
+          <div>
+            <h3 className="home-workflow-step-title">Search</h3>
+            <p className="home-workflow-step-copy">
+              Find the song and confirm the words, audio, and timing.
+            </p>
           </div>
-          <div className="home-builder-gif-flow" />
-          <div className="home-builder-gif-sheet-panel">
-            <div className="home-builder-gif-sheet-toolbar">
-              <div className="home-builder-gif-toolbar-pill active">Auto-fit</div>
-              <div className="home-builder-gif-toolbar-pill">2 columns</div>
-              <div className="home-builder-gif-toolbar-pill">Titles</div>
-            </div>
-            <div className="home-builder-gif-sheet-browser">
-              <div className="home-builder-gif-sheet-page">
-                <div className="home-builder-gif-sheet-page-label">Page 1</div>
-                <div className="home-builder-gif-sheet-stage">
-                  <div className="home-builder-gif-sheet-shadow" />
-                  <div className="home-builder-gif-paper home-builder-gif-paper-back" />
-                  <div className="home-builder-gif-paper">
-                    <div className="home-builder-gif-paper-content">
-                      <div className="home-builder-gif-paper-kicker">Kummzitz Sheet</div>
-                      <div className="home-builder-gif-paper-grid">
-                        <div className="home-builder-gif-paper-column">
-                          <div className="home-builder-gif-paper-song home-builder-gif-paper-song-1">
-                            <div className="home-builder-gif-paper-song-title-row">
-                              <span className="home-builder-gif-paper-song-order">1</span>
-                              <span className="home-builder-gif-paper-song-title">Ki Karov</span>
-                            </div>
-                            <div className="home-builder-gif-paper-song-lines">
-                              <div>כִּי קָרוֹב אֵלֶיךָ הַדָבָר מְאוֹד</div>
-                              <div>בְּפִיךָ וּבִלְבָבְךָ לַעֲשׂוֹתוֹ</div>
-                            </div>
-                          </div>
-                          <div className="home-builder-gif-paper-song home-builder-gif-paper-song-3">
-                            <div className="home-builder-gif-paper-song-title-row">
-                              <span className="home-builder-gif-paper-song-order">3</span>
-                              <span className="home-builder-gif-paper-song-title">Keser</span>
-                            </div>
-                            <div className="home-builder-gif-paper-song-lines">
-                              <div>כֶּתֶר יִתְּנוּ לְךָ</div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="home-builder-gif-paper-column">
-                          <div className="home-builder-gif-paper-song home-builder-gif-paper-song-2">
-                            <div className="home-builder-gif-paper-song-title-row">
-                              <span className="home-builder-gif-paper-song-order">2</span>
-                              <span className="home-builder-gif-paper-song-title">Kol Haolam Kulo</span>
-                            </div>
-                            <div className="home-builder-gif-paper-song-lines">
-                              <div>כָּל הָעוֹלָם כּוּלוֹ גֶּשֶׁר צַר מְאֹד</div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+        </article>
+
+        <article className="home-workflow-step featured">
+          <span className="home-workflow-step-number">2</span>
+          <div>
+            <h3 className="home-workflow-step-title">Build</h3>
+            <p className="home-workflow-step-copy">
+              Add only what you need, choose the layout, and keep the page readable.
+            </p>
           </div>
-          <div className="home-builder-gif-drag home-builder-gif-drag-1">
-            <span>Ki Karov</span>
-            <small>Eitan Katz</small>
+        </article>
+
+        <article className="home-workflow-step">
+          <span className="home-workflow-step-number">3</span>
+          <div>
+            <h3 className="home-workflow-step-title">Present</h3>
+            <p className="home-workflow-step-copy">
+              Put the lyrics on screen, karaoke style.
+            </p>
           </div>
-          <div className="home-builder-gif-drag home-builder-gif-drag-2">
-            <span>Kol Haolam Kulo</span>
-            <small>Rabbi Dovit Chait</small>
-          </div>
-          <div className="home-builder-gif-drag home-builder-gif-drag-3">
-            <span>Keser</span>
-            <small>Isaac Honig</small>
-          </div>
-        </div>
-        <div className="home-builder-gif-footer">
-          <div className="home-builder-gif-pill">Search songs</div>
-          <div className="home-builder-gif-pill">Drag to sheet</div>
-          <div className="home-builder-gif-pill">Download PDF</div>
-        </div>
+        </article>
+      </div>
+
+      <div className="home-workflow-footnote">
+        Need something faster? Use the ready-made PDF or open Bencher mode when the layout is the
+        whole job.
       </div>
     </div>
   );
