@@ -9,32 +9,32 @@ export default function Footer() {
       <div className="footer-content">
         <div className="footer-links">
           <div className="footer-section">
+            <h4>Start Here</h4>
+            <Link href="/songs">Song Directory</Link>
+            <Link href="/sheet-builder">Sheet Builder</Link>
+            <Link href="/bencher">Bencher</Link>
+          </div>
+
+          <div className="footer-section">
             <h4>Downloads</h4>
             <NiggunSheetDownloadButton type="button" className="footer-link-button">
-              Niggun Sheet
+              Get Niggun Sheet
             </NiggunSheetDownloadButton>
             <a
               href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link"
               target="_blank"
               rel="noopener noreferrer"
             >
-              Simcha Sheet
+              Get Simcha Sheet
             </a>
           </div>
           
           <div className="footer-section">
-            <h4>Navigation</h4>
-            <Link href="/songs">Song Directory</Link>
-            <Link href="/sheet-builder">Sheet Builder</Link>
-            <Link href="/contact">Contact</Link>
-          </div>
-          
-          <div className="footer-section">
-            <h4>Legal</h4>
+                      <h4>Help</h4>
             <Link href="/contact">Contact Us</Link>
-            <Link href="/tracking-disclosure">Tracking Disclosure</Link>
+            <Link href="/tracking-disclosure">Cookie Info</Link>
             <p className="footer-helper-text">
-              Choose cookie-based or fallback analytics from the privacy control.
+                        Use the privacy button at any time to change cookie settings.
             </p>
           </div>
         </div>
@@ -44,7 +44,7 @@ export default function Footer() {
             © {currentYear} Yehudah Jacobs - The Niggun Sheet
           </p>
           <p className="footer-tagline">
-            Discover Your Perfect Niggun
+            Search, build, and project the right niggun
           </p>
         </div>
       </div>

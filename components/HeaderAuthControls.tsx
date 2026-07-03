@@ -187,9 +187,9 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
     setTransferMessage(null);
     try {
       downloadTransferXml();
-      setTransferMessage('Your .niggun file downloaded. Send that file to the other person.');
+      setTransferMessage('Your .niggun file is ready. Send it to the other person or keep it as a backup.');
     } catch (error) {
-      setTransferError(error instanceof Error ? error.message : 'Could not download .niggun file.');
+      setTransferError(error instanceof Error ? error.message : 'We could not download your .niggun file.');
     }
   }, [downloadTransferXml]);
 
@@ -218,7 +218,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
       });
     } catch (error) {
       setUploadFile(null);
-      setTransferError(error instanceof Error ? error.message : 'Could not read that .niggun file.');
+      setTransferError(error instanceof Error ? error.message : 'We could not read that .niggun file.');
     } finally {
       setTransferPreviewLoading(false);
     }
@@ -226,7 +226,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
 
   const handleUploadTransfer = useCallback(async () => {
     if (!uploadFile) {
-      setTransferError('Choose a .niggun file first.');
+      setTransferError('Pick a .niggun file first.');
       return;
     }
 
@@ -237,7 +237,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
       importChoices.preferences;
 
     if (!hasSelectedImport) {
-      setTransferError('Check at least one box first.');
+      setTransferError('Pick at least one thing to bring in first.');
       return;
     }
 
@@ -253,10 +253,10 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
         importChoices.bencherLayouts ? `${summary.bencherLayoutsCount} bencher${summary.bencherLayoutsCount === 1 ? '' : 's'}` : null,
         importChoices.preferences ? 'preferences' : null,
       ].filter(Boolean).join(', ');
-      setTransferMessage(`Done. Imported ${importedParts}. Unchecked boxes were left alone.`);
+      setTransferMessage(`Done. Added ${importedParts}. Anything you left unchecked stayed the same.`);
       setUploadFile(null);
     } catch (error) {
-      setTransferError(error instanceof Error ? error.message : 'Could not import .niggun file.');
+      setTransferError(error instanceof Error ? error.message : 'We could not bring in that .niggun file.');
     } finally {
       setTransferBusy(false);
     }
@@ -327,7 +327,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
                 setShowManageModal(true);
               }}
             >
-              Data Manager
+              My Data
             </button>
           )}
           {!restoring && (
@@ -357,7 +357,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
           className={`mobile-nav-signin ${authError ? 'auth-error' : ''}`}
           title={authError || undefined}
         >
-          {authLoading ? 'Signing in...' : 'Sign In with Google'}
+          {authLoading ? 'Signing in...' : 'Sign in with Google'}
         </button>
         {authError && <p className="header-auth-error mobile">{authError}</p>}
       </div>
@@ -380,7 +380,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
             <span className="header-account-caret" aria-hidden="true">▾</span>
           </button>
           {menuOpen && !restoring ? (
-            <div className="header-account-dropdown" role="menu" aria-label="Data manager">
+            <div className="header-account-dropdown" role="menu" aria-label="My data">
               <button
                 type="button"
                 className="header-account-item"
@@ -390,7 +390,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
                   setShowManageModal(true);
                 }}
               >
-                Data Manager
+                My Data
               </button>
               <button
                 type="button"
@@ -411,8 +411,8 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
         {modalRoot && showManageModal ? createPortal(
           <div className="header-manager-modal-backdrop" onClick={closeModals}>
             <div className="header-manager-modal header-manager-modal-wide" onClick={(event) => event.stopPropagation()}>
-              <h3>Data Manager</h3>
-              <p>Move your data, or look at what this account has saved.</p>
+              <h3>My Data</h3>
+              <p>Move your saved stuff, or look at what this account already has.</p>
               <input
                 ref={uploadInputRef}
                 type="file"
@@ -469,28 +469,28 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
               {manageSection === 'transfer' ? (
                 <div className="header-manager-transfer-panel">
                   <div className="header-manager-transfer-card">
-                    <h4>Download this account</h4>
-                    <p>Use this when you want to give your saved songs, sheets, and benchers to another Google account.</p>
+                    <h4>Download your data</h4>
+                    <p>Use this if you want to move your saved songs, sheets, and benchers to another Google account.</p>
                     <ol>
-                      <li>Click Download.</li>
-                      <li>A .niggun file saves to your computer.</li>
-                      <li>Send that file to the other person, or keep it as a backup.</li>
+                      <li>Press Download.</li>
+                      <li>A .niggun file will save to your computer.</li>
+                      <li>Send that file to someone else, or keep it as a backup.</li>
                     </ol>
                     <button type="button" className="header-signout-btn" onClick={handleDownloadTransfer} disabled={transferBusy}>Download .niggun File</button>
                   </div>
                   <div className="header-manager-transfer-card">
                     <h4>Upload into this account</h4>
-                    <p>Use this when someone gave you a .niggun file, or when you want to restore your backup.</p>
+                    <p>Use this if someone gave you a .niggun file, or if you want to bring back your backup.</p>
                     <ol>
-                      <li>Click Choose File.</li>
+                      <li>Press Choose File.</li>
                       <li>Pick the .niggun file.</li>
-                      <li>Click Upload.</li>
+                      <li>Press Upload.</li>
                     </ol>
                     <div className="header-manager-file-row">
                       <button type="button" className="header-signout-btn" onClick={() => uploadInputRef.current?.click()} disabled={transferBusy}>
                         Choose File
                       </button>
-                      <span>{uploadFile?.name ?? 'No file selected'}</span>
+                      <span>{uploadFile?.name ?? 'No file picked yet'}</span>
                     </div>
                     {transferPreviewLoading && <p>Reading the file...</p>}
                     {transferPreview && (
@@ -583,7 +583,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
                             disabled={transferPreview.preferencesCount === 0 || transferBusy}
                             onChange={(event) => setImportCategoryChoice('preferences', event.target.checked)}
                           />
-                          <span>Preferences ({transferPreview.preferencesCount})</span>
+                            <span>Settings ({transferPreview.preferencesCount})</span>
                         </label>
                       </div>
                     )}
@@ -614,7 +614,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
                         </button>
                       ))
                     ) : (
-                      <div className="header-manager-browser-empty">No songs stored.</div>
+                      <div className="header-manager-browser-empty">No songs saved here yet.</div>
                     )
                   )}
                   {manageSection === 'sheets' && (
@@ -631,7 +631,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
                         </button>
                       ))
                     ) : (
-                      <div className="header-manager-browser-empty">No saved sheets.</div>
+                      <div className="header-manager-browser-empty">No saved sheets yet.</div>
                     )
                   )}
                   {manageSection === 'benchers' && (
@@ -648,7 +648,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
                         </button>
                       ))
                     ) : (
-                      <div className="header-manager-browser-empty">No benchers.</div>
+                      <div className="header-manager-browser-empty">No benchers yet.</div>
                     )
                   )}
                 </div>
@@ -656,16 +656,16 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
                 <div className="header-manager-browser-preview">
                   {manageSection === 'songs' && (() => {
                     const song = privateSongs.find((entry) => entry.id === managePreviewId) ?? privateSongs[0];
-                    if (!song) return <div className="header-manager-browser-empty">Hover a song to preview.</div>;
+                    if (!song) return <div className="header-manager-browser-empty">Point to a song to preview it.</div>;
 
                     return (
                       <div className="header-manager-sheetskin-wrap">
                         <div className="header-manager-sheetskin-page">
                           <div className="header-manager-sheetskin-title">{song.title}</div>
-                          <div className="header-manager-sheetskin-subtitle">{song.artist || 'Unknown artist'}</div>
+                          <div className="header-manager-sheetskin-subtitle">{song.artist || 'No singer name'}</div>
                           <div className="header-manager-sheetskin-grid" style={{ '--manager-preview-columns': 1 } as React.CSSProperties}>
                             <div className="header-manager-sheetskin-card">
-                              {toVisualLines((song.lyrics || '').split('\n').filter(Boolean), 6).join(' / ') || 'No lyrics stored'}
+                              {toVisualLines((song.lyrics || '').split('\n').filter(Boolean), 6).join(' / ') || 'No words saved'}
                             </div>
                           </div>
                         </div>
@@ -675,7 +675,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
 
                   {manageSection === 'sheets' && (() => {
                     const sheet = savedSheets.find((entry) => entry.id === managePreviewId) ?? savedSheets[0];
-                    if (!sheet) return <div className="header-manager-browser-empty">Hover a sheet to preview.</div>;
+                    if (!sheet) return <div className="header-manager-browser-empty">Point to a sheet to preview it.</div>;
                     const previewSongs = sheet.songs.map((song, index) => ({ ...song, order: index + 1 }));
                     const savedColumnCount = Math.max(1, Math.min(3, sheet.manualColumns || 2));
                     const previewConfig = chooseManagerPreviewConfig(previewSongs, savedColumnCount, sheet.autoFit, sheet.showTitles);
@@ -696,7 +696,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
                         </div>
 
                         <div className={`header-manager-preview-scroll-hint ${previewPages.length > 1 ? 'visible' : 'hidden'}`}>
-                          {previewPages.length > 1 ? 'Scroll to preview all pages' : ''}
+                          {previewPages.length > 1 ? 'Scroll to see every page' : ''}
                         </div>
 
                         {previewPages.map((pageColumns, pageIndex) => (
@@ -730,7 +730,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
 
                   {manageSection === 'benchers' && (() => {
                     const bencher = bencherLayouts.find((entry) => entry.id === managePreviewId) ?? bencherLayouts[0];
-                    if (!bencher) return <div className="header-manager-browser-empty">Hover a bencher to preview.</div>;
+                    if (!bencher) return <div className="header-manager-browser-empty">Point to a bencher to preview it.</div>;
                     const previewSongs = bencher.songs.map((song, index) => ({ ...song, order: index + 1 }));
                     const previewPages = buildPreviewPages(previewSongs, 1, bencher.showTitles, 10);
 
@@ -749,7 +749,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
                         </div>
 
                         <div className={`header-manager-preview-scroll-hint ${previewPages.length > 1 ? 'visible' : 'hidden'}`}>
-                          {previewPages.length > 1 ? 'Scroll to preview all pages' : ''}
+                          {previewPages.length > 1 ? 'Scroll to see every page' : ''}
                         </div>
 
                         {previewPages.map((pageColumns, pageIndex) => (
@@ -804,7 +804,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
         className={`header-signin-btn ${authError ? 'auth-error' : ''}`}
         title={authError || undefined}
       >
-        {authLoading ? 'Signing in...' : 'Sign In'}
+        {authLoading ? 'Signing in...' : 'Sign in'}
       </button>
       {authError && <p className="header-auth-error">{authError}</p>}
     </div>

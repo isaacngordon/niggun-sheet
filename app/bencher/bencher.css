@@ -56,13 +56,155 @@
   overflow: hidden;
 }
 
-.bencher-actions {
+.bencher-top-prompts {
   flex-shrink: 0;
-  margin-bottom: 10px;
+  display: grid;
+  gap: 10px;
+  margin: 14px 18px 8px;
 }
 
-.bencher-mode-switch-wrap {
-  width: 246px;
+.bencher-topline {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+
+.bencher-topline-main {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.bencher-topline-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.bencher-topline-eyebrow {
+  color: rgba(255, 212, 48, 0.82);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bencher-topline-copy h2 {
+  margin: 0;
+  color: #f7f2df;
+  font-size: 1.1rem;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.bencher-topline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.bencher-topline-meta-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 212, 48, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.bencher-topline-meta-item span {
+  color: rgba(247, 242, 223, 0.5);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bencher-topline-meta-item strong {
+  color: #f7f2df;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.bencher-topline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bencher-utility-trigger {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 212, 48, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  color: #f7f2df;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bencher-utility-trigger:hover {
+  border-color: rgba(255, 212, 48, 0.3);
+  background: rgba(255, 212, 48, 0.05);
+}
+
+.sb2-toolbar.bencher-actions {
+  flex-shrink: 0;
+  display: block !important;
+  margin: 0 18px 10px;
+  padding: 10px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+}
+
+.sb2-toolbar.bencher-actions .sb2-toolbar-rail.bencher-actions-rail {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  align-items: stretch;
+  gap: 10px 16px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.sb2-toolbar.bencher-actions .bencher-mode-switch-wrap {
+  width: auto;
+  gap: 6px;
+}
+
+.sb2-toolbar.bencher-actions .sb2-toolbar-section {
+  flex: 0 0 auto;
+  min-width: 140px;
+  min-height: 68px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.sb2-toolbar.bencher-actions .sb2-toolbar-action-row,
+.sb2-toolbar.bencher-actions .sb2-column-controls,
+.sb2-toolbar.bencher-actions .sb2-toolbar-status-wrap {
+  flex-wrap: nowrap;
+}
+
+.sb2-toolbar.bencher-actions .sb2-toolbar-status-wrap {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.sb2-toolbar.bencher-actions .sb2-toolbar-section-title {
+  color: rgba(247, 242, 223, 0.66);
+}
+
+.bencher-status {
+  color: rgba(247, 242, 223, 0.72);
 }
 
 .bencher-title-input {
@@ -118,6 +260,10 @@
   overflow: hidden;
 }
 
+.bencher-modal-info {
+  width: min(620px, 92vw);
+}
+
 .bencher-modal-overwrite {
   width: min(360px, 92vw);
 }
@@ -156,6 +302,56 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.bencher-modal-body-spacious {
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.bencher-modal-lead {
+  margin: 0;
+  color: #fff3bf;
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.bencher-modal-copy {
+  margin: 0;
+  color: rgba(247, 242, 223, 0.9);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.bencher-help-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.bencher-help-step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  align-items: start;
+  color: rgba(247, 242, 223, 0.9);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.bencher-help-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 212, 48, 0.14);
+  color: #ffd430;
+  font-weight: 800;
 }
 
 .bencher-modal-empty {
@@ -785,31 +981,80 @@ body.bencher-active .analytics-pref-trigger:hover {
 @media (max-width: 900px) {
   .bencher-workspace {
     grid-template-columns: 1fr;
+    overflow: auto;
+  }
+
+  .bencher-preview {
+    order: 1;
+    min-height: 0;
+  }
+
+  .bencher-top-prompts {
+    margin: 12px 12px 8px;
+  }
+
+  .bencher-topline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .bencher-topline-main {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .bencher-topline-meta {
+    justify-content: flex-start;
+  }
+
+  .bencher-topline-actions {
+    width: auto;
+  }
+
+  .bencher-utility-trigger {
+    flex: 1 1 auto;
   }
 
   .bencher-sidebar {
+    order: 2;
     position: static;
-    max-height: none;
+    max-height: min(42vh, 420px);
+    overflow: auto;
   }
 
-  .bencher-actions {
-    padding: 10px 8px;
+  .bencher-pages {
+    padding-inline: 12px;
+  }
+
+  .sb2-toolbar.bencher-actions {
+    display: grid !important;
+    margin: 0 12px 8px;
+    padding: 10px 0 0;
     gap: 8px;
   }
 
-  .bencher-actions .sb2-toolbar-section,
-  .bencher-mode-switch-wrap {
+  .sb2-toolbar.bencher-actions .sb2-toolbar-rail.bencher-actions-rail {
+    overflow-x: visible;
+    flex-wrap: wrap;
+  }
+
+  .sb2-toolbar.bencher-actions .sb2-toolbar-section,
+  .sb2-toolbar.bencher-actions .bencher-mode-switch-wrap {
     width: 100%;
     margin-left: 0;
     min-height: 0;
   }
 
-  .bencher-actions .sb2-toolbar-action-row,
-  .bencher-actions .sb2-column-controls {
+  .sb2-toolbar.bencher-actions .sb2-toolbar-section {
+    min-height: 0;
+  }
+
+  .sb2-toolbar.bencher-actions .sb2-toolbar-action-row,
+  .sb2-toolbar.bencher-actions .sb2-column-controls {
     justify-content: center;
   }
 
-  .bencher-actions button {
+  .sb2-toolbar.bencher-actions button {
     flex: 1 1 auto;
   }
 
@@ -839,7 +1084,9 @@ body.bencher-active .analytics-pref-trigger:hover {
 
   .bencher-app header,
   .bencher-sidebar,
-  .bencher-actions,
+  .bencher-top-prompts,
+  .sb2-toolbar.bencher-actions,
+  .bencher-page-flutter,
   .bencher-page-turn-button {
     display: none !important;
   }

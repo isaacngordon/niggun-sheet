@@ -9,7 +9,7 @@ import NiggunSheetDownloadButton from '@/components/NiggunSheetDownloadButton';
 
 const HeaderAuthControls = dynamic(() => import('@/components/HeaderAuthControls'), {
   ssr: false,
-  loading: () => <button disabled className="header-signin-btn">Sign In</button>,
+  loading: () => <button disabled className="header-signin-btn">Loading...</button>,
 });
 
 export default function Header() {
@@ -30,125 +30,49 @@ export default function Header() {
     window.dispatchEvent(new CustomEvent('sheet-builder:start-tour'));
   };
 
-  const navLinks = [
-    { href: '/', label: 'Home' },
+  const navLinks: Array<{ href: string; label: string; badge?: string }> = [
     { href: '/songs', label: 'Song Directory' },
-    { href: '/sheet-builder', label: 'Sheet Builder', badge: 'new' },
-    { href: '/contact', label: 'Contact' },
+    { href: '/sheet-builder', label: 'Sheet Builder' },
+    { href: '/bencher', label: 'Bencher' },
   ];
 
   return (
-    <header className="header">
-      {showBetaVersion && (
-        <div className="header-version-banner" role="status" aria-label="Beta version">
-          Beta v{betaAppVersion}
-        </div>
-      )}
-      <div className="header-container">
-        {/* Logo */}
-        <div className="header-logo">
-          <Link href="/">
-            <Image
-              className="header-logo-image"
-              src="/assets/Niggun_Sheet_Header_Logo.png"
-              alt="Niggun Sheet"
-              width={220}
-              height={36}
-              priority={pathname === '/'}
-            />
-          </Link>
-        </div>
-
-        {/* Desktop Navigation */}
-        <nav className="header-nav">
-          <ul>
-            {navLinks.map((link) => (
-              <li key={link.href}>
-                <Link 
-                  href={link.href}
-                  className={isActive(link.href) ? 'active' : ''}
-                >
-                  {link.label}
-                  {link.badge && <span className="nav-badge">{link.badge}</span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        {/* Actions */}
-        <div className="header-actions">
-          {process.env.NODE_ENV === 'development' && (
-            <button
-              className="header-tour-btn"
-              style={{ opacity: 0.45, fontSize: '0.72rem', letterSpacing: '0.02em' }}
-              onClick={() => window.dispatchEvent(new CustomEvent('debug-rect:toggle'))}
-              title="Toggle debug rect measurement tool"
-            >[dbg]</button>
-          )}
-          {showSheetBuilderTour && (
-            <button className="header-tour-btn" onClick={handleStartSheetBuilderTour}>Tour</button>
-          )}
-          <div className="header-auth-desktop">
-            <HeaderAuthControls />
-          </div>
-          
-          {/* Mobile menu button */}
-          <button 
-            className="mobile-menu-btn"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              {mobileMenuOpen ? (
-                <path d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
-          <div className="header-auth-mobile-pill">
-            <HeaderAuthControls />
-          </div>
-          <NiggunSheetDownloadButton className="btn-primary header-download-btn">
-            Download Sheet
-          </NiggunSheetDownloadButton>
-        </div>
+    <header style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      padding: '1rem 2rem', 
+      backgroundColor: '#1a1a1a', 
+      color: '#fff',
+      borderBottom: '1px solid rgba(255,255,255,0.1)'
+    }}>
+      <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#f2cb05', marginRight: '2rem' }}>
+        <span style={{ color: '#888' }}>|||</span> NIGGUN SHEET
       </div>
-
-      {/* Mobile Navigation */}
-      {mobileMenuOpen && (
-        <nav className="mobile-nav">
-          <ul>
-            {navLinks.map((link) => (
-              <li key={link.href}>
-                <Link 
-                  href={link.href}
-                  className={isActive(link.href) ? 'active' : ''}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.label}
-                  {link.badge && <span className="nav-badge">{link.badge}</span>}
-                </Link>
-              </li>
-            ))}
-            <li className="mobile-nav-auth">
-              {showSheetBuilderTour && (
-                <button
-                  className="mobile-nav-signin mobile-nav-tour-btn"
-                  onClick={() => {
-                    handleStartSheetBuilderTour();
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  Tour
-                </button>
-              )}
-              <HeaderAuthControls mobile onDone={() => setMobileMenuOpen(false)} />
-            </li>
-          </ul>
-        </nav>
-      )}
+      <nav style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', flex: 1 }}>
+        <Link href="/" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Home</Link>
+        <Link href="/songs" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Songs</Link>
+        <Link href="/sheet-builder-v2" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Sheet Builder</Link>
+        <Link href="/bencher" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Bencher</Link>
+        <Link href="/contact" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Contact</Link>
+      </nav>
+      <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', alignItems: 'center' }}>
+        <div>
+          <HeaderAuthControls />
+        </div>
+        <NiggunSheetDownloadButton
+          style={{ 
+            borderRadius: '20px', 
+            border: '1px solid #f2cb05', 
+            color: '#1a1a1a', 
+            backgroundColor: '#f2cb05',
+            padding: '0.4rem 1rem',
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          Download Sheet
+        </NiggunSheetDownloadButton>
+      </div>
     </header>
   );
 }

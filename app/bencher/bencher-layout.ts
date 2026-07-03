@@ -25,7 +25,7 @@ export interface BencherModeConfig {
   pages: BencherPageConfig[];
 }
 
-export const DEFAULT_BENCHER_MODE: BencherMode = '4-page';
+export const DEFAULT_BENCHER_MODE: BencherMode = '2-page';
 
 export const BENCHER_MODE_CONFIGS: BencherModeConfig[] = [
   {

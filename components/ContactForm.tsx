@@ -20,7 +20,7 @@ export function ContactForm() {
         setTimeout(() => setShowSuccess(false), 4000);
       } catch (error) {
         console.error('Submission error:', error);
-        alert('Failed to send message. Please try again.');
+        alert('Your message did not send. Please try again.');
       }
     });
   };
@@ -77,7 +77,7 @@ export function ContactForm() {
 
       {/* Form fields */}
       <motion.div className="form-group" variants={itemVariants}>
-        <label className="form-label" htmlFor="contact-name">Your Name or Yeshiva</label>
+        <label className="form-label" htmlFor="contact-name">Your name or school</label>
         <motion.input
           id="contact-name"
           type="text"
@@ -109,7 +109,7 @@ export function ContactForm() {
       </motion.div>
 
       <motion.div className="form-group" variants={itemVariants}>
-        <label className="form-label" htmlFor="contact-subject">What's This About?</label>
+        <label className="form-label" htmlFor="contact-subject">What do you need?</label>
         <motion.select
           id="contact-subject"
           name="subject"
@@ -120,14 +120,14 @@ export function ContactForm() {
           whileFocus={{ scale: 1.02 }}
           transition={{ type: 'spring', stiffness: 300 }}
         >
-          <option value="">Choose one...</option>
-          <option value="lyrics">Add/Fix Lyrics</option>
-          <option value="song-suggestion">Suggest a Song</option>
-          <option value="ytlink">YouTube Link Issue</option>
-          <option value="feature-request">Feature Idea</option>
-          <option value="bug">Bug Report</option>
-          <option value="community">Community/Yeshiva Feature</option>
-          <option value="other">Something Else</option>
+          <option value="">Pick one...</option>
+          <option value="lyrics">Add or fix lyrics</option>
+          <option value="song-suggestion">Suggest a song</option>
+          <option value="ytlink">YouTube link problem</option>
+          <option value="feature-request">Idea for the site</option>
+          <option value="bug">Bug or problem</option>
+          <option value="community">School or community idea</option>
+          <option value="other">Something else</option>
         </motion.select>
       </motion.div>
 
@@ -138,7 +138,7 @@ export function ContactForm() {
           name="message"
           required
           className="form-textarea"
-          placeholder="Tell us your thoughts..."
+          placeholder="Tell us what happened..."
           disabled={isPending}
           whileHover={{ scale: 1.02 }}
           whileFocus={{ scale: 1.02 }}
@@ -187,7 +187,7 @@ export function ContactForm() {
           >
             ✓
           </motion.span>
-          Message sent! Thanks for reaching out.
+          Your message was sent. Thank you.
         </motion.div>
       )}
     </motion.form>
@@ -235,7 +235,7 @@ function AnimatedSubmitButton({ isPending, showSuccess }: { isPending: boolean; 
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
           >
-            Send
+            Send message
           </motion.span>
         )}
       </motion.span>

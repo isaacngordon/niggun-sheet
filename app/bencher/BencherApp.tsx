@@ -41,8 +41,6 @@ import {
   rectToCss,
   skipEveryOtherLineBreakWithinWidth,
 } from './bencher-layout';
-import '../sheet-builder-v2/sheet-builder.css';
-import './bencher.css';
 
 interface Song extends SongData {
   search_title?: string;
@@ -304,7 +302,7 @@ function SongDropZone({
         </div>
       </div>
 
-      {positionedSongs.length === 0 && <div className="bencher-drop-hint">Drag songs here</div>}
+      {positionedSongs.length === 0 && <div className="bencher-drop-hint">Put songs here</div>}
     </section>
   );
 }
@@ -327,6 +325,8 @@ export default function BencherApp() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveDraftTitle, setSaveDraftTitle] = useState('');
   const [showBencherLibrary, setShowBencherLibrary] = useState(false);
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [overwriteTargetId, setOverwriteTargetId] = useState('');
   const [pageFlutterDirection, setPageFlutterDirection] = useState<'forward' | 'backward' | null>(null);
@@ -359,6 +359,12 @@ export default function BencherApp() {
   const bencherSongDropPlacement = useMemo(() => getBencherSongDropPlacement(pageMode), [pageMode]);
   const bencherPageCount = bencherPages.length;
   const songDropPageNumber = bencherSongDropPlacement.pageNumber;
+  const bencherHelpSteps = useMemo(() => [
+    `Click the logo box on page ${bencherLogoPlacement.pageNumber} if you want to upload your own logo.`,
+    `Songs go onto page ${songDropPageNumber}. Drag them in from the left, or double-click to add them fast.`,
+    'Double-sided fits on one sheet of paper. 4 pages gives you larger type.',
+    'When the pages look right, print the bencher or clear songs and try a different mix.',
+  ], [bencherLogoPlacement.pageNumber, songDropPageNumber]);
   const clampPage = useCallback((pageNumber: number) => clampBencherPage(pageNumber, bencherPageCount), [bencherPageCount]);
 
   const clearMultiPageFlutter = useCallback(() => {
@@ -809,6 +815,24 @@ export default function BencherApp() {
     }
   }, [clearMultiPageFlutter, pageMode]);
 
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      const flip = flipBookRef.current?.pageFlip();
+      if (!flip) {
+        return;
+      }
+
+      const visiblePage = clampPage(flip.getCurrentPageIndex() + 1);
+      const desiredPage = clampPage(currentPreviewPageRef.current);
+
+      if (visiblePage !== desiredPage) {
+        flip.turnToPage(desiredPage - 1);
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [clampPage, currentPreviewPage, pageMode]);
+
   const bencherPageNodes = useMemo(() => bencherPages.map((page) => (
     <div
       key={page.pageNumber}
@@ -852,10 +876,13 @@ export default function BencherApp() {
           />
         )}
 
-        <div className="bencher-page-footer" aria-hidden>Printed at NiggunSheet.com</div>
+        <div className="bencher-page-footer" aria-hidden>Made with NiggunSheet.com</div>
       </div>
     </div>
   )), [activeSlot, bencherLogoPlacement, bencherPages, bencherSongDropPlacement, handleLogoChange, logoSrc, pageMode, positionedSongs, previewSongKey, removeSong, showTitles]);
+
+  const activeModeLabel = BENCHER_MODE_CONFIGS.find((config) => config.mode === pageMode)?.label ?? 'Double Sided';
+  const pageSummary = `Page ${currentPreviewPage} of ${bencherPageCount}`;
 
   return (
     <DndContext
@@ -876,14 +903,14 @@ export default function BencherApp() {
                 <button
                   className={`sb2-sidebar-tab ${sidebarTab === 'library' ? 'active' : ''}`}
                   onClick={() => setSidebarTab('library')}
-                  title="Browse the public song library"
+                  title="Look through all songs"
                 >
                   Song Library
                 </button>
                 <button
                   className={`sb2-sidebar-tab ${sidebarTab === 'my' ? 'active' : ''}`}
                   onClick={() => setSidebarTab('my')}
-                  title="Browse your private songs"
+                  title="Look through your saved songs"
                 >
                   My Songs{(auth?.privateSongs.length ?? 0) > 0 ? ` (${auth?.privateSongs.length ?? 0})` : ''}
                 </button>
@@ -894,7 +921,7 @@ export default function BencherApp() {
                 placeholder="Search songs..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                title="Search songs by title or artist"
+                title="Find songs by name or singer"
               />
             </div>
             <div className="sb2-sidebar-hint"><strong>Tip:</strong> Drag songs to page {songDropPageNumber} or double-click to add them. Drag cards on the page to reorder.</div>
@@ -922,7 +949,7 @@ export default function BencherApp() {
               <div className="sb2-songs-list">
                 {!auth?.user ? (
                   <div className="sb2-my-songs-signin">
-                    <p>Sign in from the header to access your private songs.</p>
+                    <p>Sign in at the top to open your private songs.</p>
                   </div>
                 ) : (
                   <>
@@ -931,7 +958,7 @@ export default function BencherApp() {
                     </div>
                     <AddSongModal open={showAddForm} onClose={() => setShowAddForm(false)} onSave={handleSavePrivateSong} onSaveBulk={handleSavePrivateSongs} />
                     {filteredPrivateSongs.length === 0 ? (
-                      <div className="sb2-loading">{search ? 'No matches' : 'No private songs yet. Add songs from the Song Library.'}</div>
+                      <div className="sb2-loading">{search ? 'Nothing matched that search.' : 'You do not have private songs yet. Add one from the Song Library.'}</div>
                     ) : (
                       filteredPrivateSongs.map((song, index) => {
                         const normalizedSong = cloneSong(song);
@@ -956,101 +983,136 @@ export default function BencherApp() {
           </aside>
 
           <section className="bencher-preview" aria-label="Bencher preview">
+            <div className="bencher-top-prompts">
+              <div className="bencher-topline">
+                <div className="bencher-topline-main">
+                  <div className="bencher-topline-copy">
+                    <span className="bencher-topline-eyebrow">Bencher mode</span>
+                    <h2>Bencher controls</h2>
+                  </div>
+                  <div className="bencher-topline-actions">
+                    <button type="button" className="bencher-utility-trigger" onClick={() => setShowPromoModal(true)}>
+                      About this bencher
+                    </button>
+                    <button type="button" className="bencher-utility-trigger" onClick={() => setShowHelpModal(true)}>
+                      How it works
+                    </button>
+                  </div>
+                </div>
+                <div className="bencher-topline-meta" aria-label="Current bencher summary">
+                  <div className="bencher-topline-meta-item">
+                    <span>Songs</span>
+                    <strong>{selectedSongs.length}</strong>
+                  </div>
+                  <div className="bencher-topline-meta-item">
+                    <span>Style</span>
+                    <strong>{activeModeLabel}</strong>
+                  </div>
+                  <div className="bencher-topline-meta-item">
+                    <span>Page</span>
+                    <strong>{pageSummary}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="sb2-toolbar bencher-actions">
-              <div className="sb2-toolbar-section">
-                <div className="sb2-toolbar-section-title">Songs</div>
-                <div className="sb2-toolbar-action-row">
-                <button type="button" onClick={() => setSelectedSongs([])} title="Remove all songs from this bencher">Clear songs</button>
-                <button
-                  type="button"
-                  className={showTitles ? '' : 'active'}
-                  onClick={() => setShowTitles((v) => !v)}
-                  title={showTitles ? 'Hide song titles on the bencher pages' : 'Show song titles on the bencher pages'}
-                >
-                  {showTitles ? 'Hide titles' : 'Show titles'}
-                </button>
-                </div>
-              </div>
-
-              <div className="sb2-toolbar-section">
-                <div className="sb2-toolbar-section-title">Style</div>
-                <div className="sb2-column-controls" aria-label="Bencher mode">
-                  {BENCHER_MODE_CONFIGS.map((config) => (
+              <div className="sb2-toolbar-rail bencher-actions-rail">
+                <div className="sb2-toolbar-section">
+                  <div className="sb2-toolbar-section-title">Songs</div>
+                  <div className="sb2-toolbar-action-row">
+                    <button type="button" onClick={() => setSelectedSongs([])} title="Remove all songs from this bencher">Clear songs</button>
                     <button
-                      key={`bencher-mode-${config.mode}`}
                       type="button"
-                      className={pageMode === config.mode ? 'active' : ''}
-                      aria-label={`Use ${config.mode} mode`}
-                      aria-pressed={pageMode === config.mode}
-                      data-testid={`bencher-mode-${config.mode}`}
-                      onClick={() => setPageMode(config.mode)}
-                      title={config.mode === '2-page' ? 'Use the double-sided bencher layout' : 'Use the booklet bencher layout'}
+                      className={showTitles ? '' : 'active'}
+                      onClick={() => setShowTitles((v) => !v)}
+                      title={showTitles ? 'Hide song titles on the bencher pages' : 'Show song titles on the bencher pages'}
                     >
-                      {config.label}
+                      {showTitles ? 'Hide titles' : 'Show titles'}
                     </button>
-                  ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="sb2-toolbar-section">
-                <div className="sb2-toolbar-section-title">Current Page</div>
-                <div className="sb2-column-controls" aria-label="Bencher page">
-                  {bencherPages.map((page) => (
+                <div className="sb2-toolbar-section">
+                  <div className="sb2-toolbar-section-title">Style</div>
+                  <div className="sb2-column-controls" aria-label="Bencher mode">
+                    {BENCHER_MODE_CONFIGS.map((config) => (
+                      <button
+                        key={`bencher-mode-${config.mode}`}
+                        type="button"
+                        className={pageMode === config.mode ? 'active' : ''}
+                        aria-label={`Use ${config.mode} mode`}
+                        aria-pressed={pageMode === config.mode}
+                        data-testid={`bencher-mode-${config.mode}`}
+                        onClick={() => setPageMode(config.mode)}
+                        title={config.mode === '2-page' ? 'Use the double-sided bencher layout' : 'Use the booklet bencher layout'}
+                      >
+                        {config.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="sb2-toolbar-section">
+                  <div className="sb2-toolbar-section-title">Page</div>
+                  <div className="sb2-column-controls" aria-label="Bencher page">
+                    {bencherPages.map((page) => (
+                      <button
+                        key={`bencher-page-nav-${page.pageNumber}`}
+                        type="button"
+                        className={currentPreviewPage === page.pageNumber ? 'active' : ''}
+                        aria-label={`Show page ${page.pageNumber}`}
+                        aria-pressed={currentPreviewPage === page.pageNumber}
+                        onClick={() => flipToPage(page.pageNumber)}
+                        title={`Jump to page ${page.pageNumber}`}
+                      >
+                        {page.pageNumber}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="sb2-toolbar-section">
+                  <div className="sb2-toolbar-section-title">Save</div>
+                  <div className="sb2-toolbar-action-row">
                     <button
-                      key={`bencher-page-nav-${page.pageNumber}`}
                       type="button"
-                      className={currentPreviewPage === page.pageNumber ? 'active' : ''}
-                      aria-label={`Show page ${page.pageNumber}`}
-                      aria-pressed={currentPreviewPage === page.pageNumber}
-                      onClick={() => flipToPage(page.pageNumber)}
-                      title={`Jump to page ${page.pageNumber}`}
+                      disabled={!auth?.user}
+                      title={!auth?.user ? 'Sign in to save layouts' : 'Save layout'}
+                      onClick={() => {
+                        if (!auth?.user) return;
+                        setSaveDraftTitle(bencerTitle);
+                        setShowSaveModal(true);
+                      }}
                     >
-                      {page.pageNumber}
+                      Save
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      disabled={!auth?.user}
+                      title={!auth?.user ? 'Sign in to access saved layouts' : 'Browse saved layouts'}
+                      onClick={() => {
+                        if (!auth?.user) return;
+                        setShowBencherLibrary(true);
+                      }}
+                    >
+                      Library
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="sb2-toolbar-section">
-                <div className="sb2-toolbar-section-title">Save</div>
-                <div className="sb2-toolbar-action-row">
-                  <button
-                    type="button"
-                    disabled={!auth?.user}
-                    title={!auth?.user ? 'Sign in to save layouts' : 'Save layout'}
-                    onClick={() => {
-                      if (!auth?.user) return;
-                      setSaveDraftTitle(bencerTitle);
-                      setShowSaveModal(true);
-                    }}
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!auth?.user}
-                    title={!auth?.user ? 'Sign in to access saved layouts' : 'Browse saved layouts'}
-                    onClick={() => {
-                      if (!auth?.user) return;
-                      setShowBencherLibrary(true);
-                    }}
-                  >
-                    Library
-                  </button>
+                <div className="sb2-toolbar-section">
+                  <div className="sb2-toolbar-section-title">Actions</div>
+                  <div className="sb2-toolbar-action-row">
+                    <button type="button" onClick={() => window.print()} title="Print the current bencher">Print</button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="sb2-toolbar-section">
-                <div className="sb2-toolbar-section-title">Actions</div>
-                <div className="sb2-toolbar-action-row">
-                  <button type="button" onClick={() => window.print()} title="Print the current bencher">Print</button>
-                </div>
-              </div>
-
-              <div className="sb2-toolbar-status-wrap bencher-mode-switch-wrap">
-                <div className="sb2-builder-mode-switch bencher-builder-mode-switch" aria-label="Builder mode">
-                  <Link className="sb2-builder-mode-option" href="/sheet-builder" title="Switch to Sheet Builder">Sheet Mode</Link>
-                  <button type="button" className="sb2-builder-mode-option active" aria-pressed="true" title="You are in Bencher Mode">Bencher Mode</button>
+                <div className="sb2-toolbar-status-wrap bencher-mode-switch-wrap">
+                  <div className="sb2-status bencher-status">{pageSummary}</div>
+                  <div className="sb2-builder-mode-switch bencher-builder-mode-switch" aria-label="Builder mode">
+                    <Link className="sb2-builder-mode-option" href="/sheet-builder" title="Switch to Sheet Builder">Sheet Mode</Link>
+                    <button type="button" className="sb2-builder-mode-option active" aria-pressed="true" title="You are in Bencher Mode">Bencher Mode</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1184,6 +1246,58 @@ export default function BencherApp() {
               <button type="submit" className="bencher-modal-confirm" disabled={!saveDraftTitle.trim()}>Save</button>
             </div>
           </form>
+        </div>
+      )}
+
+      {showPromoModal && (
+        <div
+          className="bencher-modal-backdrop"
+          onClick={(event) => { if (event.target === event.currentTarget) setShowPromoModal(false); }}
+        >
+          <div className="bencher-modal bencher-modal-info">
+            <div className="bencher-modal-header">
+              <h2>Bencher Mode</h2>
+              <button type="button" className="bencher-modal-close" onClick={() => setShowPromoModal(false)} aria-label="Close">×</button>
+            </div>
+            <div className="bencher-modal-body bencher-modal-body-spacious">
+              <p className="bencher-modal-lead">Making a shabbos or hosting a shabbaton?</p>
+              <p className="bencher-modal-copy">
+                Do not want to hire a graphic designer? Bencher mode gives you a preformatted bencher in two styles:
+                {' '}Double Sided and Booklet. Upload your logo or monogram, add oneg songs in the back, and print.
+              </p>
+            </div>
+            <div className="bencher-modal-footer">
+              <button type="button" className="bencher-modal-confirm" onClick={() => setShowPromoModal(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showHelpModal && (
+        <div
+          className="bencher-modal-backdrop"
+          onClick={(event) => { if (event.target === event.currentTarget) setShowHelpModal(false); }}
+        >
+          <div className="bencher-modal bencher-modal-info">
+            <div className="bencher-modal-header">
+              <h2>How the bencher works</h2>
+              <button type="button" className="bencher-modal-close" onClick={() => setShowHelpModal(false)} aria-label="Close">×</button>
+            </div>
+            <div className="bencher-modal-body bencher-modal-body-spacious">
+              <ol className="bencher-help-list">
+                {bencherHelpSteps.map((step, index) => (
+                  <li key={`bencher-help-${index}`} className="bencher-help-step">
+                    <span className="bencher-help-step-number" aria-hidden="true">{index + 1}</span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="bencher-modal-overwrite-desc">If a page feels crowded, take out a song or switch to another style.</p>
+            </div>
+            <div className="bencher-modal-footer">
+              <button type="button" className="bencher-modal-confirm" onClick={() => setShowHelpModal(false)}>Close</button>
+            </div>
+          </div>
         </div>
       )}
 

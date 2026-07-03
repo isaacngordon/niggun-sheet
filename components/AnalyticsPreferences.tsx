@@ -44,13 +44,13 @@ export default function AnalyticsPreferences() {
           aria-expanded="false"
           aria-controls="analytics-pref-panel"
         >
-          Privacy
+          Cookies
         </button>
       ) : (
         <div id="analytics-pref-panel" className="analytics-pref-widget">
           <div className="analytics-pref-copy">
             <div className="analytics-pref-topline">
-              <span className="analytics-pref-label">Privacy settings</span>
+              <span className="analytics-pref-label">Cookie settings</span>
               <button
                 type="button"
                 className="analytics-pref-close"
@@ -61,13 +61,13 @@ export default function AnalyticsPreferences() {
               </button>
             </div>
             <span className={`analytics-pref-status ${isCookieMode ? 'enabled' : 'disabled'}`}>
-              {isCookieMode ? 'Cookies enabled' : 'Cookie opt-out active'}
+              {isCookieMode ? 'Cookies are on' : 'Cookies are off'}
             </span>
             <span className="analytics-pref-caption">
-              {isCookieMode ? 'Used only to count visits — no personal data is collected or shared.' : 'Analytics cookies are turned off.'}
+              {isCookieMode ? 'We only use them to count visits. We do not collect or share personal info.' : 'Visit-count cookies are off.'}
             </span>
             <a href="/tracking-disclosure" className="analytics-pref-link">
-              Cookie policy
+              Read more
             </a>
           </div>
           <button
@@ -75,7 +75,7 @@ export default function AnalyticsPreferences() {
             className="analytics-pref-button"
             onClick={() => chooseMode(isCookieMode ? 'fallback' : 'cookie')}
           >
-            {isCookieMode ? 'Turn off cookies' : 'Enable cookies'}
+            {isCookieMode ? 'Turn cookies off' : 'Turn cookies on'}
           </button>
         </div>
       )}

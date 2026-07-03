@@ -145,11 +145,14 @@ const PAGE_CONTENT_HEIGHT = 636;
 const PAGE_GRID_WIDTH = 512;
 const GRID_GUTTER_WIDTH = 15;
 const CARD_VERTICAL_GAP = 8;
+const SHEET_PAGE_WIDTH = 612;
+const SHEET_PAGE_HEIGHT = 792;
 const MEASUREMENT_WIDTH_BUFFER = 6;
 const MEASUREMENT_HEIGHT_BUFFER = 4;
 const OVERFLOW_EPSILON = 1;
 const SAVED_SHEET_PREVIEW_DELAY_MS = 120;
 const STORAGE_KEY = 'sheetSongsV2';
+const TOUR_LAUNCHER_DISMISSED_KEY = 'sheetBuilderTourLauncherDismissed';
 const DEFAULT_STATUS = 'Drag songs to the sheet';
 const DEFAULT_SHEET_TITLE = '';
 const TOUR_CARD_WIDTH = 320;
@@ -157,71 +160,71 @@ const TOUR_CARD_WIDTH = 320;
 const TOUR_STEPS: TourStep[] = [
   {
     id: 'welcome',
-    title: 'The Sheet Builder',
-    description: 'drag from the sidebar to the sheet, set up your layout, and then move songs to put them in order.',
+    title: 'This is the sheet builder',
+    description: 'Pick songs from the left, put them on the sheet, then move them until the order looks right.',
     selector: '[data-tour="toolbar"]',
     placement: 'bottom',
   },
   {
     id: 'sheetPanel',
-    title: 'The Sheet Panel',
-    description: 'This panel is for saving your sheet and browsing your saved copies. A maximum of three versions are allowed in the free tier.',
+    title: 'Save and open sheets',
+    description: 'Use this part to save your sheet or open one you already made. You can keep up to three saved sheets here.',
     selector: '[data-tour="sheet-section"]',
     placement: 'bottom',
   },
   {
     id: 'actions',
-    title: 'Action Buttons',
-    description: 'These buttons handle extra actions, like clearing the songs or printing.',
+    title: 'Extra buttons',
+    description: 'These buttons help you clear the page or print it.',
     selector: '[data-tour="actions-section"]',
     placement: 'bottom',
   },
   {
     id: 'display',
-    title: 'Display Settings',
-    description: 'These switches control extras, like titles and numbers.',
+    title: 'Show or hide extras',
+    description: 'Turn song names and numbers on or off here.',
     selector: '[data-tour="display-section"]',
     placement: 'bottom',
   },
   {
     id: 'manualLayout',
-    title: 'Manual Layout',
-    description: 'Here you choose the number of columns.',
+    title: 'Pick columns yourself',
+    description: 'Choose how many columns you want on the page.',
     selector: '[data-tour="layout-section"]',
     placement: 'bottom',
   },
   {
     id: 'autoLayout',
-    title: 'Auto Layout',
-    description: 'Auto-fit chooses a layout for you. It tries to fit everything into the best arrangement.',
+    title: 'Let the site choose',
+    description: 'Auto tries to fit everything for you.',
     selector: '[data-tour="layout-section"]',
     placement: 'bottom',
   },
   {
-    id: 'library',
-    title: 'The Song List',
-    description: "This sidebar holds the songs you can use, Including songs you've added to your account. Drag and Drop or double click to add to the sheet.",
-    selector: '[data-tour="sidebar"]',
-    placement: 'right',
-  },
-  {
     id: 'savedSongs',
-    title: 'Saved Songs',
-    description: "this is where your saved songs will. appear. you can add them once youve signed in to google",
+    title: 'Your saved songs',
+    description: 'Your own songs show up here after you sign in.',
     selector: '[data-tour="saved-songs-tab"]',
     placement: 'right',
   },
   {
     id: 'search',
-    title: 'Search For A Song',
-    description: 'Use this box to search for a particular song.',
+    title: 'Find a song',
+    description: 'Type here to look for a song.',
     selector: '[data-tour="search-box"]',
     placement: 'right',
   },
   {
+    id: 'library',
+    title: 'Song list',
+    description: 'This is the song list. Drag a song in, or double-click it to add it fast.',
+    selector: '[data-tour="library-list"]',
+    placement: 'right',
+  },
+  {
     id: 'sheet',
-    title: 'Your Live Sheet',
-    description: 'This is the main panel. You can grab any song to move it around. Everything moves from right to left',
+    title: 'Your sheet',
+    description: 'This is your page. Drag songs around until they are where you want them.',
     selector: '[data-tour="sheet-canvas"]',
     placement: 'top',
   },
@@ -248,8 +251,14 @@ const CONFIGS: SheetConfig[] = [
 const SAFE_FONT_SIZES = [14, 13, 12, 11, 10, 9, 8, 7];
 const ONE_COLUMN_MIN_FONT_SIZE = 14;
 const ONE_COLUMN_MAX_FONT_SIZE = 20;
-const ONE_COLUMN_FONT_SIZE_DROP_PER_SONG = 2;
 const ONE_COLUMN_FONT_SIZE_STEP = 0.5;
+const ONE_COLUMN_DYNAMIC_CONFIGS: SheetConfig[] = Array.from(
+  { length: Math.round((ONE_COLUMN_MAX_FONT_SIZE - ONE_COLUMN_MIN_FONT_SIZE) / ONE_COLUMN_FONT_SIZE_STEP) + 1 },
+  (_, index) => ({
+    cols: 1,
+    fontSize: Number((ONE_COLUMN_MIN_FONT_SIZE + index * ONE_COLUMN_FONT_SIZE_STEP).toFixed(2)),
+  }),
+);
 
 function songKey(song: SongData) {
   return `${song.title}|${song.artist}`;
@@ -264,7 +273,8 @@ function getColumnWidth(columns: number) {
 }
 
 function getMeasurementColumnWidth(columns: number) {
-  return Math.max(getColumnWidth(columns) - MEASUREMENT_WIDTH_BUFFER, 0);
+  const widthBuffer = columns === 1 ? 0 : MEASUREMENT_WIDTH_BUFFER;
+  return Math.max(getColumnWidth(columns) - widthBuffer, 0);
 }
 
 function getSongLayoutRules(showTitles: boolean, showOrderNumbers: boolean) {
@@ -772,6 +782,7 @@ function dedupeConfigs(configs: SheetConfig[]) {
 function getMeasurementConfigSet(additionalConfigs: SheetConfig[] = []) {
   return dedupeConfigs([
     ...CONFIGS,
+    ...ONE_COLUMN_DYNAMIC_CONFIGS,
     ...[1, 2, 3].flatMap((cols) => SAFE_FONT_SIZES.map((fontSize) => ({ cols, fontSize }))),
     ...additionalConfigs,
   ]);
@@ -800,10 +811,7 @@ function resolveOneColumnDynamicConfig(
   paginate: (config: SheetConfig) => PageLayout[],
 ) {
   const minStep = Math.round(ONE_COLUMN_MIN_FONT_SIZE / ONE_COLUMN_FONT_SIZE_STEP);
-  const maxFontSize = Math.max(
-    ONE_COLUMN_MIN_FONT_SIZE,
-    ONE_COLUMN_MAX_FONT_SIZE - Math.max(songs.length - 1, 0) * ONE_COLUMN_FONT_SIZE_DROP_PER_SONG,
-  );
+  const maxFontSize = ONE_COLUMN_MAX_FONT_SIZE;
   const maxStep = Math.round(maxFontSize / ONE_COLUMN_FONT_SIZE_STEP);
   const pageCountCache = new Map<number, number>();
 
@@ -1154,7 +1162,10 @@ export function SidebarSongDraggable({
       {...attributes}
       {...listeners}
     >
-      <div className="sb2-song-item-title">{song.title}</div>
+      <div className="sb2-song-item-head">
+        <div className="sb2-song-item-title">{song.title}</div>
+        {used ? <span className="sb2-song-item-badge">On sheet</span> : null}
+      </div>
       <div className="sb2-song-item-artist">{song.artist || 'Unknown'}</div>
     </div>
   );
@@ -1228,9 +1239,15 @@ export function PreviewSongCard({
 function SheetAreaDropZone({
   children,
   enabled,
+  className,
+  style,
+  containerRef,
 }: {
   children: React.ReactNode;
   enabled: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const { setNodeRef } = useDroppable({
     id: 'sheet-area',
@@ -1240,7 +1257,15 @@ function SheetAreaDropZone({
     } satisfies SheetAreaDragData,
   });
 
-  return <div ref={setNodeRef} className="sb2-page-container">{children}</div>;
+  const handleContainerRef = useCallback((node: HTMLDivElement | null) => {
+    setNodeRef(node);
+
+    if (containerRef) {
+      containerRef.current = node;
+    }
+  }, [containerRef, setNodeRef]);
+
+  return <div ref={handleContainerRef} className={`sb2-page-container${className ? ` ${className}` : ''}`} style={style}>{children}</div>;
 }
 
 function PrintSheetPages({
@@ -1406,17 +1431,20 @@ export function SheetBuilderApp() {
   const [previewSavedSheetId, setPreviewSavedSheetId] = useState('');
   const [hasMounted, setHasMounted] = useState(false);
   const [measurements, setMeasurements] = useState<Record<string, ConfigMeasurement>>({});
+  const [singlePagePreviewScale, setSinglePagePreviewScale] = useState(1);
   const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
   const [overSlotData, setOverSlotData] = useState<SlotDragData | null>(null);
   const [libraryPreviewActive, setLibraryPreviewActive] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
   const [tourTargetRect, setTourTargetRect] = useState<TourTargetRect | null>(null);
+  const [showTourLauncher, setShowTourLauncher] = useState(false);
 
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedSheetPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const measurementRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const measurementSignatureRef = useRef('');
+  const pageContainerRef = useRef<HTMLDivElement | null>(null);
   const loadedSavedSongsRef = useRef(false);
   const autoLogSignatureRef = useRef('');
   const overSlotRef = useRef<SlotDragData | null>(null);
@@ -1457,6 +1485,11 @@ export function SheetBuilderApp() {
 
   useEffect(() => {
     setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem(TOUR_LAUNCHER_DISMISSED_KEY);
+    setShowTourLauncher(dismissed !== '1');
   }, []);
 
   useEffect(() => {
@@ -1612,6 +1645,11 @@ export function SheetBuilderApp() {
       return;
     }
 
+    if (false) {
+      setShowTourLauncher(false);
+      localStorage.setItem(TOUR_LAUNCHER_DISMISSED_KEY, '1');
+    }
+
     tourSnapshotRef.current = {
       sidebarOpen,
       sidebarTab,
@@ -1628,7 +1666,7 @@ export function SheetBuilderApp() {
 
     setTourStepIndex(0);
     setTourOpen(true);
-  }, [autoFit, manualColumns, manualLocks, search, sheetSongs, sheetTitle, showOrderNumbers, showPageNumbers, showTitles, sidebarOpen, sidebarTab, tourOpen]);
+  }, [autoFit, manualColumns, manualLocks, search, sheetSongs, sheetTitle, showOrderNumbers, showPageNumbers, showTitles, showTourLauncher, sidebarOpen, sidebarTab, tourOpen]);
 
   useEffect(() => {
     const onStartTour = () => {
@@ -1932,7 +1970,8 @@ export function SheetBuilderApp() {
       cards.forEach((card) => {
         const cardKey = card.dataset.songKey;
         if (!cardKey) return;
-        heights[cardKey] = Math.ceil(card.getBoundingClientRect().height) + MEASUREMENT_HEIGHT_BUFFER;
+        const heightBuffer = config.cols === 1 ? 0 : MEASUREMENT_HEIGHT_BUFFER;
+        heights[cardKey] = Math.ceil(card.getBoundingClientRect().height) + heightBuffer;
         const title = card.querySelector('.sb2-song-card-title') as HTMLElement | null;
         const lyrics = card.querySelector('.sb2-song-card-lyrics') as HTMLElement | null;
         const titleHasOverflow = !!title && (
@@ -2135,6 +2174,57 @@ export function SheetBuilderApp() {
       : paginateManualSongs(previewSheetSongs, activeConfig, previewManualLocks, measurements, showTitles, showOrderNumbers);
   }, [activeConfig, autoFit, measurements, pageLayouts, previewManualLocks, previewSheetSongs, showOrderNumbers, showTitles]);
 
+  useLayoutEffect(() => {
+    if (isPhone || renderedPageLayouts.length !== 1) {
+      setSinglePagePreviewScale((current) => (current === 1 ? current : 1));
+      return;
+    }
+
+    const container = pageContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const updateSinglePagePreviewScale = () => {
+      const styles = window.getComputedStyle(container);
+      const containerRect = container.getBoundingClientRect();
+      const horizontalPadding = Number.parseFloat(styles.paddingLeft) + Number.parseFloat(styles.paddingRight);
+      const verticalPadding = Number.parseFloat(styles.paddingTop) + Number.parseFloat(styles.paddingBottom);
+      const availableWidth = Math.max(container.clientWidth - horizontalPadding, 0);
+      const availableHeight = Math.max(window.innerHeight - containerRect.top - verticalPadding, 0);
+      const nextScale = Math.min(
+        availableWidth / SHEET_PAGE_WIDTH,
+        availableHeight / SHEET_PAGE_HEIGHT,
+        1,
+      );
+
+      setSinglePagePreviewScale((current) => (Math.abs(current - nextScale) < 0.001 ? current : nextScale));
+    };
+
+    updateSinglePagePreviewScale();
+
+    const frameId = window.requestAnimationFrame(() => {
+      updateSinglePagePreviewScale();
+      window.requestAnimationFrame(updateSinglePagePreviewScale);
+    });
+    const settleTimeoutId = window.setTimeout(updateSinglePagePreviewScale, 250);
+    const lateSettleTimeoutId = window.setTimeout(updateSinglePagePreviewScale, 1000);
+
+    const resizeObserver = new ResizeObserver(updateSinglePagePreviewScale);
+    resizeObserver.observe(container);
+    window.addEventListener('resize', updateSinglePagePreviewScale);
+    window.visualViewport?.addEventListener('resize', updateSinglePagePreviewScale);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(settleTimeoutId);
+      window.clearTimeout(lateSettleTimeoutId);
+      window.removeEventListener('resize', updateSinglePagePreviewScale);
+      window.visualViewport?.removeEventListener('resize', updateSinglePagePreviewScale);
+    };
+  }, [isPhone, renderedPageLayouts.length]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
@@ -2169,7 +2259,7 @@ export function SheetBuilderApp() {
     }
 
     setSheetSongs((prev) => [...prev, cloneSong(song)]);
-    updateStatus(`Added "${song.title}"`);
+    updateStatus(`Added ${song.title}`);
   }, [updateStatus, usedSongKeys]);
 
   const handleClearAll = useCallback(() => {
@@ -2231,7 +2321,7 @@ export function SheetBuilderApp() {
     if (!autoFit && sourcePageIndex >= 0) {
       setManualLocks((prev) => trimManualLocks(prev, sourcePageIndex));
     }
-    updateStatus(`Removed "${targetSong.title}"`);
+    updateStatus(`Removed ${targetSong.title}`);
   }, [autoFit, pageLayouts, updateStatus]);
 
   const handlePrint = useCallback(() => window.print(), []);
@@ -2261,19 +2351,19 @@ export function SheetBuilderApp() {
     });
 
     persistSheetIdentity(savedSheet.title, savedSheet.id);
-    updateStatus(`Saved "${savedSheet.title}"`);
+    updateStatus(`Saved ${savedSheet.title}`);
     return savedSheet;
   }, [autoFit, manualColumns, manualFontSize, manualLocks, persistSheetIdentity, saveSheet, sheetSongs, showOrderNumbers, showPageNumbers, showTitles, updateStatus]);
 
   const saveNamedSheet = useCallback(async (title: string, overwriteId?: string) => {
     if (!user) {
-      updateStatus('Sign in to save sheets to Google Drive');
+      updateStatus('Sign in to save your sheets');
       return;
     }
 
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      updateStatus('Enter a sheet title first');
+      updateStatus('Type a sheet name first');
       return;
     }
 
@@ -2294,13 +2384,13 @@ export function SheetBuilderApp() {
         return;
       }
 
-      updateStatus('Failed to save sheet');
+      updateStatus('Could not save the sheet');
     }
   }, [currentSavedSheetId, executeSaveSheet, sortedSavedSheets, updateStatus, user]);
 
   const handleOpenSaveSheetModal = useCallback(() => {
     if (!user) {
-      updateStatus('Sign in to save sheets to Google Drive');
+      updateStatus('Sign in to save your sheets');
       return;
     }
 
@@ -2310,7 +2400,7 @@ export function SheetBuilderApp() {
 
   const handleConfirmOverwriteSheet = useCallback(async () => {
     if (!overwriteTargetSheetId) {
-      updateStatus('Choose a sheet to overwrite');
+      updateStatus('Pick a sheet to replace');
       return;
     }
 
@@ -2319,7 +2409,7 @@ export function SheetBuilderApp() {
       setShowOverwriteSheetModal(false);
     } catch (error) {
       console.error('[SheetBuilder] Failed to overwrite sheet:', error);
-      updateStatus('Failed to overwrite sheet');
+      updateStatus('Could not replace the sheet');
     }
   }, [overwriteTargetSheetId, saveDraftSheetTitle, saveNamedSheet, sheetTitle, updateStatus]);
 
@@ -2329,13 +2419,13 @@ export function SheetBuilderApp() {
 
   const handleLoadSavedSheet = useCallback((savedSheetId: string) => {
     if (!savedSheetId) {
-      updateStatus('Choose a saved sheet first');
+      updateStatus('Pick a saved sheet first');
       return;
     }
 
     const savedSheet = sortedSavedSheets.find((entry) => entry.id === savedSheetId);
     if (!savedSheet) {
-      updateStatus('Saved sheet not found');
+      updateStatus('That saved sheet was not found');
       return;
     }
 
@@ -2358,12 +2448,12 @@ export function SheetBuilderApp() {
     }
 
     setShowSavedSheetsModal(false);
-    updateStatus(`Loaded "${savedSheet.title}"`);
+    updateStatus(`Opened ${savedSheet.title}`);
   }, [persistSheetIdentity, setPref, sortedSavedSheets, updateStatus, user]);
 
   const handleOpenSavedSheetsModal = useCallback(() => {
     if (!user) {
-      updateStatus('Sign in to access saved sheets');
+      updateStatus('Sign in to open your saved sheets');
       return;
     }
 
@@ -2515,7 +2605,7 @@ export function SheetBuilderApp() {
           if (!autoFit) {
             setManualLocks(previewManualLocksRef.current ?? buildInsertedManualLocks(resolvedSlotData));
           }
-          updateStatus(`Added "${activeData.song.title}"`);
+          updateStatus(`Added ${activeData.song.title}`);
         }
       }
 
@@ -2540,12 +2630,34 @@ export function SheetBuilderApp() {
       dragSnapshotSongsRef.current = null;
       dragSnapshotManualLocksRef.current = null;
 
-      updateStatus(`Moved "${activeData.song.title}"`);
+      updateStatus(`Moved ${activeData.song.title}`);
     }
   }, [autoFit, buildInsertedManualLocks, handleAddSong, insertSongInList, manualLocks, sheetSongs, updateStatus]);
 
   const columns = activeConfig.cols;
   const mobileSheetScale = isPhone ? Math.min((width - 16) / 612, 0.95) : 1;
+  const singlePagePreview = !isPhone && renderedPageLayouts.length === 1;
+  const singlePagePreviewStyle = singlePagePreview
+    ? ({ '--sb2-single-page-scale': singlePagePreviewScale } as React.CSSProperties)
+    : undefined;
+  const sidebarSongCount = sidebarTab === 'library' ? filteredSongs.length : filteredPrivateSongs.length;
+  const sidebarHeading = sidebarTab === 'library' ? 'Choose songs' : 'Use your private songs';
+  const sidebarDescription = sidebarTab === 'library'
+    ? 'Search the library, then drag or double-click a song to add it.'
+    : user
+      ? 'Open your own songs and add them to the current sheet.'
+      : 'Sign in to work with songs that only you can see.';
+  const sidebarCountLabel = sidebarTab === 'library'
+    ? `${sidebarSongCount} songs available`
+    : `${sidebarSongCount} private songs`;
+  const searchPlaceholder = sidebarTab === 'library' ? 'Search by title or artist' : 'Search your songs';
+  const currentSheetLabel = currentSavedSheet?.title || (sheetSongs.length > 0 ? 'Unsaved sheet' : 'Empty sheet');
+  const layoutSummary = autoFit ? 'Auto fit' : `${columns} columns`;
+  const displaySummary = [
+    showTitles ? 'Titles' : null,
+    showPageNumbers ? 'Page #' : null,
+    showOrderNumbers ? 'Order #' : null,
+  ].filter(Boolean).join(', ') || 'Lyrics only';
 
   return (
     <DndContext
@@ -2574,6 +2686,11 @@ export function SheetBuilderApp() {
 
           <div className={`sb2-sidebar ${sidebarOpen ? 'open' : ''}`} data-tour="sidebar">
             <div className="sb2-sidebar-header" data-tour="sidebar-header">
+              <div className="sb2-sidebar-intro">
+                <span className="sb2-sidebar-step">Step 1</span>
+                <h2>{sidebarHeading}</h2>
+                <p>{sidebarDescription}</p>
+              </div>
               <div className="sb2-sidebar-tabs">
                 <button className={`sb2-sidebar-tab ${sidebarTab === 'library' ? 'active' : ''}`} onClick={() => setSidebarTab('library')}>
                   Song Library
@@ -2582,19 +2699,21 @@ export function SheetBuilderApp() {
                   My Songs{privateSongs.length > 0 ? ` (${privateSongs.length})` : ''}
                 </button>
               </div>
+              <label className="sb2-field-label" htmlFor="sb2-search-box">{sidebarCountLabel}</label>
               <input
+                id="sb2-search-box"
                 type="text"
                 className="sb2-search-box"
                 data-tour="search-box"
-                placeholder="Search songs..."
+                placeholder={searchPlaceholder}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
             </div>
-            <div className="sb2-sidebar-hint"><strong>Tip:</strong> Drag songs to the sheet or double-click to add them. Drag cards on the sheet to reorder.</div>
+            <div className="sb2-sidebar-hint"><strong>Quick add:</strong> Double-click a song to add it fast, or drag it into the sheet to place it where you want.</div>
 
             {sidebarTab === 'library' ? (
-              <div className="sb2-songs-list">
+              <div className="sb2-songs-list" data-tour="library-list">
                 {filteredSongs.map((song, index) => {
                   const normalizedSong = cloneSong(song);
                   const key = songKey(normalizedSong);
@@ -2617,7 +2736,7 @@ export function SheetBuilderApp() {
               <div className="sb2-songs-list" data-tour="saved-songs-panel">
                 {!user ? (
                   <div className="sb2-my-songs-signin">
-                    <p>Sign in from the header to access your private songs.</p>
+                    <p>Sign in at the top to open your private songs.</p>
                   </div>
                 ) : (
                   <>
@@ -2626,7 +2745,7 @@ export function SheetBuilderApp() {
                     </div>
                     <AddSongModal open={showAddForm} onClose={() => setShowAddForm(false)} onSave={addSong} onSaveBulk={addSongs} />
                     {filteredPrivateSongs.length === 0 ? (
-                      <div className="sb2-loading">{search ? 'No matches' : 'No private songs yet. Add songs from the Song Directory.'}</div>
+                      <div className="sb2-loading">{search ? 'Nothing matched that search.' : 'You do not have private songs yet. Add one from Songs.'}</div>
                     ) : (
                       filteredPrivateSongs.map((song, index) => {
                         const normalizedSong = cloneSong(song);
@@ -2653,63 +2772,95 @@ export function SheetBuilderApp() {
           </div>
 
           <div className="sb2-main-area">
+            {false ? (
+              <section className="sb2-tour-launch" aria-label="Sheet builder walkthrough">
+                <div className="sb2-tour-launch-copy">
+                  <span className="sb2-tour-launch-eyebrow">Quick walkthrough</span>
+                  <h2>Click here for a guided tour</h2>
+                  <p>
+                    Start the guided walkthrough and it will highlight one tool at a time.
+                    {isPhone ? ' It will also open the song list when you need it.' : ''}
+                  </p>
+                </div>
+                <button type="button" className="sb2-tour-launch-btn" onClick={handleStartTour}>
+                  Start walkthrough
+                </button>
+              </section>
+            ) : null}
             <div className="sb2-toolbar" data-tour="toolbar">
-              <div className="sb2-toolbar-section sb2-toolbar-section-utility" data-tour="actions-section">
-                <div className="sb2-toolbar-section-title">Actions</div>
-                <div className="sb2-toolbar-toggle-row">
-                  <button className="sb2-toolbar-button-subtle" onClick={handleClearAll}>Clear</button>
-                  <button className="sb2-print-btn" onClick={handlePrint}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="6 9 6 2 18 2 18 9" />
-                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                      <rect x="6" y="14" width="12" height="8" />
-                    </svg>
-                    Print
+              <div className="sb2-utility-bar">
+                {/* File Ops */}
+                <div className="sb2-utility-group" data-tour="sheet-section">
+                  <button onClick={handleClearAll} className="sb2-icon-btn" title="New Sheet">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                  </button>
+                  <button onClick={handleOpenSaveSheetModal} disabled={savedSheetsDisabled} className="sb2-icon-btn sb2-icon-btn-strong" title="Save Sheet">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                  </button>
+                  <button onClick={handleOpenSavedSheetsModal} disabled={savedSheetsDisabled} className="sb2-icon-btn" title="Open Saved Sheets">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                  </button>
+                  <button onClick={handlePrint} className="sb2-icon-btn" title="Print Sheet">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                   </button>
                 </div>
-              </div>
+                
+                <div className="sb2-utility-divider" />
 
-              <div className="sb2-toolbar-section" data-tour="display-section">
-                <div className="sb2-toolbar-section-title">Display</div>
-                <div className="sb2-toolbar-toggle-row">
-                  <button className={showTitles ? 'active' : ''} aria-pressed={showTitles} onClick={handleToggleTitles}>Titles</button>
-                  <button className={showPageNumbers ? 'active' : ''} aria-pressed={showPageNumbers} onClick={handleTogglePageNumbers}>Page #</button>
-                  <button className={showOrderNumbers ? 'active' : ''} aria-pressed={showOrderNumbers} onClick={handleToggleOrderNumbers}>Order #</button>
+                {/* Layout Dropdown */}
+                <div className="sb2-utility-group" data-tour="layout-section">
+                  <select 
+                    className="sb2-compact-select" 
+                    value={autoFit ? 'auto' : columns} 
+                    onChange={(e) => {
+                      if (e.target.value === 'auto') handleSetAuto();
+                      else handleSetColumns(Number(e.target.value));
+                    }}
+                    title="Column Layout"
+                  >
+                    <option value="auto">Auto Fit</option>
+                    <option value="1">1 Column</option>
+                    <option value="2">2 Columns</option>
+                    <option value="3">3 Columns</option>
+                  </select>
                 </div>
-              </div>
 
-              <div className="sb2-toolbar-section" data-tour="sheet-section">
-                <div className="sb2-toolbar-section-title">Sheet</div>
-                <div className="sb2-sheet-save-group">
-                  <div className="sb2-toolbar-action-row">
-                    <button className="sb2-toolbar-button-strong" onClick={handleOpenSaveSheetModal} disabled={savedSheetsDisabled}>Save</button>
-                    <button onClick={handleOpenSavedSheetsModal} disabled={savedSheetsDisabled}>Library</button>
+                <div className="sb2-utility-divider" />
+
+                {/* Display Formatting / Toggles */}
+                <div className="sb2-utility-group" data-tour="display-section">
+                  <button className={`sb2-icon-btn sb2-toggle-btn ${showTitles ? 'active' : ''}`} style={{ width: 'auto', padding: '0 8px' }} onClick={handleToggleTitles} title="Show Titles">
+                    <span style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '0.2px' }}>Titles</span>
+                  </button>
+                  <button className={`sb2-icon-btn sb2-toggle-btn ${showOrderNumbers ? 'active' : ''}`} onClick={handleToggleOrderNumbers} title="Show Order Numbers">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="10" y1="6" x2="21" y2="6"></line><line x1="10" y1="12" x2="21" y2="12"></line><line x1="10" y1="18" x2="21" y2="18"></line><polyline points="3 6 4 6 4 11"></polyline><path d="M3 17h2c.5 0 1-.5 1-1s-.5-1-1-1H3"></path><path d="M3 22h2c.5 0 1-.5 1-1s-.5-1-1-1H3"></path></svg>
+                  </button>
+                  <button className={`sb2-icon-btn sb2-toggle-btn ${showPageNumbers ? 'active' : ''}`} onClick={handleTogglePageNumbers} title="Show Page Numbers">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><text x="9" y="16" fontSize="8" fontWeight="bold">#</text></svg>
+                  </button>
+                </div>
+
+                <div className="sb2-toolbar-spacer" style={{ flexGrow: 1 }} />
+
+                {/* Status & Mode */}
+                <div className="sb2-utility-status">
+                  <div className="sb2-status" role="status" aria-live="polite">
+                     {status} <span style={{opacity: 0.5, marginLeft: '8px'}}>• {displaySummary}</span>
                   </div>
-                </div>
-              </div>
-
-              <div className="sb2-toolbar-section" data-tour="layout-section">
-                <div className="sb2-toolbar-section-title">Layout</div>
-                <div className="sb2-column-controls">
-                  <button className={!autoFit && columns === 1 ? 'active' : ''} onClick={() => handleSetColumns(1)}>1</button>
-                  <button className={!autoFit && columns === 2 ? 'active' : ''} onClick={() => handleSetColumns(2)}>2</button>
-                  <button className={!autoFit && columns === 3 ? 'active' : ''} onClick={() => handleSetColumns(3)}>3</button>
-                  <button className={autoFit ? 'active' : ''} onClick={handleSetAuto}>Auto</button>
-                </div>
-              </div>
-
-              <div className="sb2-toolbar-status-wrap">
-                <div className="sb2-builder-mode-switch" aria-label="Builder mode">
-                  <button type="button" className="sb2-builder-mode-option active" aria-pressed="true">Sheet Mode</button>
-                  <Link className="sb2-builder-mode-option" href="/bencher">Bencher Mode</Link>
                 </div>
               </div>
             </div>
 
             <div data-tour="sheet-canvas">
-              <SheetAreaDropZone enabled={activeDragData?.type === 'library-song'}>
-                {renderedPageLayouts.map((page) => (
-                  <div key={`page-${page.pageIndex}`} className={`sb2-sheet-page ${overPageIndex === page.pageIndex ? 'drag-over' : ''}`}>
+              <SheetAreaDropZone
+                enabled={activeDragData?.type === 'library-song'}
+                className={singlePagePreview ? 'sb2-single-page-preview' : undefined}
+                style={singlePagePreviewStyle}
+                containerRef={pageContainerRef}
+              >
+                {renderedPageLayouts.map((page) => {
+                  const pageMarkup = (
+                    <div key={`page-${page.pageIndex}`} className={`sb2-sheet-page ${overPageIndex === page.pageIndex ? 'drag-over' : ''}`}>
                   <div className="sb2-page-header" />
                   <div
                     className={`sb2-packery-grid ${columns === 2 ? 'two-columns' : ''} ${columns === 3 ? 'three-columns' : ''}`}
@@ -2790,7 +2941,18 @@ export function SheetBuilderApp() {
                   </div>
                   <div className="sb2-page-footer">{showPageNumbers ? `${page.pageIndex + 1}` : ''}</div>
                   </div>
-                ))}
+                  );
+
+                  if (!singlePagePreview) {
+                    return pageMarkup;
+                  }
+
+                  return (
+                    <div key={`page-frame-${page.pageIndex}`} className="sb2-sheet-page-frame sb2-sheet-page-frame-single">
+                      {pageMarkup}
+                    </div>
+                  );
+                })}
               </SheetAreaDropZone>
             </div>
 
@@ -2861,11 +3023,11 @@ export function SheetBuilderApp() {
               <h2>{currentTourStep.title}</h2>
               <p>{currentTourStep.description}</p>
               <div className="sb2-tour-actions">
-                <button className="sb2-toolbar-button-subtle" onClick={handleCloseTour}>End Tour</button>
+                <button className="sb2-toolbar-button-subtle" onClick={handleCloseTour}>Close Tour</button>
                 <div className="sb2-tour-actions-right">
                   <button onClick={handlePreviousTourStep} disabled={tourStepIndex === 0}>Back</button>
                   <button className="sb2-toolbar-button-strong" onClick={handleNextTourStep}>
-                    {tourStepIndex === TOUR_STEPS.length - 1 ? 'Finish' : 'Next'}
+                    {tourStepIndex === TOUR_STEPS.length - 1 ? 'Done' : 'Next'}
                   </button>
                 </div>
               </div>
@@ -2892,18 +3054,21 @@ export function SheetBuilderApp() {
             }
           }}>
             <div className="sb2-sheet-browser-modal">
-              <div className="sb2-sheet-browser-header">
-                <div>
-                  <h2>Saved Sheets</h2>
-                  <p>Hover a sheet name to reveal a thumbnail. Click a sheet to load it into the builder.</p>
+              <div className="sb2-sheet-browser-header sb2-utility-bar">
+                <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, gap: '12px' }}>
+                  <h2 style={{ fontSize: '16px', margin: 0, fontWeight: 500, color: 'var(--text-primary)' }}>Saved Sheets</h2>
+                  <div className="sb2-utility-divider" style={{ margin: 0 }} />
+                  <p style={{ margin: 0, fontSize: '13px' }}>Point to a sheet name to preview it. Click it to open it.</p>
                 </div>
-                <button className="sb2-sheet-browser-close" onClick={handleCloseSavedSheetsModal} aria-label="Close saved sheets">×</button>
+                <button className="sb2-icon-btn sb2-sheet-browser-close" onClick={handleCloseSavedSheetsModal} aria-label="Close saved sheets">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
               </div>
 
               <div className="sb2-sheet-browser-body">
                 <div className="sb2-sheet-browser-list">
                   {sortedSavedSheets.length === 0 ? (
-                    <div className="sb2-sheet-browser-empty">No saved sheets yet.</div>
+                    <div className="sb2-sheet-browser-empty">You do not have saved sheets yet.</div>
                   ) : (
                     sortedSavedSheets.map((savedSheet) => {
                       const isCurrent = savedSheet.id === currentSavedSheetId;
@@ -2928,7 +3093,7 @@ export function SheetBuilderApp() {
 
                 <div className="sb2-sheet-browser-preview">
                   {!savedSheetPreview ? (
-                    <div className="sb2-sheet-browser-empty">Hover a sheet name to preview it.</div>
+                    <div className="sb2-sheet-browser-empty">Point to a sheet name to preview it.</div>
                   ) : (
                     <div
                       className="sb2-sheet-browser-thumbnail-wrap sb2-sheet-browser-thumbnail-panel"
@@ -2959,7 +3124,7 @@ export function SheetBuilderApp() {
                         className={`sb2-sheet-browser-scroll-hint ${savedSheetPreview.pages.length > 1 ? 'visible' : 'hidden'}`}
                         aria-hidden={savedSheetPreview.pages.length <= 1}
                       >
-                        {savedSheetPreview.pages.length > 1 ? 'Scroll to preview all pages' : ''}
+                        {savedSheetPreview.pages.length > 1 ? 'Scroll to see every page' : ''}
                       </div>
 
                       {savedSheetPreview.pages.map((page) => (
@@ -3014,16 +3179,22 @@ export function SheetBuilderApp() {
                 void saveNamedSheet(saveDraftSheetTitle);
               }}
             >
-              <div className="sb2-overwrite-modal-header">
-                <h2>Save Sheet</h2>
-                <p>Choose a name for this sheet.</p>
+              <div className="sb2-sheet-browser-header sb2-utility-bar" style={{ gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, gap: '12px' }}>
+                  <h2 style={{ fontSize: '16px', margin: 0, fontWeight: 500, color: 'var(--text-primary)' }}>Save Sheet</h2>
+                  <div className="sb2-utility-divider" style={{ margin: 0 }} />
+                  <p style={{ margin: 0, fontSize: '13px' }}>Type a name for this sheet.</p>
+                </div>
+                <button type="button" className="sb2-icon-btn sb2-sheet-browser-close" onClick={() => setShowSaveSheetModal(false)} aria-label="Close save dialog">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
               </div>
 
               <div className="sb2-save-modal-body">
                 <input
                   type="text"
                   className="sb2-sheet-title-input sb2-save-modal-input"
-                  placeholder="Sheet name"
+                  placeholder="Type a sheet name"
                   value={saveDraftSheetTitle}
                   onChange={(event) => setSaveDraftSheetTitle(event.target.value)}
                   autoFocus
@@ -3031,7 +3202,6 @@ export function SheetBuilderApp() {
               </div>
 
               <div className="sb2-overwrite-modal-footer">
-                <button type="button" onClick={() => setShowSaveSheetModal(false)}>Cancel</button>
                 <button type="submit" className="sb2-overwrite-confirm-btn" disabled={!saveDraftSheetTitle.trim()}>
                   Save
                 </button>
@@ -3047,9 +3217,15 @@ export function SheetBuilderApp() {
             }
           }}>
             <div className="sb2-overwrite-modal">
-              <div className="sb2-overwrite-modal-header">
-                <h2>Saved Sheet Limit Reached</h2>
-                <p>You already have 3 saved sheets. Choose one to overwrite, or cancel.</p>
+              <div className="sb2-sheet-browser-header sb2-utility-bar" style={{ gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, gap: '12px' }}>
+                  <h2 style={{ fontSize: '16px', margin: 0, fontWeight: 500, color: 'var(--text-primary)' }}>Saved sheet limit full</h2>
+                  <div className="sb2-utility-divider" style={{ margin: 0 }} />
+                  <p style={{ margin: 0, fontSize: '13px' }}>Pick one to replace.</p>
+                </div>
+                <button type="button" className="sb2-icon-btn sb2-sheet-browser-close" onClick={() => setShowOverwriteSheetModal(false)} aria-label="Close dialog">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
               </div>
 
               <div className="sb2-overwrite-modal-body">
@@ -3068,12 +3244,12 @@ export function SheetBuilderApp() {
                 </div>
 
                 <div className="sb2-overwrite-sheet-summary">
-                  <div className="sb2-overwrite-sheet-summary-label">Selected sheet</div>
-                  <div className="sb2-overwrite-sheet-summary-title">{overwriteTargetSheet?.title ?? 'None selected'}</div>
+                  <div className="sb2-overwrite-sheet-summary-label">Sheet to replace</div>
+                  <div className="sb2-overwrite-sheet-summary-title">{overwriteTargetSheet?.title ?? 'Nothing picked yet'}</div>
                   <div className="sb2-overwrite-sheet-summary-text">
                     {overwriteTargetSheet
-                      ? `This will replace "${overwriteTargetSheet.title}" with the current builder sheet.`
-                      : 'Select a saved sheet to overwrite.'}
+                      ? `This will replace "${overwriteTargetSheet.title}" with the sheet you have open now.`
+                      : 'Pick a saved sheet to replace.'}
                   </div>
                 </div>
               </div>
@@ -3081,7 +3257,7 @@ export function SheetBuilderApp() {
               <div className="sb2-overwrite-modal-footer">
                 <button type="button" onClick={handleCancelOverwriteSheet}>Cancel</button>
                 <button type="button" className="sb2-overwrite-confirm-btn" onClick={handleConfirmOverwriteSheet} disabled={!overwriteTargetSheetId}>
-                  Overwrite Saved Sheet
+                  Replace Saved Sheet
                 </button>
               </div>
             </div>

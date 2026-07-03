@@ -22,6 +22,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@google-cloud/speech": "^7.3.0",
+    "cheerio": "^1.2.0",
     "dotenv": "^17.2.2",
     "framer-motion": "^12.38.0",
     "html2canvas": "^1.4.1",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
+    "@types/cheerio": "^0.22.35",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
