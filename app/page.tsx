@@ -12,29 +12,32 @@ const builderSteps = [
 
 const primaryPaths = [
   {
-    number: '01',
-    eyebrow: 'Fastest route',
-    title: 'Find the song',
-    copy: 'Open the database to see lyrics and music put together for a learning experience like no other.',
+    icon: 'search',
+    title: 'Industry-leading DNS security',
+    copy: 'DNS is at the heart of every internet connection request. Securing the DNS layer means blocking malicious domains, IP addresses, and cloud applications before a connection is ever established. More than 30,000 organizations use Umbrella DNS to deliver a fast, safe, and reliable internet experience that is simple to deploy and easy to manage.',
     href: '/songs',
-    cta: 'Open Song Directory',
+    cta: 'Niggun Sheet Songs ›',
   },
   {
-    number: '02',
-    eyebrow: 'Most flexible',
-    title: 'Build Your Own',
-    copy: 'Use the drag-and-drop builder to make your very own kumzits sheet.',
+    icon: 'shield',
+    title: 'Robust DNS security + more',
+    copy: 'Get all Umbrella DNS features and much more for the same price. Backed by Cisco’s global network of recursive DNS resolvers and advanced AI-driven detection, Cisco Secure Access – DNS Defense delivers fast, comprehensive threat protection. Data Loss Prevention (DLP) safeguards sensitive data, built-in malware protection scans and removes malware from cloud file storage apps, and unified policy management makes deployment and management easy.',
     href: '/sheet-builder',
-    cta: 'Open Sheet Builder',
-    featured: true,
+    cta: 'Secure Access - DNS Defense ›',
   },
   {
-    number: '03',
-    eyebrow: 'Print-first',
-    title: 'Grab a ready-made sheet',
-    copy: 'If you want the whole shebang, download the ready-made sheet with all you need for a kumzits.',
+    icon: 'cloud',
+    title: 'Secure Internet Access',
+    copy: 'Everything in Umbrella SIG plus much more. Secure Internet Access (SIA) protects users and devices connecting to the internet. It combines DNS security, secure web gateway (SWG), cloud access security broker (CASB), Data Loss Prevention (DLP), malware protection, firewall as a service, and more in a single solution. AI-powered controls secure the use of generative AI tools, while built-in Experience Insights (digital experience monitoring based on ThousandEyes) provides deep visibility and faster troubleshooting.',
     href: '/bencher',
-    cta: 'Get the ready-made sheet',
+    cta: 'Secure Access SIA ›',
+  },
+  {
+    icon: 'lock',
+    title: 'Security Service Edge (SSE)',
+    copy: 'The full Secure Access solution brings together Secure Internet Access (SIA) with Secure Private Access (SPA) for a complete SSE solution that securely connects users and IoT things to SaaS apps, private apps, and the internet. It features a unique, zero trust approach that combines Zero Trust Network Access (ZTNA) and VPN as a Service (VPNaaS), enabling users to automatically, transparently, and safely access all private applications (not just some) without extra steps or cumbersome verification tasks.',
+    href: '/smartboard-mode',
+    cta: 'Secure Access ›',
   },
 ];
 
@@ -72,27 +75,73 @@ export default function HomePage() {
         </section>
 
         {/* Applying Miller's Law & Chunking: Organize features into distinct, scannable units */}
-        <section className="home-routes-section" style={{ backgroundColor: 'rgba(0,0,0,0.02)', padding: '5rem 0' }}>
+        <section className="home-routes-section" style={{ backgroundColor: '#ffffff', color: '#1a1a1a', padding: '5rem 0' }}>
           <div className="container">
             <div className="home-section-intro" style={{ textAlign: 'center', marginBottom: '4rem', maxWidth: '800px', margin: '0 auto 4rem' }}>
-              <div className="home-section-kicker">Choose Your Path</div>
-              <h2 className="home-section-title">What do you need to do today?</h2>
-              <p className="home-section-copy">
-                Whether you need a quick lyric check or a full printout for 100 people, simply pick the tool you need.
+              <h2 className="home-section-title" style={{ fontSize: '2rem', fontWeight: 300, color: '#333' }}>
+                From DNS-layer security to a full SSE solution,<br/>
+                we've got you covered
+              </h2>
+              <p className="home-section-copy" style={{ fontSize: '0.9rem', color: '#666', marginTop: '1rem' }}>
+                Building on Cisco Umbrella's proven security, Cisco Secure Access now offers even more advanced protection
               </p>
             </div>
 
-            <div className="home-route-grid">
+            <div className="home-route-grid" style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(2, 1fr)', 
+              gap: '4rem 6rem',
+              maxWidth: '1000px',
+              margin: '0 auto' 
+            }}>
               {primaryPaths.map((path) => (
                 <article
                   key={path.href}
-                  className={`home-route-card${path.featured ? ' featured' : ''}`}
+                  className="home-route-card"
+                  style={{ 
+                    border: 'none', 
+                    background: 'transparent', 
+                    textAlign: 'center',
+                    padding: 0,
+                    gap: '1rem',
+                  }}
                 >
-                  <div className="home-route-number">{path.number}</div>
-                  <div className="home-route-eyebrow">{path.eyebrow}</div>
-                  <h3 className="home-route-title">{path.title}</h3>
-                  <p className="home-route-copy">{path.copy}</p>
-                  <Link href={path.href} className="home-route-link">
+                  <div style={{ margin: '0 auto 1rem' }}>
+                    {/* Placeholder for SVG icons matching the screenshot */}
+                    <div style={{ 
+                      width: '64px', 
+                      height: '64px', 
+                      border: '1.5px solid #666', 
+                      borderRadius: '8px', 
+                      margin: '0 auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#666'
+                    }}>
+                      {/* Icon stand-in based on the object key */}
+                      {path.icon === 'search' && '🔍'}
+                      {path.icon === 'shield' && '🛡️'}
+                      {path.icon === 'cloud' && '☁️'}
+                      {path.icon === 'lock' && '🔒'}
+                    </div>
+                  </div>
+                  <h3 className="home-route-title" style={{ fontSize: '1.25rem', fontWeight: 400, color: '#333' }}>
+                    {path.title}
+                  </h3>
+                  <p className="home-route-copy" style={{ fontSize: '0.75rem', lineHeight: 1.6, color: '#666', flex: 1 }}>
+                    {path.copy}
+                  </p>
+                  <Link href={path.href} className="home-route-link" style={{ 
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#0062cc',
+                    padding: 0,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    justifyContent: 'center'
+                  }}>
                     {path.cta}
                   </Link>
                 </article>
