@@ -18,8 +18,11 @@ async function getTickerText() {
     
     const html = await res.text();
     const $ = cheerio.load(html);
-    const content = $('.doc-content').text().trim();
+    let content = $('.doc-content').text().trim();
     if (!content) return [{ text: "Welcome to Niggun Sheet | Exploring Jewish Music", isLink: false }];
+
+    // Strip out "Tab 1", "Tab 2", etc.
+    content = content.replace(/Tab \d+/g, '').trim();
 
     // Parse {text{url}} blocks
     const regex = /\{([^{}]+)\{([^}]+)\}\}/g;
@@ -98,12 +101,12 @@ export default async function Home() {
               The website for<br/>kumzitz lovers
             </h1>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-               <Link href="/sheet-builder" legacyBehavior>
+               <Link href="/sheet-builder" style={{ textDecoration: 'none' }}>
                  <button style={{ padding: '0.75rem 1.5rem', borderRadius: '30px', border: 'none', backgroundColor: '#fff', color: '#000', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>
                    Try the Sheet Builder
                  </button>
                </Link>
-               <Link href="/songs" legacyBehavior>
+               <Link href="/songs" style={{ textDecoration: 'none' }}>
                  <button style={{ padding: '0.75rem 1.5rem', borderRadius: '30px', border: '1px solid #fff', backgroundColor: 'transparent', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>
                    Browse Songs
                  </button>
@@ -125,8 +128,7 @@ export default async function Home() {
             { text: 'Bencher Builder', url: '/bencher' },
             { text: 'Smartboard Mode', url: '/smartboard-mode' }
           ].map((link, i) => (
-            <Link key={link.text} href={link.url} legacyBehavior>
-              <a style={{ 
+            <Link key={link.text} href={link.url} style={{ 
                 border: i === 3 ? '1px solid #f2cb05' : '1px solid rgba(255,255,255,0.2)', 
                 boxShadow: i === 3 ? '0 0 15px rgba(242, 203, 5, 0.3)' : 'none',
                 borderRadius: '8px', 
@@ -142,90 +144,12 @@ export default async function Home() {
               }}>
                 <span style={{ fontWeight: 500, fontSize: '0.95rem' }}>{link.text}</span>
                 <span style={{ color: 'rgba(255,255,255,0.5)' }}>›</span>
-              </a>
             </Link>
           ))}
         </div>
       </section>
 
       <CiscoAccordion />
-
-      {/* Market-defining technologies */}
-      <section style={{ padding: '5rem 1rem', backgroundColor: '#f8f9fa', textAlign: 'center' }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: 700, marginBottom: '3rem' }}>
-          Market-defining technologies driving the future of AI
-        </h2>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', flexWrap: 'wrap', marginBottom: '3rem' }}>
-          {['Cloud Control', 'AgenticOps', 'AI networking', 'Silicon One', 'Hybrid Mesh Firewall', 'Cisco IQ'].map(tech => (
-            <span key={tech} style={{ padding: '0.5rem 1rem', borderBottom: '2px solid transparent', cursor: 'pointer', fontWeight: 600 }}>
-              {tech}
-            </span>
-          ))}
-        </div>
-
-        <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'left', display: 'flex', flexWrap: 'wrap', gap: '4rem', alignItems: 'center' }}>
-          <div style={{ flex: '1 1 500px' }}>
-            <h3 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Cisco Cloud Control</h3>
-            <p style={{ fontSize: '1.2rem', color: '#666', marginBottom: '2rem' }}>
-              The unified platform with one shared view across every IT domain.
-            </p>
-            <Link href="#" style={{ color: '#f2cb05', textDecoration: 'none', fontWeight: 'bold', fontSize: '1.1rem' }}>
-              Discover Cisco Cloud Control ›
-            </Link>
-          </div>
-          <div style={{ flex: '1 1 500px', height: '300px', backgroundColor: '#e2e2e2', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-             <span style={{ color: '#999' }}>[ Dashboard Screenshot Placeholder ]</span>
-          </div>
-        </div>
-      </section>
-
-
-      {/* Global Scale Numbers */}
-      <section style={{ padding: '6rem 1rem', backgroundColor: '#081018', color: '#fff', textAlign: 'center' }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: 700, marginBottom: '4rem' }}>
-          Global scale. Unified technology. Powered by AI.
-        </h2>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '4rem', flexWrap: 'wrap', maxWidth: '1000px', margin: '0 auto' }}>
-          <div>
-            <div style={{ fontSize: '4rem', fontWeight: 800, color: '#f2cb05' }}>39M</div>
-            <div style={{ fontSize: '1.1rem', color: '#a0a0a0' }}>Networking devices connected</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '4rem', fontWeight: 800, color: '#f2cb05' }}>1B</div>
-            <div style={{ fontSize: '1.1rem', color: '#a0a0a0' }}>Clients connecting monthly</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '4rem', fontWeight: 800, color: '#f2cb05' }}>750B+</div>
-            <div style={{ fontSize: '1.1rem', color: '#a0a0a0' }}>Security events observed daily</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Innovation / Case Studies */}
-      <section style={{ padding: '5rem 1rem', backgroundColor: '#f8f9fa' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '3rem' }}>
-            Innovation in action: Real results powered by leading technology
-          </h2>
-          
-          <div style={{ display: 'flex', gap: '4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-             <div style={{ flex: '1 1 400px' }}>
-               <h3 style={{ fontSize: '2.5rem', marginBottom: '1.5rem', lineHeight: 1.2 }}>
-                 Brewing global connectivity and visibility for Nestlé
-               </h3>
-               <p style={{ fontSize: '1.2rem', color: '#666', marginBottom: '2rem', lineHeight: 1.6 }}>
-                 Nestlé depends on Cisco networking and assurance for connectivity, proactive troubleshooting, and full visibility across 1700 sites.
-               </p>
-               <Link href="#" style={{ color: '#f2cb05', textDecoration: 'none', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                 Learn about Nestlé ›
-               </Link>
-             </div>
-             <div style={{ flex: '1 1 600px', height: '400px', backgroundColor: '#ccc', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '2rem', color: '#666', fontWeight: 'bold' }}>Nestlé</span>
-             </div>
-          </div>
-        </div>
-      </section>
 
     </div>
   );
