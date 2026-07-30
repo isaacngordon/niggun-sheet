@@ -13,11 +13,17 @@ import {
 } from '@dnd-kit/core';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import HTMLFlipBook from 'react-pageflip';
 import AddSongModal from '@/components/AddSongModal';
 import Header from '@/components/Header';
 import { useOptionalGoogleAuth } from '@/components/GoogleAuthProvider';
 import type { PrivateSong } from '@/lib/google-drive';
+
+const PdfPageBackground = dynamic(() => import('./PdfPageBackground'), {
+  ssr: false,
+  loading: () => <div className="bencher-page-art bencher-pdf-loading" />,
+});
 import {
   DropSlot,
   PreviewSongCard,
@@ -34,6 +40,7 @@ import {
   BENCHER_MODE_CONFIGS,
   DEFAULT_BENCHER_MODE,
   type BencherMode,
+  getBencherModeConfig,
   getBencherPageBackground,
   getBencherLogoPlacement,
   getBencherPages,
@@ -359,10 +366,11 @@ export default function BencherApp() {
   const bencherSongDropPlacement = useMemo(() => getBencherSongDropPlacement(pageMode), [pageMode]);
   const bencherPageCount = bencherPages.length;
   const songDropPageNumber = bencherSongDropPlacement.pageNumber;
+  const { designWidth, designHeight, pdfSource } = useMemo(() => getBencherModeConfig(pageMode), [pageMode]);
   const bencherHelpSteps = useMemo(() => [
     `Click the logo box on page ${bencherLogoPlacement.pageNumber} if you want to upload your own logo.`,
     `Songs go onto page ${songDropPageNumber}. Drag them in from the left, or double-click to add them fast.`,
-    'Double-sided fits on one sheet of paper. 4 pages gives you larger type.',
+    'Double-sided fits on one sheet of paper. 8-page booklet for larger type.',
     'When the pages look right, print the bencher or clear songs and try a different mix.',
   ], [bencherLogoPlacement.pageNumber, songDropPageNumber]);
   const clampPage = useCallback((pageNumber: number) => clampBencherPage(pageNumber, bencherPageCount), [bencherPageCount]);
@@ -844,12 +852,34 @@ export default function BencherApp() {
         data-testid={`bencher-page-${page.pageNumber}`}
         data-measure-root={`bencher-page-${page.pageNumber}`}
       >
-        <img
-          className="bencher-page-art"
-          src={getBencherPageBackground(pageMode, page.pageNumber)}
-          alt=""
-          aria-hidden="true"
-        />
+        {(() => {
+          if (pdfSource) {
+            return (
+              <PdfPageBackground
+                file={pdfSource}
+                pageNumber={page.pageNumber}
+                width={designWidth}
+              />
+            );
+          }
+          const bg = getBencherPageBackground(pageMode, page.pageNumber);
+          const isPdf = bg.endsWith('.pdf');
+          return isPdf ? (
+            <embed
+              className="bencher-page-art"
+              src={bg}
+              type="application/pdf"
+              aria-hidden="true"
+            />
+          ) : (
+            <img
+              className="bencher-page-art"
+              src={bg}
+              alt=""
+              aria-hidden="true"
+            />
+          );
+        })()}
 
         {page.pageNumber === bencherLogoPlacement.pageNumber && (
           <button
@@ -879,7 +909,7 @@ export default function BencherApp() {
         <div className="bencher-page-footer" aria-hidden>Made with NiggunSheet.com</div>
       </div>
     </div>
-  )), [activeSlot, bencherLogoPlacement, bencherPages, bencherSongDropPlacement, handleLogoChange, logoSrc, pageMode, positionedSongs, previewSongKey, removeSong, showTitles]);
+  )), [activeSlot, bencherLogoPlacement, bencherPages, bencherSongDropPlacement, designWidth, handleLogoChange, logoSrc, pageMode, pdfSource, positionedSongs, previewSongKey, removeSong, showTitles]);
 
   const activeModeLabel = BENCHER_MODE_CONFIGS.find((config) => config.mode === pageMode)?.label ?? 'Double Sided';
   const pageSummary = `Page ${currentPreviewPage} of ${bencherPageCount}`;
@@ -982,7 +1012,16 @@ export default function BencherApp() {
             )}
           </aside>
 
-          <section className="bencher-preview" aria-label="Bencher preview">
+          <section
+            className={`bencher-preview bencher-mode-${pageMode}`}
+            aria-label="Bencher preview"
+            style={{
+              '--bencher-design-width': designWidth,
+              '--bencher-design-height': designHeight,
+              '--bencher-print-width': pageMode === '8-page' ? '5.5in' : '8.5in',
+              '--bencher-print-height': pageMode === '8-page' ? '8.5in' : '11in',
+            } as React.CSSProperties}
+          >
             <div className="bencher-top-prompts">
               <div className="bencher-topline">
                 <div className="bencher-topline-main">
@@ -1147,50 +1186,52 @@ export default function BencherApp() {
                 );
               })()}
 
-              <HTMLFlipBook
-                key={pageMode}
-                ref={flipBookRef}
-                className="bencher-flipbook"
-                style={{}}
-                width={768}
-                height={994}
-                size="stretch"
-                minWidth={450}
-                maxWidth={850}
-                minHeight={582}
-                maxHeight={1100}
-                startPage={0}
-                drawShadow
-                flippingTime={900}
-                usePortrait
-                startZIndex={10}
-                autoSize={false}
-                maxShadowOpacity={0.55}
-                showCover={false}
-                mobileScrollSupport={false}
-                clickEventForward
-                useMouseEvents={false}
-                swipeDistance={30}
-                showPageCorners={false}
-                disableFlipByClick={false}
-                renderOnlyPageLengthChange={false}
-                onChangeState={(event) => {
-                  const turning = event.data === 'flipping';
-                  isPageTurningRef.current = turning;
-                }}
-                onFlip={(event) => {
-                  if (pageTurnFallbackRef.current !== null) {
-                    window.clearTimeout(pageTurnFallbackRef.current);
-                    pageTurnFallbackRef.current = null;
-                  }
-                  const nextPage = clampPage((event.data as number) + 1);
-                  currentPreviewPageRef.current = nextPage;
-                  isPageTurningRef.current = false;
-                  setCurrentPreviewPage(nextPage);
-                }}
-              >
-              {bencherPageNodes}
-              </HTMLFlipBook>
+              <div className="bencher-flipbook-wrap">
+                <HTMLFlipBook
+                  key={pageMode}
+                  ref={flipBookRef}
+                  className="bencher-flipbook"
+                  style={{}}
+                  width={designWidth}
+                  height={designHeight}
+                  size="stretch"
+                  minWidth={pageMode === '8-page' ? 900 : 450}
+                  maxWidth={pageMode === '8-page' ? 1700 : 850}
+                  minHeight={Math.round(designHeight * 0.586)}
+                  maxHeight={Math.round(designHeight * 1.107)}
+                  startPage={0}
+                  drawShadow
+                  flippingTime={900}
+                  usePortrait={pageMode !== '8-page'}
+                  startZIndex={10}
+                  autoSize={false}
+                  maxShadowOpacity={0.55}
+                  showCover={false}
+                  mobileScrollSupport={false}
+                  clickEventForward
+                  useMouseEvents={false}
+                  swipeDistance={30}
+                  showPageCorners={false}
+                  disableFlipByClick={false}
+                  renderOnlyPageLengthChange={false}
+                  onChangeState={(event) => {
+                    const turning = event.data === 'flipping';
+                    isPageTurningRef.current = turning;
+                  }}
+                  onFlip={(event) => {
+                    if (pageTurnFallbackRef.current !== null) {
+                      window.clearTimeout(pageTurnFallbackRef.current);
+                      pageTurnFallbackRef.current = null;
+                    }
+                    const nextPage = clampPage((event.data as number) + 1);
+                    currentPreviewPageRef.current = nextPage;
+                    isPageTurningRef.current = false;
+                    setCurrentPreviewPage(nextPage);
+                  }}
+                >
+                {bencherPageNodes}
+                </HTMLFlipBook>
+              </div>
 
               {(() => {
                 const nextPage = clampPage(currentPreviewPage + 1);

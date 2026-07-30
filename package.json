@@ -30,7 +30,8 @@
     "next": "^16.2.6",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-pageflip": "^2.0.3"
+    "react-pageflip": "^2.0.3",
+    "react-pdf": "^10.4.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

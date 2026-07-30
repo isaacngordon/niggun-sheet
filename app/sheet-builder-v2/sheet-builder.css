@@ -14,8 +14,8 @@
 
 .sb2-root {
   min-height: 100vh;
-  background: #100f0d;
-  color: #e7e0d4;
+  background: #000;
+  color: #fff;
   font-family: var(--font-dm-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -49,7 +49,7 @@
 .sb2-sidebar {
   width: 280px;
   min-width: 280px;
-  background: #151411;
+  background: #111;
   border-right: 1px solid rgba(243, 237, 226, 0.1);
   display: flex;
   flex-direction: column;
@@ -68,7 +68,7 @@
 }
 
 .sb2-sidebar-step {
-  color: #c7a252;
+  color: #f2cb05;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -78,7 +78,7 @@
 .sb2-sidebar-header h2 {
   margin: 0;
   font-size: 17px;
-  color: #f3ede2;
+  color: #fff;
   font-weight: 600;
   line-height: 1.15;
 }
@@ -113,8 +113,8 @@
 .sb2-sidebar-tab:hover { color: rgba(243, 237, 226, 0.88); }
 
 .sb2-sidebar-tab.active {
-  color: #f3ede2;
-  border-bottom-color: #c7a252;
+  color: #fff;
+  border-bottom-color: #f2cb05;
 }
 
 .sb2-field-label {
@@ -303,7 +303,7 @@
   background: #0f0e0c;
   border: 1px solid rgba(243, 237, 226, 0.12);
   border-radius: 6px;
-  color: #f3ede2;
+  color: #fff;
   font-size: 14px;
   font-family: inherit;
   outline: none;
@@ -311,7 +311,7 @@
 }
 
 .sb2-search-box:focus {
-  border-color: #c7a252;
+  border-color: #f2cb05;
   box-shadow: 0 0 0 3px rgba(199, 162, 82, 0.14);
 }
 
@@ -344,7 +344,7 @@
 .sb2-song-item {
   padding: 12px;
   background: rgba(243, 237, 226, 0.02);
-  border: 1px solid rgba(243, 237, 226, 0.06);
+  border: none !important;
   border-radius: 8px;
   margin-bottom: 8px;
   cursor: grab;
@@ -353,11 +353,11 @@
 
 .sb2-song-item:hover {
   background: rgba(243, 237, 226, 0.05);
-  border-color: rgba(199, 162, 82, 0.18);
+  border: none !important;
 }
 
 .sb2-song-item.used {
-  border-left: 3px solid #c7a252;
+  border-left: 3px solid #f2cb05;
   background: rgba(199, 162, 82, 0.07);
 }
 
@@ -371,7 +371,7 @@
 .sb2-song-item-title {
   font-size: 14px;
   font-weight: 600;
-  color: #f3ede2;
+  color: #fff;
   margin-bottom: 4px;
   direction: rtl;
   pointer-events: none;
@@ -435,7 +435,7 @@
 
 .sb2-tour-launch h2 {
   margin: 0;
-  color: #f3ede2;
+  color: #fff;
   font-size: 14px;
   line-height: 1.25;
 }
@@ -451,7 +451,7 @@
   flex-shrink: 0;
   min-height: 42px;
   padding: 0 16px;
-  background: #c7a252;
+  background: #f2cb05;
   border: 1px solid rgba(199, 162, 82, 0.7);
   border-radius: 6px;
   color: #111;
@@ -461,7 +461,7 @@
 }
 
 .sb2-tour-launch-btn:hover {
-  background: #d0ae66;
+  background: #ffe34d;
 }
 
 /* ─── Toolbar ─────────────────────────────────────────────── */
@@ -470,7 +470,7 @@
   display: grid;
   gap: 10px;
   padding: 10px 14px;
-  background: #11100e;
+  background: #1a1a1a;
   border-bottom: 1px solid rgba(243, 237, 226, 0.08);
 }
 
@@ -489,7 +489,7 @@
 }
 
 .sb2-toolbar-overview-eyebrow {
-  color: #c7a252;
+  color: #f2cb05;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -500,7 +500,7 @@
   margin: 0;
   font-size: 16px;
   line-height: 1.1;
-  color: #f3ede2;
+  color: #fff;
 }
 
 .sb2-toolbar-meta {
@@ -531,7 +531,7 @@
 }
 
 .sb2-toolbar-meta-item strong {
-  color: #f3ede2;
+  color: #fff;
   font-size: 12px;
   line-height: 1.2;
 }
@@ -585,7 +585,7 @@
 
 .sb2-toolbar button.active {
   background: rgba(199, 162, 82, 0.14);
-  color: #f3ede2;
+  color: #fff;
   border-color: rgba(199, 162, 82, 0.4);
 }
 
@@ -642,7 +642,7 @@
   background: rgba(15, 14, 12, 0.92);
   border: 1px solid rgba(243, 237, 226, 0.08);
   border-radius: 6px;
-  color: #f3ede2;
+  color: #fff;
   font-size: 14px;
   font-family: inherit;
   box-sizing: border-box;
@@ -669,13 +669,13 @@
 }
 
 .sb2-toolbar-button-strong {
-  background: #c7a252 !important;
+  background: #f2cb05 !important;
   color: #111 !important;
   border-color: rgba(199, 162, 82, 0.7) !important;
 }
 
 .sb2-toolbar-button-strong:hover {
-  background: #d0ae66 !important;
+  background: #ffe34d !important;
 }
 
 .sb2-toolbar-button-subtle {
@@ -686,13 +686,13 @@
   display: inline-flex;
   align-items: flex-start;
   gap: 6px;
-  background: #c7a252 !important;
+  background: #f2cb05 !important;
   border-color: rgba(199, 162, 82, 0.7) !important;
   color: #17120b !important;
 }
 
 .sb2-print-btn:hover {
-  background: #d0ae66 !important;
+  background: #ffe34d !important;
 }
 
 .sb2-status {
@@ -759,13 +759,13 @@
 }
 
 .sb2-builder-mode-option:hover {
-  color: #f3ede2;
+  color: #fff;
   background: rgba(243, 237, 226, 0.05);
 }
 
 .sb2-builder-mode-option.active {
   color: #111;
-  background: #c7a252;
+  background: #f2cb05;
   border-color: rgba(199, 162, 82, 0.7);
 }
 

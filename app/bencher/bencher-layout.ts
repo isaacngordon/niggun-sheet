@@ -17,11 +17,17 @@ export interface BencherPagePlacement {
   rect: BencherRect;
 }
 
-export type BencherMode = '2-page' | '4-page';
+export type BencherMode = '2-page' | '8-page';
 
 export interface BencherModeConfig {
   mode: BencherMode;
   label: string;
+  /** Design-page width in px (shared across modes). */
+  designWidth: number;
+  /** Design-page height in px – derived from the physical page ratio at 768 px wide. */
+  designHeight: number;
+  /** Path to a multi-page PDF source (rendered via react-pdf). Takes precedence over individual page backgrounds. */
+  pdfSource?: string;
   pages: BencherPageConfig[];
 }
 
@@ -31,19 +37,28 @@ export const BENCHER_MODE_CONFIGS: BencherModeConfig[] = [
   {
     mode: '2-page',
     label: 'Double Sided',
+    designWidth: 768,
+    designHeight: 994,
     pages: [
       { pageNumber: 1, background: '/assets/bencher/Bencher-2pg-p1.svg' },
       { pageNumber: 2, background: '/assets/bencher/Bencher-2pg-p2.svg' },
     ],
   },
   {
-    mode: '4-page',
+    mode: '8-page',
     label: 'Booklet',
+    designWidth: 768,
+    designHeight: 1187,
+    pdfSource: '/assets/bencher/PDF1_SVG8.pdf',
     pages: [
-      { pageNumber: 1, background: '/assets/bencher/Bencher-4pg-p1.svg' },
-      { pageNumber: 2, background: '/assets/bencher/Bencher-4pg-p2.svg' },
-      { pageNumber: 3, background: '/assets/bencher/Bencher-4pg-p3.svg' },
-      { pageNumber: 4, background: '/assets/bencher/Bencher-4pg-p4.svg' },
+      { pageNumber: 1, background: '' },
+      { pageNumber: 2, background: '' },
+      { pageNumber: 3, background: '' },
+      { pageNumber: 4, background: '' },
+      { pageNumber: 5, background: '' },
+      { pageNumber: 6, background: '' },
+      { pageNumber: 7, background: '' },
+      { pageNumber: 8, background: '' },
     ],
   },
 ];
@@ -62,18 +77,18 @@ const BENCHER_TWO_PAGE_SONG_DROP_RECT: BencherRect = {
   height: 91.2,
 };
 
-const BENCHER_FOUR_PAGE_MAIN_RECT: BencherRect = {
+const BENCHER_SEVEN_PAGE_MAIN_RECT: BencherRect = {
   top: 3.5,
   left: 5,
   width: 45.2,
   height: 92,
 };
 
-const BENCHER_FOUR_PAGE_LOGO_RECT: BencherRect = {
-  top: 4,
-  left: 51.8,
-  width: 42.9,
-  height: 9.3,
+const BENCHER_SEVEN_PAGE_COVER_RECT: BencherRect = {
+  top: 15,
+  left: 15,
+  width: 70,
+  height: 70,
 };
 
 const BENCHER_LOGO_PLACEMENTS: Record<BencherMode, BencherPagePlacement> = {
@@ -81,9 +96,9 @@ const BENCHER_LOGO_PLACEMENTS: Record<BencherMode, BencherPagePlacement> = {
     pageNumber: 1,
     rect: BENCHER_TWO_PAGE_LOGO_RECT,
   },
-  '4-page': {
+  '8-page': {
     pageNumber: 1,
-    rect: BENCHER_FOUR_PAGE_LOGO_RECT,
+    rect: BENCHER_SEVEN_PAGE_COVER_RECT,
   },
 };
 
@@ -92,9 +107,9 @@ const BENCHER_SONG_DROP_PLACEMENTS: Record<BencherMode, BencherPagePlacement> = 
     pageNumber: 2,
     rect: BENCHER_TWO_PAGE_SONG_DROP_RECT,
   },
-  '4-page': {
-    pageNumber: 4,
-    rect: BENCHER_FOUR_PAGE_MAIN_RECT,
+  '8-page': {
+    pageNumber: 8,
+    rect: BENCHER_SEVEN_PAGE_MAIN_RECT,
   },
 };
 
@@ -109,6 +124,10 @@ export function rectToCss(rect: BencherRect): CSSProperties {
 
 export function getBencherPages(mode: BencherMode) {
   return BENCHER_MODE_CONFIGS.find((config) => config.mode === mode)?.pages ?? [];
+}
+
+export function getBencherModeConfig(mode: BencherMode): BencherModeConfig {
+  return BENCHER_MODE_CONFIGS.find((config) => config.mode === mode) ?? BENCHER_MODE_CONFIGS[0];
 }
 
 export function getBencherPageBackground(mode: BencherMode, pageNumber: number) {

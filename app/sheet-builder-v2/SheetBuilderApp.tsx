@@ -2686,11 +2686,11 @@ export function SheetBuilderApp() {
 
           <div className={`sb2-sidebar ${sidebarOpen ? 'open' : ''}`} data-tour="sidebar">
             <div className="sb2-sidebar-header" data-tour="sidebar-header">
-              <div className="sb2-sidebar-intro">
+              {/* <div className="sb2-sidebar-intro">
                 <span className="sb2-sidebar-step">Step 1</span>
                 <h2>{sidebarHeading}</h2>
                 <p>{sidebarDescription}</p>
-              </div>
+              </div> */}
               <div className="sb2-sidebar-tabs">
                 <button className={`sb2-sidebar-tab ${sidebarTab === 'library' ? 'active' : ''}`} onClick={() => setSidebarTab('library')}>
                   Song Library

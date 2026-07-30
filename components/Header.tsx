@@ -45,9 +45,9 @@ export default function Header() {
       color: '#fff',
       borderBottom: '1px solid rgba(255,255,255,0.1)'
     }}>
-      <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#f2cb05', marginRight: '2rem' }}>
+      <Link href="/" style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#f2cb05', marginRight: '2rem', textDecoration: 'none' }}>
         <span style={{ color: '#888' }}>|||</span> NIGGUN SHEET
-      </div>
+      </Link>
       <nav style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', flex: 1 }}>
         <Link href="/" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Home</Link>
         <Link href="/songs" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Songs</Link>

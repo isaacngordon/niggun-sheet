@@ -34,7 +34,8 @@ const nextConfig = {
       "connect-src 'self' https://www.googleapis.com https://sheets.googleapis.com https://accounts.google.com https://formsubmit.co https://www.google-analytics.com https://region1.google-analytics.com https://www.google.com https://stats.g.doubleclick.net",
       "frame-src 'self' blob: data: https://accounts.google.com https://content.googleapis.com https://www.youtube.com",
       "img-src 'self' data: https: https://www.google-analytics.com https://stats.g.doubleclick.net",
-      "object-src 'none'",
+      "worker-src 'self' blob:",
+      "object-src 'self'",
       "base-uri 'self'",
     ].join('; ') + ';';
 
