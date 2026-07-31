@@ -10,6 +10,8 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 export interface ImposeOptions {
   logoSrc?: string | null;
   coverText?: string;
+  /** When true, pages are imposed for RTL (right-to-left) reading — spine on the right. */
+  rtl?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,6 +68,10 @@ export async function imposeBooklet(
   const srcPageCount = srcDoc.getPageCount();
 
   const pairs = calculateBookletPairs(srcPageCount);
+  // For RTL: swap left/right in each pair so the spine sits on the right.
+  const orderedPairs: Array<[number, number]> = options.rtl
+    ? pairs.map(([l, r]) => [r, l] as [number, number])
+    : pairs;
   const outDoc = await PDFDocument.create();
   const font = await outDoc.embedFont(StandardFonts.TimesRoman);
 
@@ -88,7 +94,7 @@ export async function imposeBooklet(
     }
   }
 
-  for (const [leftPage, rightPage] of pairs) {
+  for (const [leftPage, rightPage] of orderedPairs) {
     const sheet = outDoc.addPage([W, H]);
 
     // Left half
@@ -101,7 +107,7 @@ export async function imposeBooklet(
       });
     }
 
-    // Right half — page 1 (cover) gets logo + cover text
+    // Right half
     if (rightPage > 0 && rightPage <= srcPageCount) {
       sheet.drawPage(await outDoc.embedPage(srcDoc.getPage(rightPage - 1)), {
         x: HW,
@@ -109,35 +115,38 @@ export async function imposeBooklet(
         width: HW,
         height: H,
       });
+    }
 
-      if (rightPage === 1 && (logo || options.coverText)) {
-        const cx = HW;
-        const cw = HW;
-        const ch = H;
-        if (logo) {
-          const lh = ch * 0.25;
-          const lw = cw * 0.7;
-          sheet.drawImage(logo, {
-            x: cx + (cw - lw) / 2,
-            y: ch * 0.78 - lh,
-            width: lw,
-            height: lh,
+    // Logo + cover text on the half that contains page 1
+    const coverIsOnLeft = leftPage === 1;
+    const coverIsOnRight = rightPage === 1;
+    if ((coverIsOnLeft || coverIsOnRight) && (logo || options.coverText)) {
+      const cx = coverIsOnLeft ? 0 : HW;
+      const cw = HW;
+      const ch = H;
+      if (logo) {
+        const lh = ch * 0.25;
+        const lw = cw * 0.7;
+        sheet.drawImage(logo, {
+          x: cx + (cw - lw) / 2,
+          y: ch * 0.78 - lh,
+          width: lw,
+          height: lh,
+        });
+      }
+      if (options.coverText) {
+        const ty = ch * 0.5;
+        const fs = 14;
+        const lh = fs * 1.4;
+        options.coverText.split('\n').forEach((line, i) => {
+          sheet.drawText(line, {
+            x: cx + (cw - font.widthOfTextAtSize(line, fs)) / 2,
+            y: ty - i * lh,
+            size: fs,
+            font,
+            color: rgb(0, 0, 0),
           });
-        }
-        if (options.coverText) {
-          const ty = ch * 0.5;
-          const fs = 14;
-          const lh = fs * 1.4;
-          options.coverText.split('\n').forEach((line, i) => {
-            sheet.drawText(line, {
-              x: cx + (cw - font.widthOfTextAtSize(line, fs)) / 2,
-              y: ty - i * lh,
-              size: fs,
-              font,
-              color: rgb(0, 0, 0),
-            });
-          });
-        }
+        });
       }
     }
   }

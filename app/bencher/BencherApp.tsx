@@ -726,7 +726,7 @@ export default function BencherApp() {
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch source PDF');
       const sourceBytes = await response.arrayBuffer();
-      const imposedBytes = await imposeBooklet(sourceBytes, { logoSrc, coverText });
+      const imposedBytes = await imposeBooklet(sourceBytes, { logoSrc, coverText, rtl: pageMode === '8-page' });
       downloadPdf(imposedBytes, 'bencher-booklet.pdf');
     } catch (err) {
       console.error('Booklet PDF generation failed:', err);
@@ -734,7 +734,7 @@ export default function BencherApp() {
     } finally {
       setIsDownloading(false);
     }
-  }, [coverText, logoSrc, pdfSource]);
+  }, [coverText, logoSrc, pdfSource, pageMode]);
 
   const handleDownloadStraightPdf = useCallback(async () => {
     if (!pdfSource) return;
