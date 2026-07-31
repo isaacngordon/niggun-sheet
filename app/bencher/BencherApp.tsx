@@ -48,6 +48,7 @@ import {
   rectToCss,
   skipEveryOtherLineBreakWithinWidth,
 } from './bencher-layout';
+import { imposeBooklet, makeStraightPdf, downloadPdf } from './imposeBooklet';
 
 interface Song extends SongData {
   search_title?: string;
@@ -322,6 +323,7 @@ export default function BencherApp() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
+  const [coverText, setCoverText] = useState('');
   const [showTitles, setShowTitles] = useState(true);
   const [currentPreviewPage, setCurrentPreviewPage] = useState(1);
   const [activeDragData, setActiveDragData] = useState<BencherDragData | null>(null);
@@ -337,6 +339,7 @@ export default function BencherApp() {
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [overwriteTargetId, setOverwriteTargetId] = useState('');
   const [pageFlutterDirection, setPageFlutterDirection] = useState<'forward' | 'backward' | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const overSlotRef = useRef<SlotDragData | null>(null);
   const previewSelectedSongsRef = useRef<Song[] | null>(null);
   const dragSnapshotSongsRef = useRef<Song[] | null>(null);
@@ -362,7 +365,6 @@ export default function BencherApp() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const auth = useOptionalGoogleAuth();
   const bencherPages = useMemo(() => getBencherPages(pageMode), [pageMode]);
-  // Experiment: no reversal — cover at index 0 shows alone on right
   const displayPages = useMemo(() =>
     pageMode === '8-page' ? [...bencherPages].reverse() : bencherPages,
   [bencherPages, pageMode]);
@@ -797,6 +799,42 @@ export default function BencherApp() {
     reader.readAsDataURL(file);
   }, []);
 
+  const handleDownloadBookletPdf = useCallback(async () => {
+    if (!pdfSource) return;
+    setIsDownloading(true);
+    try {
+      const url = `${pdfSource}?v=${Date.now()}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch source PDF');
+      const sourceBytes = await response.arrayBuffer();
+      const imposedBytes = await imposeBooklet(sourceBytes, { logoSrc, coverText });
+      downloadPdf(imposedBytes, 'bencher-booklet.pdf');
+    } catch (err) {
+      console.error('Booklet PDF generation failed:', err);
+      alert('Failed to generate booklet PDF. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [coverText, logoSrc, pdfSource]);
+
+  const handleDownloadStraightPdf = useCallback(async () => {
+    if (!pdfSource) return;
+    setIsDownloading(true);
+    try {
+      const url = `${pdfSource}?v=${Date.now()}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch source PDF');
+      const sourceBytes = await response.arrayBuffer();
+      const straightBytes = await makeStraightPdf(sourceBytes);
+      downloadPdf(straightBytes, 'bencher-straight.pdf');
+    } catch (err) {
+      console.error('Straight PDF generation failed:', err);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [pdfSource]);
+
   useEffect(() => {
     document.body.classList.add('bencher-active');
     return () => {
@@ -1147,9 +1185,10 @@ export default function BencherApp() {
                 </div>
 
                 <div className="sb2-toolbar-section">
-                  <div className="sb2-toolbar-section-title">Actions</div>
+                  <div className="sb2-toolbar-section-title">Download</div>
                   <div className="sb2-toolbar-action-row">
-                    <button type="button" onClick={() => window.print()} title="Print the current bencher">Print</button>
+                    <button type="button" onClick={handleDownloadBookletPdf} disabled={!pdfSource || isDownloading} title={pdfSource ? 'Download a booklet-imposed PDF ready for double-sided printing' : 'Switch to Booklet mode to download'}>{isDownloading ? 'Generating…' : 'Print Booklet'}</button>
+                    <button type="button" onClick={handleDownloadStraightPdf} disabled={!pdfSource || isDownloading} title={pdfSource ? 'Download a straight (non-imposed) PDF' : 'Switch to Booklet mode to download'}>{isDownloading ? 'Generating…' : 'Straight PDF'}</button>
                   </div>
                 </div>
 
