@@ -69,31 +69,10 @@ interface LibrarySongDragData {
 }
 
 type BencherDragData = SlotDragData | SheetSongDragData | LibrarySongDragData;
-type BencherTurnHint = { yRatio: number };
 
 const BENCHER_SONG_FONT_SIZE = 12;
 const BENCHER_DESIGN_PAGE_WIDTH = 768;
 const BENCHER_FONT_FALLBACK_WIDTH_RATIO = 4.3 / BENCHER_SONG_FONT_SIZE;
-const BENCHER_TURN_EDGE_INSET = 10;
-const BENCHER_TURN_Y_INSET = 2;
-const BENCHER_MULTI_PAGE_FLUTTER_STEP_MS = 140;
-const BENCHER_MULTI_PAGE_FLUTTER_SETTLE_MS = 420;
-
-function getBencherTurnOrigin(
-  boundsRect: { left: number; top: number; pageWidth: number; height: number },
-  direction: 'forward' | 'backward',
-  turnHint?: BencherTurnHint,
-) {
-  const useBottomCorner = (turnHint?.yRatio ?? 0) >= 0.5;
-
-  return {
-    x:
-      direction === 'forward'
-        ? boundsRect.left + boundsRect.pageWidth * 2 - BENCHER_TURN_EDGE_INSET
-        : boundsRect.left + BENCHER_TURN_EDGE_INSET,
-    y: boundsRect.top + (useBottomCorner ? boundsRect.height - BENCHER_TURN_Y_INSET : BENCHER_TURN_Y_INSET),
-  };
-}
 
 function songKey(song: SongData) {
   return `${song.title}|${song.artist}`;
@@ -338,15 +317,12 @@ export default function BencherApp() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [overwriteTargetId, setOverwriteTargetId] = useState('');
-  const [pageFlutterDirection, setPageFlutterDirection] = useState<'forward' | 'backward' | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const overSlotRef = useRef<SlotDragData | null>(null);
   const previewSelectedSongsRef = useRef<Song[] | null>(null);
   const dragSnapshotSongsRef = useRef<Song[] | null>(null);
   const currentPreviewPageRef = useRef(1);
   const isPageTurningRef = useRef(false);
-  const pageTurnFallbackRef = useRef<number | null>(null);
-  const multiPageFlutterTimeoutsRef = useRef<number[]>([]);
   const flipBookRef = useRef<{
     pageFlip: () => {
       getCurrentPageIndex: () => number;
@@ -381,13 +357,7 @@ export default function BencherApp() {
   ], [bencherLogoPlacement.pageNumber, songDropPageNumber]);
   const clampPage = useCallback((pageNumber: number) => clampBencherPage(pageNumber, bencherPageCount), [bencherPageCount]);
 
-  const clearMultiPageFlutter = useCallback(() => {
-    multiPageFlutterTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
-    multiPageFlutterTimeoutsRef.current = [];
-    setPageFlutterDirection(null);
-  }, []);
-
-  const flipToPage = useCallback((targetPage: number, turnHint?: BencherTurnHint) => {
+  const flipToPage = useCallback((targetPage: number) => {
     if (isPageTurningRef.current) {
       return;
     }
@@ -396,85 +366,34 @@ export default function BencherApp() {
     const flip = flipBookRef.current?.pageFlip();
     const sourcePage = flip ? clampPage(flip.getCurrentPageIndex() + 1) : currentPreviewPageRef.current;
 
-    if (pageTurnFallbackRef.current) {
-      window.clearTimeout(pageTurnFallbackRef.current);
-      pageTurnFallbackRef.current = null;
-    }
-
-    clearMultiPageFlutter();
-
     if (clampedTargetPage === sourcePage) {
-      currentPreviewPageRef.current = clampedTargetPage;
-      setCurrentPreviewPage(clampedTargetPage);
-      isPageTurningRef.current = false;
-      return;
-    }
-
-    if (flip && Math.abs(clampedTargetPage - sourcePage) > 1) {
-      const direction = clampedTargetPage < sourcePage ? 'backward' : 'forward';
-      const step = direction === 'forward' ? 1 : -1;
-      const flutterPages = Array.from(
-        { length: Math.abs(clampedTargetPage - sourcePage) },
-        (_, index) => sourcePage + step * (index + 1),
-      );
-
-      isPageTurningRef.current = true;
-      setPageFlutterDirection(direction);
-
-      flutterPages.forEach((pageNumber, index) => {
-        const timeoutId = window.setTimeout(() => {
-          currentPreviewPageRef.current = pageNumber;
-          setCurrentPreviewPage(pageNumber);
-
-          if (pageNumber === clampedTargetPage) {
-            flip.turnToPage(clampedTargetPage - 1);
-          }
-        }, index * BENCHER_MULTI_PAGE_FLUTTER_STEP_MS);
-
-        multiPageFlutterTimeoutsRef.current.push(timeoutId);
-      });
-
-      multiPageFlutterTimeoutsRef.current.push(window.setTimeout(() => {
-        isPageTurningRef.current = false;
-        setPageFlutterDirection(null);
-        multiPageFlutterTimeoutsRef.current = [];
-      }, flutterPages.length * BENCHER_MULTI_PAGE_FLUTTER_STEP_MS + BENCHER_MULTI_PAGE_FLUTTER_SETTLE_MS));
-
       return;
     }
 
     if (flip) {
-      isPageTurningRef.current = true;
-      const boundsRect = flip.getBoundsRect();
-      const turnOrigin = getBencherTurnOrigin(boundsRect, clampedTargetPage < sourcePage ? 'backward' : 'forward', turnHint);
-
-      if (flip.flipController?.flip) {
-        flip.flipController.flip(turnOrigin);
+      // Adjacent page: use built-in flip animation
+      if (Math.abs(clampedTargetPage - sourcePage) === 1) {
+        isPageTurningRef.current = true;
+        if (clampedTargetPage > sourcePage) {
+          flip.flipNext();
+        } else {
+          flip.flipPrev();
+        }
+        // onFlip callback will clear isPageTurningRef
+        return;
       }
 
-      pageTurnFallbackRef.current = window.setTimeout(() => {
-        const currentPage = clampPage(flip.getCurrentPageIndex() + 1);
-        if (currentPage !== clampedTargetPage || currentPreviewPageRef.current !== clampedTargetPage) {
-          flip.turnToPage(clampedTargetPage - 1);
-          currentPreviewPageRef.current = clampedTargetPage;
-          setCurrentPreviewPage(clampedTargetPage);
-        }
-        isPageTurningRef.current = false;
-        pageTurnFallbackRef.current = null;
-      }, 1100);
-    } else {
-      currentPreviewPageRef.current = clampedTargetPage;
-      setCurrentPreviewPage(clampedTargetPage);
+      // Multi-page jump: instant
+      flip.turnToPage(clampedTargetPage - 1);
     }
+
+    currentPreviewPageRef.current = clampedTargetPage;
+    setCurrentPreviewPage(clampedTargetPage);
   }, [clampPage]);
 
   const turnToPage = useCallback((targetPage: number) => {
     const clampedTargetPage = clampPage(targetPage);
     const flip = flipBookRef.current?.pageFlip();
-    if (pageTurnFallbackRef.current) {
-      window.clearTimeout(pageTurnFallbackRef.current);
-      pageTurnFallbackRef.current = null;
-    }
     if (flip) {
       flip.turnToPage(clampedTargetPage - 1);
     }
@@ -839,22 +758,10 @@ export default function BencherApp() {
     document.body.classList.add('bencher-active');
     return () => {
       document.body.classList.remove('bencher-active');
-      if (pageTurnFallbackRef.current) {
-        window.clearTimeout(pageTurnFallbackRef.current);
-        pageTurnFallbackRef.current = null;
-      }
-      clearMultiPageFlutter();
     };
-  }, [clearMultiPageFlutter]);
+  }, []);
 
   useEffect(() => {
-    if (pageTurnFallbackRef.current) {
-      window.clearTimeout(pageTurnFallbackRef.current);
-      pageTurnFallbackRef.current = null;
-    }
-
-    clearMultiPageFlutter();
-
     isPageTurningRef.current = false;
     const startPage = pageMode === '8-page' ? bencherPageCount : 1;
     currentPreviewPageRef.current = startPage;
@@ -864,7 +771,7 @@ export default function BencherApp() {
     if (flip) {
       flip.turnToPage(startPage - 1);
     }
-  }, [clearMultiPageFlutter, pageMode, bencherPageCount]);
+  }, [pageMode, bencherPageCount]);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -1205,16 +1112,9 @@ export default function BencherApp() {
 
             <div
               ref={pagesRef}
-              className={`bencher-pages ${pageFlutterDirection ? `bencher-pages-fluttering bencher-pages-fluttering-${pageFlutterDirection}` : ''}`}
+              className="bencher-pages"
               data-testid="bencher-pages"
             >
-              <div className={`bencher-page-flutter ${pageFlutterDirection ? 'is-active' : ''}`} aria-hidden>
-                <span className="bencher-page-flutter-sheet bencher-page-flutter-sheet-1" />
-                <span className="bencher-page-flutter-sheet bencher-page-flutter-sheet-2" />
-                <span className="bencher-page-flutter-sheet bencher-page-flutter-sheet-3" />
-                <span className="bencher-page-flutter-sheet bencher-page-flutter-sheet-4" />
-                <span className="bencher-page-flutter-sheet bencher-page-flutter-sheet-5" />
-              </div>
               {(() => {
                 const prevPage = clampPage(currentPreviewPage - 1);
                 const nextPage = clampPage(currentPreviewPage + 1);
@@ -1223,14 +1123,14 @@ export default function BencherApp() {
               <button type="button" className="bencher-page-turn-button bencher-page-turn-button-left"
                 aria-label={`Flip to page ${toLabel(prevPage)}`} title={`Flip to page ${toLabel(prevPage)}`}
                 data-testid="bencher-turn-left-button"
-                onClick={() => flipToPage(prevPage, { yRatio: 0.5 })} disabled={currentPreviewPage === 1}>
+                onClick={() => flipToPage(prevPage)} disabled={currentPreviewPage === 1}>
                 <span className="bencher-page-turn-button-label" aria-hidden>Page</span>
                 <span className="bencher-page-turn-button-number" aria-hidden>{toLabel(prevPage)}</span>
               </button>
               <button type="button" className="bencher-page-turn-button bencher-page-turn-button-right"
                 aria-label={`Flip to page ${toLabel(nextPage)}`} title={`Flip to page ${toLabel(nextPage)}`}
                 data-testid="bencher-turn-right-button"
-                onClick={() => flipToPage(nextPage, { yRatio: 0.5 })} disabled={currentPreviewPage === bencherPageCount}>
+                onClick={() => flipToPage(nextPage)} disabled={currentPreviewPage === bencherPageCount}>
                 <span className="bencher-page-turn-button-label" aria-hidden>Page</span>
                 <span className="bencher-page-turn-button-number" aria-hidden>{toLabel(nextPage)}</span>
               </button>
@@ -1270,10 +1170,6 @@ export default function BencherApp() {
                     isPageTurningRef.current = turning;
                   }}
                   onFlip={(event) => {
-                    if (pageTurnFallbackRef.current !== null) {
-                      window.clearTimeout(pageTurnFallbackRef.current);
-                      pageTurnFallbackRef.current = null;
-                    }
                     const nextPage = clampPage((event.data as number) + 1);
                     currentPreviewPageRef.current = nextPage;
                     isPageTurningRef.current = false;
