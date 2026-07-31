@@ -856,14 +856,15 @@ export default function BencherApp() {
     clearMultiPageFlutter();
 
     isPageTurningRef.current = false;
-    currentPreviewPageRef.current = 1;
-    setCurrentPreviewPage(1);
+    const startPage = pageMode === '8-page' ? bencherPageCount : 1;
+    currentPreviewPageRef.current = startPage;
+    setCurrentPreviewPage(startPage);
 
     const flip = flipBookRef.current?.pageFlip();
     if (flip) {
-      flip.turnToPage(0);
+      flip.turnToPage(startPage - 1);
     }
-  }, [clearMultiPageFlutter, pageMode]);
+  }, [clearMultiPageFlutter, pageMode, bencherPageCount]);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
