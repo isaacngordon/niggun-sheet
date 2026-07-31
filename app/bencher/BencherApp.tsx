@@ -362,6 +362,10 @@ export default function BencherApp() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const auth = useOptionalGoogleAuth();
   const bencherPages = useMemo(() => getBencherPages(pageMode), [pageMode]);
+  // Experiment: no reversal — cover at index 0 shows alone on right
+  const displayPages = useMemo(() =>
+    pageMode === '8-page' ? [...bencherPages].reverse() : bencherPages,
+  [bencherPages, pageMode]);
   const bencherLogoPlacement = useMemo(() => getBencherLogoPlacement(pageMode), [pageMode]);
   const bencherSongDropPlacement = useMemo(() => getBencherSongDropPlacement(pageMode), [pageMode]);
   const bencherPageCount = bencherPages.length;
@@ -841,7 +845,7 @@ export default function BencherApp() {
     return () => window.cancelAnimationFrame(frameId);
   }, [clampPage, currentPreviewPage, pageMode]);
 
-  const bencherPageNodes = useMemo(() => bencherPages.map((page) => (
+  const bencherPageNodes = useMemo(() => displayPages.map((page) => (
     <div
       key={page.pageNumber}
       className="bencher-flip-sheet"
@@ -909,7 +913,7 @@ export default function BencherApp() {
         <div className="bencher-page-footer" aria-hidden>Made with NiggunSheet.com</div>
       </div>
     </div>
-  )), [activeSlot, bencherLogoPlacement, bencherPages, bencherSongDropPlacement, designWidth, handleLogoChange, logoSrc, pageMode, pdfSource, positionedSongs, previewSongKey, removeSong, showTitles]);
+  )), [activeSlot, bencherLogoPlacement, bencherSongDropPlacement, designWidth, displayPages, handleLogoChange, logoSrc, pageMode, pdfSource, positionedSongs, previewSongKey, removeSong, showTitles]);
 
   const activeModeLabel = BENCHER_MODE_CONFIGS.find((config) => config.mode === pageMode)?.label ?? 'Double Sided';
   const pageSummary = `Page ${currentPreviewPage} of ${bencherPageCount}`;
@@ -1094,19 +1098,22 @@ export default function BencherApp() {
                 <div className="sb2-toolbar-section">
                   <div className="sb2-toolbar-section-title">Page</div>
                   <div className="sb2-column-controls" aria-label="Bencher page">
-                    {bencherPages.map((page) => (
+                    {bencherPages.map((page) => {
+                      const label = pageMode === '8-page' ? bencherPages.length + 1 - page.pageNumber : page.pageNumber;
+                      return (
                       <button
                         key={`bencher-page-nav-${page.pageNumber}`}
                         type="button"
                         className={currentPreviewPage === page.pageNumber ? 'active' : ''}
-                        aria-label={`Show page ${page.pageNumber}`}
+                        aria-label={`Show page ${label}`}
                         aria-pressed={currentPreviewPage === page.pageNumber}
                         onClick={() => flipToPage(page.pageNumber)}
-                        title={`Jump to page ${page.pageNumber}`}
+                        title={`Jump to page ${label}`}
                       >
-                        {page.pageNumber}
+                        {label}
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1169,21 +1176,25 @@ export default function BencherApp() {
                 <span className="bencher-page-flutter-sheet bencher-page-flutter-sheet-5" />
               </div>
               {(() => {
-                const previousPage = clampPage(currentPreviewPage - 1);
-                return (
-              <button
-                type="button"
-                className="bencher-page-turn-button bencher-page-turn-button-left"
-                aria-label={`Flip to page ${previousPage}`}
-                title={`Flip to page ${previousPage}`}
+                const prevPage = clampPage(currentPreviewPage - 1);
+                const nextPage = clampPage(currentPreviewPage + 1);
+                const toLabel = (p: number) => pageMode === '8-page' ? bencherPageCount + 1 - p : p;
+                return (<>
+              <button type="button" className="bencher-page-turn-button bencher-page-turn-button-left"
+                aria-label={`Flip to page ${toLabel(prevPage)}`} title={`Flip to page ${toLabel(prevPage)}`}
                 data-testid="bencher-turn-left-button"
-                onClick={() => flipToPage(previousPage, { yRatio: 0.5 })}
-                disabled={currentPreviewPage === 1}
-              >
+                onClick={() => flipToPage(prevPage, { yRatio: 0.5 })} disabled={currentPreviewPage === 1}>
                 <span className="bencher-page-turn-button-label" aria-hidden>Page</span>
-                <span className="bencher-page-turn-button-number" aria-hidden>{previousPage}</span>
+                <span className="bencher-page-turn-button-number" aria-hidden>{toLabel(prevPage)}</span>
               </button>
-                );
+              <button type="button" className="bencher-page-turn-button bencher-page-turn-button-right"
+                aria-label={`Flip to page ${toLabel(nextPage)}`} title={`Flip to page ${toLabel(nextPage)}`}
+                data-testid="bencher-turn-right-button"
+                onClick={() => flipToPage(nextPage, { yRatio: 0.5 })} disabled={currentPreviewPage === bencherPageCount}>
+                <span className="bencher-page-turn-button-label" aria-hidden>Page</span>
+                <span className="bencher-page-turn-button-number" aria-hidden>{toLabel(nextPage)}</span>
+              </button>
+                </>);
               })()}
 
               <div className="bencher-flipbook-wrap">
@@ -1206,7 +1217,7 @@ export default function BencherApp() {
                   startZIndex={10}
                   autoSize={false}
                   maxShadowOpacity={0.55}
-                  showCover={false}
+                  showCover={pageMode === '8-page'}
                   mobileScrollSupport={false}
                   clickEventForward
                   useMouseEvents={false}
@@ -1233,23 +1244,6 @@ export default function BencherApp() {
                 </HTMLFlipBook>
               </div>
 
-              {(() => {
-                const nextPage = clampPage(currentPreviewPage + 1);
-                return (
-              <button
-                type="button"
-                className="bencher-page-turn-button bencher-page-turn-button-right"
-                aria-label={`Flip to page ${nextPage}`}
-                title={`Flip to page ${nextPage}`}
-                data-testid="bencher-turn-right-button"
-                onClick={() => flipToPage(nextPage, { yRatio: 0.5 })}
-                disabled={currentPreviewPage === bencherPageCount}
-              >
-                <span className="bencher-page-turn-button-label" aria-hidden>Page</span>
-                <span className="bencher-page-turn-button-number" aria-hidden>{nextPage}</span>
-              </button>
-                );
-              })()}
             </div>
           </section>
         </main>
