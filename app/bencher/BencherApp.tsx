@@ -74,6 +74,42 @@ const BENCHER_SONG_FONT_SIZE = 12;
 const BENCHER_DESIGN_PAGE_WIDTH = 768;
 const BENCHER_FONT_FALLBACK_WIDTH_RATIO = 4.3 / BENCHER_SONG_FONT_SIZE;
 
+const COVER_FONT_OPTIONS = [
+  { value: 'times-new-roman', label: 'Times New Roman', family: '"Times New Roman", Times, serif' },
+  { value: 'georgia', label: 'Georgia', family: 'Georgia, "Times New Roman", serif' },
+  { value: 'noto-serif-hebrew', label: 'Noto Serif Hebrew', family: 'var(--font-noto-serif-hebrew), "Times New Roman", serif' },
+  { value: 'frank-ruhl-libre', label: 'Frank Ruhl Libre', family: 'var(--font-frank-ruhl-libre), "Times New Roman", serif' },
+  { value: 'arial', label: 'Arial', family: 'Arial, Helvetica, sans-serif' },
+] as const;
+
+type CoverFont = (typeof COVER_FONT_OPTIONS)[number]['value'];
+
+function OrnamentFlourish({ flipped }: { flipped?: boolean }) {
+  const src = flipped ? '/assets/ornament-flipped.png' : '/assets/ornament.png';
+  return (
+    <div className="bencher-cover-ornament" aria-hidden="true">
+      <img src={src} alt="" />
+    </div>
+  );
+}
+
+/** Fetch a public asset and return its base64 data URL. */
+async function assetToDataUrl(assetPath: string): Promise<string | null> {
+  try {
+    const res = await fetch(assetPath);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 function songKey(song: SongData) {
   return `${song.title}|${song.artist}`;
 }
@@ -294,8 +330,76 @@ function SongDropZone({
   );
 }
 
+function CoverCaptionTextarea({ value, onChange, fontFamily }: { value: string; onChange: (v: string) => void; fontFamily: string }) {
+  const [local, setLocal] = useState(value);
+  const syncedRef = useRef(value);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync external → local only when external value differs from what we last sent
+  useEffect(() => {
+    if (value !== syncedRef.current) {
+      setLocal(value);
+      syncedRef.current = value;
+    }
+  }, [value]);
+
+  const handleChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
+    const next = e.target.value;
+    setLocal(next);
+    syncedRef.current = next;
+    onChange(next);
+  }, [onChange]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    e.stopPropagation();
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+
+    const ta = e.currentTarget;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const before = local.slice(0, start);
+    const after = local.slice(end);
+
+    // Don't add a second ~ if the line before is already just a ~
+    const prevLine = before.split('\n').pop() ?? '';
+    const insert = prevLine.trim() === '~' ? '\n' : '\n~\n';
+
+    const next = before + insert + after;
+    setLocal(next);
+    syncedRef.current = next;
+    onChange(next);
+
+    // Restore cursor after the inserted text
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        const newPos = start + insert.length;
+        textareaRef.current.selectionStart = newPos;
+        textareaRef.current.selectionEnd = newPos;
+      }
+    });
+  }, [local, onChange]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      className="bencher-cover-caption-text"
+      style={{ fontFamily }}
+      value={local}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      onMouseDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      placeholder="Cover title / caption…"
+      aria-label="Cover title or caption"
+      rows={3}
+    />
+  );
+}
+
 export default function BencherApp() {
   const [pageMode, setPageMode] = useState<BencherMode>(DEFAULT_BENCHER_MODE);
+  const [hasSelectedMode, setHasSelectedMode] = useState(false);
   const [songs, setSongs] = useState<Song[]>([]);
   const [sidebarTab, setSidebarTab] = useState<'library' | 'my'>('library');
   const [search, setSearch] = useState('');
@@ -303,6 +407,8 @@ export default function BencherApp() {
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [coverText, setCoverText] = useState('');
+  const [coverFont, setCoverFont] = useState<CoverFont>('times-new-roman');
+  const [coverMode, setCoverMode] = useState<'logo' | 'caption'>('logo');
   const [showTitles, setShowTitles] = useState(true);
   const [currentPreviewPage, setCurrentPreviewPage] = useState(1);
   const [activeDragData, setActiveDragData] = useState<BencherDragData | null>(null);
@@ -714,7 +820,9 @@ export default function BencherApp() {
     }
 
     const reader = new FileReader();
-    reader.onload = () => setLogoSrc(String(reader.result ?? ''));
+    reader.onload = () => {
+      setLogoSrc(String(reader.result ?? ''));
+    };
     reader.readAsDataURL(file);
   }, []);
 
@@ -726,7 +834,14 @@ export default function BencherApp() {
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch source PDF');
       const sourceBytes = await response.arrayBuffer();
-      const imposedBytes = await imposeBooklet(sourceBytes, { logoSrc, coverText, rtl: pageMode === '8-page' });
+
+      // Load ornament PNGs from static assets
+      const [ornamentPng, ornamentPngFlipped] = await Promise.all([
+        assetToDataUrl('/assets/ornament.png'),
+        assetToDataUrl('/assets/ornament-flipped.png'),
+      ]);
+
+      const imposedBytes = await imposeBooklet(sourceBytes, { logoSrc, coverText, coverFont, ornamentPng, ornamentPngFlipped, rtl: pageMode === '8-page' });
       downloadPdf(imposedBytes, 'bencher-booklet.pdf');
     } catch (err) {
       console.error('Booklet PDF generation failed:', err);
@@ -734,7 +849,7 @@ export default function BencherApp() {
     } finally {
       setIsDownloading(false);
     }
-  }, [coverText, logoSrc, pdfSource, pageMode]);
+  }, [coverText, coverFont, logoSrc, pdfSource, pageMode]);
 
   const handleDownloadStraightPdf = useCallback(async () => {
     if (!pdfSource) return;
@@ -831,21 +946,73 @@ export default function BencherApp() {
           );
         })()}
 
-        {page.pageNumber === bencherLogoPlacement.pageNumber && (
-          <button
-            type="button"
-            className="bencher-logo-target"
+        {page.pageNumber === bencherLogoPlacement.pageNumber && coverMode === 'logo' && (
+          <>
+            <button
+              type="button"
+              className="bencher-logo-target"
+              style={rectToCss(bencherLogoPlacement.rect)}
+              onClick={() => fileInputRef.current?.click()}
+              aria-label={`Upload rectangular logo for page ${bencherLogoPlacement.pageNumber}`}
+              data-testid="bencher-logo-target"
+            >
+              {logoSrc ? <img src={logoSrc} alt="Uploaded logo" /> : <span>Upload logo</span>}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoChange} />
+            </button>
+            <div className="bencher-cover-prompt" style={rectToCss({ ...bencherLogoPlacement.rect, top: bencherLogoPlacement.rect.top + bencherLogoPlacement.rect.height + 1, height: 6 })}>
+              <button type="button" className="bencher-cover-prompt-btn" onClick={() => setCoverMode('caption')}>
+                + Add text
+              </button>
+            </div>
+          </>
+        )}
+        {page.pageNumber === bencherLogoPlacement.pageNumber && coverMode === 'caption' && (
+          <div
+            className={`bencher-cover-caption-zone${!logoSrc ? ' bencher-cover-caption-zone-no-logo' : ''}`}
             style={rectToCss(bencherLogoPlacement.rect)}
-            onClick={() => fileInputRef.current?.click()}
-            aria-label={`Upload rectangular logo for page ${bencherLogoPlacement.pageNumber}`}
-            data-testid="bencher-logo-target"
           >
-            {logoSrc ? <img src={logoSrc} alt="Uploaded logo" /> : <span>Upload logo</span>}
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoChange} />
-          </button>
+            {/* Top ornament — frames text from above */}
+            <OrnamentFlourish />
+            {logoSrc ? (
+              <>
+                <button
+                  type="button"
+                  className="bencher-cover-caption-logo"
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="Upload cover image"
+                  title="Upload cover image"
+                >
+                  <img src={logoSrc} alt="Cover image" />
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoChange} />
+                </button>
+                {/* Bottom ornament below logo */}
+                <OrnamentFlourish />
+              </>
+            ) : (
+              <>
+                {/* Textarea — borderless when no logo */}
+                <CoverCaptionTextarea value={coverText} onChange={setCoverText} fontFamily={COVER_FONT_OPTIONS.find(o => o.value === coverFont)?.family ?? COVER_FONT_OPTIONS[0].family} />
+                {/* Bottom ornament — flipped to mirror the top */}
+                <OrnamentFlourish flipped />
+                <button
+                  type="button"
+                  className="bencher-cover-caption-logo"
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="Upload cover image"
+                  title="Upload cover image"
+                >
+                  <span>+ Add image</span>
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoChange} />
+                </button>
+              </>
+            )}
+            {logoSrc && (
+              <CoverCaptionTextarea value={coverText} onChange={setCoverText} fontFamily={COVER_FONT_OPTIONS.find(o => o.value === coverFont)?.family ?? COVER_FONT_OPTIONS[0].family} />
+            )}
+          </div>
         )}
 
-        {page.pageNumber === bencherSongDropPlacement.pageNumber && (
+        {pageMode !== '8-page' && page.pageNumber === bencherSongDropPlacement.pageNumber && (
           <SongDropZone
             pagePlacement={bencherSongDropPlacement}
             positionedSongs={positionedSongs}
@@ -859,10 +1026,62 @@ export default function BencherApp() {
         <div className="bencher-page-footer" aria-hidden>Made with NiggunSheet.com</div>
       </div>
     </div>
-  )), [activeSlot, bencherLogoPlacement, bencherSongDropPlacement, designWidth, displayPages, handleLogoChange, logoSrc, pageMode, pdfSource, positionedSongs, previewSongKey, removeSong, showTitles]);
+  )), [activeSlot, bencherLogoPlacement, bencherSongDropPlacement, coverMode, designWidth, displayPages, handleLogoChange, logoSrc, pageMode, pdfSource, positionedSongs, previewSongKey, removeSong, showTitles]);
 
   const activeModeLabel = BENCHER_MODE_CONFIGS.find((config) => config.mode === pageMode)?.label ?? 'Double Sided';
   const pageSummary = `Page ${currentPreviewPage} of ${bencherPageCount}`;
+
+  const handleSelectMode = useCallback((mode: BencherMode) => {
+    setPageMode(mode);
+    setHasSelectedMode(true);
+  }, []);
+
+  if (!hasSelectedMode) {
+    return (
+      <div className="bencher-app">
+        <Header />
+        <main className="bencher-mode-picker">
+          <div className="bencher-mode-picker-inner">
+            <h1 className="bencher-mode-picker-heading">Choose Your Bencher Style</h1>
+            <p className="bencher-mode-picker-sub">Select how you want your bencher laid out. You can switch later.</p>
+            <div className="bencher-mode-picker-cards">
+              {BENCHER_MODE_CONFIGS.map((config) => (
+                <button
+                  key={config.mode}
+                  type="button"
+                  className="bencher-mode-picker-card"
+                  onClick={() => handleSelectMode(config.mode)}
+                  aria-label={`Choose ${config.label} mode`}
+                >
+                  <div className={`bencher-mode-picker-visual bencher-mode-picker-visual-${config.mode}`}>
+                    {config.mode === '2-page' ? (
+                      <div className="bencher-mode-visual-spread">
+                        <div className="bencher-mode-visual-page bencher-mode-visual-left" />
+                        <div className="bencher-mode-visual-page bencher-mode-visual-right" />
+                      </div>
+                    ) : (
+                      <div className="bencher-mode-visual-booklet">
+                        <div className="bencher-mode-visual-sheet" />
+                        <div className="bencher-mode-visual-sheet" />
+                        <div className="bencher-mode-visual-sheet" />
+                        <div className="bencher-mode-visual-sheet" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="bencher-mode-picker-card-label">{config.label}</div>
+                  <div className="bencher-mode-picker-card-desc">
+                    {config.mode === '2-page'
+                      ? 'One folded sheet — front cover, back songs. Simple and clean.'
+                      : 'Four folded sheets, saddle-stitched. Full booklet with cover and inside pages.'}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <DndContext
@@ -876,8 +1095,8 @@ export default function BencherApp() {
       <div className="bencher-app">
         <Header />
 
-        <main className="bencher-workspace">
-          <aside className="sb2-sidebar bencher-sidebar" aria-label="Song library">
+        <main className="bencher-workspace" style={pageMode === '8-page' ? { gridTemplateColumns: '1fr' } : undefined}>
+          {pageMode !== '8-page' && <aside className="sb2-sidebar bencher-sidebar" aria-label="Song library">
             <div className="sb2-sidebar-header">
               <div className="sb2-sidebar-tabs">
                 <button
@@ -960,7 +1179,7 @@ export default function BencherApp() {
                 )}
               </div>
             )}
-          </aside>
+          </aside>}
 
           <section
             className={`bencher-preview bencher-mode-${pageMode}`}
@@ -1006,6 +1225,7 @@ export default function BencherApp() {
             </div>
             <div className="sb2-toolbar bencher-actions">
               <div className="sb2-toolbar-rail bencher-actions-rail">
+                {pageMode !== '8-page' && (
                 <div className="sb2-toolbar-section">
                   <div className="sb2-toolbar-section-title">Songs</div>
                   <div className="sb2-toolbar-action-row">
@@ -1018,6 +1238,32 @@ export default function BencherApp() {
                     >
                       {showTitles ? 'Hide titles' : 'Show titles'}
                     </button>
+                  </div>
+                </div>
+                )}
+
+                <div className="sb2-toolbar-section">
+                  <div className="sb2-toolbar-section-title">Cover</div>
+                  <div className="sb2-toolbar-action-row">
+                    {coverMode === 'caption' && (
+                      <>
+                        <span className="bencher-cover-mode-hint">Caption mode — edit text on cover page</span>
+                        <select
+                          className="bencher-cover-font-select"
+                          value={coverFont}
+                          onChange={(e) => setCoverFont(e.target.value as CoverFont)}
+                          aria-label="Cover caption font"
+                          title="Choose a font for the cover text"
+                        >
+                          {COVER_FONT_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+                    {coverMode === 'logo' && (
+                      <span className="bencher-cover-mode-hint">Upload a logo on the cover page, or add text</span>
+                    )}
                   </div>
                 </div>
 
@@ -1146,10 +1392,10 @@ export default function BencherApp() {
                   width={designWidth}
                   height={designHeight}
                   size="stretch"
-                  minWidth={pageMode === '8-page' ? 900 : 450}
-                  maxWidth={pageMode === '8-page' ? 1700 : 850}
-                  minHeight={Math.round(designHeight * 0.586)}
-                  maxHeight={Math.round(designHeight * 1.107)}
+                  minWidth={0}
+                  maxWidth={0}
+                  minHeight={0}
+                  maxHeight={0}
                   startPage={0}
                   drawShadow
                   flippingTime={900}

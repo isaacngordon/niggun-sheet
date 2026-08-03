@@ -10,6 +10,12 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 export interface ImposeOptions {
   logoSrc?: string | null;
   coverText?: string;
+  /** Font family key for the cover text. */
+  coverFont?: string;
+  /** PNG data URL for the ornamental flourish (top). */
+  ornamentPng?: string | null;
+  /** PNG data URL for the flipped ornamental flourish (bottom). */
+  ornamentPngFlipped?: string | null;
   /** When true, pages are imposed for RTL (right-to-left) reading — spine on the right. */
   rtl?: boolean;
 }
@@ -73,7 +79,11 @@ export async function imposeBooklet(
     ? pairs.map(([l, r]) => [r, l] as [number, number])
     : pairs;
   const outDoc = await PDFDocument.create();
-  const font = await outDoc.embedFont(StandardFonts.TimesRoman);
+  // Pick a PDF built-in font based on the cover font choice.
+  // Sans-serif keys ('arial') map to Helvetica; everything else maps to TimesRoman.
+  const fontKey =
+    options.coverFont === 'arial' ? StandardFonts.Helvetica : StandardFonts.TimesRoman;
+  const font = await outDoc.embedFont(fontKey);
 
   // Landscape letter: 11″ × 8.5″  at 72 dpi
   const W = 792;
@@ -89,6 +99,28 @@ export async function imposeBooklet(
       logo = options.logoSrc.startsWith('data:image/png')
         ? await outDoc.embedPng(bytes)
         : await outDoc.embedJpg(bytes);
+    } catch {
+      /* skip */
+    }
+  }
+
+  // Embed ornaments if provided
+  let ornamentImg: Awaited<ReturnType<typeof outDoc.embedPng>> | null = null;
+  let ornamentImgFlipped: Awaited<ReturnType<typeof outDoc.embedPng>> | null = null;
+  if (options.ornamentPng) {
+    try {
+      const b64 = options.ornamentPng.split(',')[1] || options.ornamentPng;
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      ornamentImg = await outDoc.embedPng(bytes);
+    } catch {
+      /* skip */
+    }
+  }
+  if (options.ornamentPngFlipped) {
+    try {
+      const b64 = options.ornamentPngFlipped.split(',')[1] || options.ornamentPngFlipped;
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      ornamentImgFlipped = await outDoc.embedPng(bytes);
     } catch {
       /* skip */
     }
@@ -117,28 +149,74 @@ export async function imposeBooklet(
       });
     }
 
-    // Logo + cover text on the half that contains page 1
+    // Logo + cover text + ornament on the half that contains page 1
     const coverIsOnLeft = leftPage === 1;
     const coverIsOnRight = rightPage === 1;
     if ((coverIsOnLeft || coverIsOnRight) && (logo || options.coverText)) {
       const cx = coverIsOnLeft ? 0 : HW;
       const cw = HW;
       const ch = H;
+
+      /** Draw a pre-rendered ornament PNG at the given y (center-line). */
+      const drawOrnamentImg = (img: typeof ornamentImg, cy: number, oheight: number) => {
+        if (!img) return;
+        const ow = cw * 0.72;
+        const oh = oheight;
+        const ox = cx + (cw - ow) / 2;
+        sheet.drawImage(img, {
+          x: ox,
+          y: cy - oh / 2,
+          width: ow,
+          height: oh,
+        });
+      };
+
+      const ORN_HEIGHT = 22;
+
       if (logo) {
-        const lh = ch * 0.25;
-        const lw = cw * 0.7;
+        const imgW = logo.width;
+        const imgH = logo.height;
+        const margin = cw * 0.08;
+        const maxW = cw - margin * 2;
+        const maxH = options.coverText ? ch * 0.48 : ch * 0.6;
+        const scale = Math.min(maxW / imgW, maxH / imgH);
+        const lw = imgW * scale;
+        const lh = imgH * scale;
+        const logoY = options.coverText
+          ? ch * 0.45 + (maxH - lh) / 2
+          : (ch - lh) / 2;
+
+        // Ornament above logo
+        drawOrnamentImg(ornamentImg, logoY + lh + ORN_HEIGHT + 6, ORN_HEIGHT);
+
+        // Draw the logo
         sheet.drawImage(logo, {
           x: cx + (cw - lw) / 2,
-          y: ch * 0.78 - lh,
+          y: logoY,
           width: lw,
           height: lh,
         });
+
+        // Ornament below logo
+        drawOrnamentImg(ornamentImg, logoY - ORN_HEIGHT - 6, ORN_HEIGHT);
       }
+
       if (options.coverText) {
-        const ty = ch * 0.5;
-        const fs = 14;
+        const hasLogo = !!logo;
+        const ty = hasLogo ? ch * 0.42 : ch * 0.60;
+        const fs = hasLogo ? 14 : 18;
         const lh = fs * 1.4;
-        options.coverText.split('\n').forEach((line, i) => {
+        const lines = options.coverText.split('\n');
+
+        // Draw ornaments above and below text (when no logo)
+        if (!hasLogo) {
+          const textTop = ty;
+          const textBottom = ty - (lines.length - 1) * lh;
+          drawOrnamentImg(ornamentImg, textTop + lh + ORN_HEIGHT + 8, ORN_HEIGHT);
+          drawOrnamentImg(ornamentImgFlipped, textBottom - lh - ORN_HEIGHT - 4, ORN_HEIGHT);
+        }
+
+        lines.forEach((line, i) => {
           sheet.drawText(line, {
             x: cx + (cw - font.widthOfTextAtSize(line, fs)) / 2,
             y: ty - i * lh,

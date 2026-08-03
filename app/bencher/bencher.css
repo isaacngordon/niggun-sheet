@@ -7,6 +7,146 @@
   overflow: hidden;
 }
 
+/* ── Mode Picker (initial selection screen) ── */
+
+.bencher-mode-picker {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  overflow-y: auto;
+}
+
+.bencher-mode-picker-inner {
+  max-width: 900px;
+  width: 100%;
+  text-align: center;
+}
+
+.bencher-mode-picker-heading {
+  font-family: var(--font-frank-ruhl-libre), serif;
+  font-size: 2rem;
+  margin: 0 0 8px;
+  color: #f7f2df;
+}
+
+.bencher-mode-picker-sub {
+  font-size: 0.95rem;
+  color: rgba(247, 242, 223, 0.6);
+  margin: 0 0 40px;
+}
+
+.bencher-mode-picker-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.bencher-mode-picker-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 20px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: #1a1a1a;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  text-align: center;
+}
+
+.bencher-mode-picker-card:hover,
+.bencher-mode-picker-card:focus-visible {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: #222;
+}
+
+.bencher-mode-picker-visual {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+/* Double Sided — open spread */
+.bencher-mode-visual-spread {
+  display: flex;
+  gap: 2px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+
+.bencher-mode-visual-page {
+  width: 80px;
+  height: 110px;
+  background: #f7f2df;
+  border-radius: 2px;
+  border: 1px solid rgba(0,0,0,0.2);
+}
+
+.bencher-mode-visual-left {
+  border-right: 1px solid rgba(0,0,0,0.15);
+}
+
+.bencher-mode-visual-right {
+  border-left: 1px solid rgba(0,0,0,0.15);
+}
+
+/* Booklet — stacked pages */
+.bencher-mode-visual-booklet {
+  position: relative;
+  width: 100px;
+  height: 130px;
+}
+
+.bencher-mode-visual-sheet {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #f7f2df;
+  border: 1px solid rgba(0,0,0,0.25);
+  border-radius: 2px;
+}
+
+.bencher-mode-visual-sheet:nth-child(1) {
+  transform: rotate(-3deg) translate(-3px, 1px);
+  z-index: 4;
+}
+.bencher-mode-visual-sheet:nth-child(2) {
+  transform: rotate(1deg) translate(2px, -2px);
+  z-index: 3;
+}
+.bencher-mode-visual-sheet:nth-child(3) {
+  transform: rotate(-2deg) translate(-1px, 3px);
+  z-index: 2;
+}
+.bencher-mode-visual-sheet:nth-child(4) {
+  transform: rotate(2deg) translate(3px, -1px);
+  z-index: 1;
+}
+
+.bencher-mode-picker-card-label {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f7f2df;
+}
+
+.bencher-mode-picker-card-desc {
+  font-size: 0.8rem;
+  color: rgba(247, 242, 223, 0.55);
+  line-height: 1.5;
+  max-width: 260px;
+}
+
+@media (max-width: 620px) {
+  .bencher-mode-picker-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
 .bencher-workspace {
   display: grid;
   flex: 1;
@@ -749,11 +889,8 @@
 
 .bencher-mode-8-page .bencher-flipbook {
   margin: 0 auto !important;
-  width: auto !important;
   max-width: 100% !important;
-  height: 100% !important;
   max-height: 100% !important;
-  aspect-ratio: auto !important;
 }
 
 .bencher-mode-8-page .bencher-page-turn-button-left {
@@ -881,6 +1018,170 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+/* Cover caption mode */
+.bencher-cover-caption-zone {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.bencher-cover-caption-logo {
+  flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2px dashed rgba(255, 212, 48, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #171717;
+  font-weight: 800;
+  cursor: pointer;
+  min-height: 0;
+  max-height: 50%;
+}
+
+/* When no logo: text is the title — sits in the top third, logo prompt is small at the bottom */
+.bencher-cover-caption-zone-no-logo {
+  /* use normal column order: ornament → text → ornament(flipped) → button */
+}
+
+.bencher-cover-caption-zone-no-logo .bencher-cover-caption-logo {
+  flex: 0 0 auto;
+  max-height: none;
+  height: auto;
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-style: dotted;
+  border-color: rgba(255, 212, 48, 0.45);
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.bencher-cover-caption-zone-no-logo .bencher-cover-caption-text {
+  flex: 1 1 auto;
+  padding-top: 8%;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.bencher-cover-ornament {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 0;
+  pointer-events: none;
+}
+
+.bencher-cover-ornament img {
+  width: 200px;
+  height: auto;
+  max-width: 85%;
+  display: block;
+}
+
+/* When logo is present, second ornament gets a touch more breathing room */
+.bencher-cover-caption-zone:not(.bencher-cover-caption-zone-no-logo) .bencher-cover-ornament:last-of-type {
+  padding-bottom: 4px;
+}
+
+/* No-logo: ornament is the separator between title and add-image prompt */
+.bencher-cover-caption-zone-no-logo .bencher-cover-ornament {
+  padding: 8px 0 4px;
+}
+
+.bencher-cover-caption-logo input {
+  display: none;
+}
+
+.bencher-cover-caption-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.bencher-cover-caption-text {
+  flex: 1 1 50%;
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 1.3rem;
+  color: #000;
+  background: rgba(255, 255, 255, 0.92);
+  resize: none;
+  line-height: 1.4;
+  text-align: center;
+  min-height: 0;
+  pointer-events: auto;
+  z-index: 5;
+  position: relative;
+}
+
+.bencher-cover-caption-text::placeholder {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+}
+
+.bencher-cover-mode-hint {
+  font-size: 0.7rem;
+  color: #888;
+  font-style: italic;
+}
+
+.bencher-cover-font-select {
+  font-size: 0.75rem;
+  padding: 3px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  background: #1a1a1a;
+  color: #f7f2df;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.bencher-cover-font-select:focus {
+  outline: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Cover prompt ("Add text?" / "Just the picture") */
+.bencher-cover-prompt {
+  position: absolute;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.bencher-cover-prompt-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 212, 48, 0.9);
+  background: rgba(255, 255, 255, 0.95);
+  color: #171717;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bencher-cover-prompt-btn-secondary {
+  border-color: rgba(0, 0, 0, 0.2);
+  font-weight: 500;
+}
+
+.bencher-cover-prompt-btn:hover {
+  background: rgba(255, 212, 48, 0.15);
 }
 
 .bencher-song-drop-zone {
