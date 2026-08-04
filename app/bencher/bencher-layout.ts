@@ -39,6 +39,7 @@ export const BENCHER_MODE_CONFIGS: BencherModeConfig[] = [
     label: 'Double Sided',
     designWidth: 768,
     designHeight: 994,
+    pdfSource: '/assets/bencher/PDF1_2pg.pdf',
     pages: [
       { pageNumber: 1, background: '/assets/bencher/Bencher-2pg-p1.svg' },
       { pageNumber: 2, background: '/assets/bencher/Bencher-2pg-p2.svg' },

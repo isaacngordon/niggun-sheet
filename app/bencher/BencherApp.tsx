@@ -12,7 +12,6 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
-import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import HTMLFlipBook from 'react-pageflip';
 import AddSongModal from '@/components/AddSongModal';
@@ -48,7 +47,7 @@ import {
   rectToCss,
   skipEveryOtherLineBreakWithinWidth,
 } from './bencher-layout';
-import { imposeBooklet, makeStraightPdf, downloadPdf } from './imposeBooklet';
+import { imposeBooklet, makeStraightPdf, generateTwoPagePdf, downloadPdf } from './imposeBooklet';
 
 interface Song extends SongData {
   search_title?: string;
@@ -841,15 +840,25 @@ export default function BencherApp() {
         assetToDataUrl('/assets/ornament-flipped.png'),
       ]);
 
-      const imposedBytes = await imposeBooklet(sourceBytes, { logoSrc, coverText, coverFont, ornamentPng, ornamentPngFlipped, rtl: pageMode === '8-page' });
-      downloadPdf(imposedBytes, 'bencher-booklet.pdf');
+      const opts = { logoSrc, coverText, coverFont, ornamentPng, ornamentPngFlipped, rtl: pageMode === '8-page' };
+
+      let pdfBytes: Uint8Array;
+      if (pageMode === '2-page') {
+        pdfBytes = await generateTwoPagePdf(sourceBytes, {
+          ...opts,
+          songs: selectedSongs.map(s => ({ title: s.title, artist: s.artist, lyrics: s.lyrics })),
+        });
+      } else {
+        pdfBytes = await imposeBooklet(sourceBytes, opts);
+      }
+      downloadPdf(pdfBytes, pageMode === '2-page' ? 'bencher-two-sided.pdf' : 'bencher-booklet.pdf');
     } catch (err) {
-      console.error('Booklet PDF generation failed:', err);
-      alert('Failed to generate booklet PDF. Please try again.');
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate PDF. Please try again.');
     } finally {
       setIsDownloading(false);
     }
-  }, [coverText, coverFont, logoSrc, pdfSource, pageMode]);
+  }, [coverText, coverFont, logoSrc, pdfSource, pageMode, selectedSongs]);
 
   const handleDownloadStraightPdf = useCallback(async () => {
     if (!pdfSource) return;
@@ -946,7 +955,7 @@ export default function BencherApp() {
           );
         })()}
 
-        {page.pageNumber === bencherLogoPlacement.pageNumber && coverMode === 'logo' && (
+        {pageMode === '8-page' && page.pageNumber === bencherLogoPlacement.pageNumber && coverMode === 'logo' && (
           <>
             <button
               type="button"
@@ -966,13 +975,11 @@ export default function BencherApp() {
             </div>
           </>
         )}
-        {page.pageNumber === bencherLogoPlacement.pageNumber && coverMode === 'caption' && (
+        {pageMode === '8-page' && page.pageNumber === bencherLogoPlacement.pageNumber && coverMode === 'caption' && (
           <div
             className={`bencher-cover-caption-zone${!logoSrc ? ' bencher-cover-caption-zone-no-logo' : ''}`}
             style={rectToCss(bencherLogoPlacement.rect)}
           >
-            {/* Top ornament — frames text from above */}
-            <OrnamentFlourish />
             {logoSrc ? (
               <>
                 <button
@@ -985,14 +992,13 @@ export default function BencherApp() {
                   <img src={logoSrc} alt="Cover image" />
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoChange} />
                 </button>
-                {/* Bottom ornament below logo */}
+                {/* Ornaments drawn on top of the logo */}
                 <OrnamentFlourish />
+                <OrnamentFlourish flipped />
               </>
             ) : (
               <>
-                {/* Textarea — borderless when no logo */}
                 <CoverCaptionTextarea value={coverText} onChange={setCoverText} fontFamily={COVER_FONT_OPTIONS.find(o => o.value === coverFont)?.family ?? COVER_FONT_OPTIONS[0].family} />
-                {/* Bottom ornament — flipped to mirror the top */}
                 <OrnamentFlourish flipped />
                 <button
                   type="button"
@@ -1026,7 +1032,7 @@ export default function BencherApp() {
         <div className="bencher-page-footer" aria-hidden>Made with NiggunSheet.com</div>
       </div>
     </div>
-  )), [activeSlot, bencherLogoPlacement, bencherSongDropPlacement, coverMode, designWidth, displayPages, handleLogoChange, logoSrc, pageMode, pdfSource, positionedSongs, previewSongKey, removeSong, showTitles]);
+  )), [activeSlot, bencherLogoPlacement, bencherSongDropPlacement, coverFont, coverMode, designWidth, displayPages, handleLogoChange, logoSrc, pageMode, pdfSource, positionedSongs, previewSongKey, removeSong, showTitles]);
 
   const activeModeLabel = BENCHER_MODE_CONFIGS.find((config) => config.mode === pageMode)?.label ?? 'Double Sided';
   const pageSummary = `Page ${currentPreviewPage} of ${bencherPageCount}`;
@@ -1071,8 +1077,8 @@ export default function BencherApp() {
                   <div className="bencher-mode-picker-card-label">{config.label}</div>
                   <div className="bencher-mode-picker-card-desc">
                     {config.mode === '2-page'
-                      ? 'One folded sheet — front cover, back songs. Simple and clean.'
-                      : 'Four folded sheets, saddle-stitched. Full booklet with cover and inside pages.'}
+                      ? 'One folded sheet — drag songs onto the back page. Simple and clean.'
+                      : 'Full booklet — upload a logo and add cover text. Songs not available in this mode.'}
                   </div>
                 </button>
               ))}
@@ -1242,6 +1248,7 @@ export default function BencherApp() {
                 </div>
                 )}
 
+                {pageMode === '8-page' && (
                 <div className="sb2-toolbar-section">
                   <div className="sb2-toolbar-section-title">Cover</div>
                   <div className="sb2-toolbar-action-row">
@@ -1264,8 +1271,19 @@ export default function BencherApp() {
                     {coverMode === 'logo' && (
                       <span className="bencher-cover-mode-hint">Upload a logo on the cover page, or add text</span>
                     )}
+                    {(logoSrc || coverText) && (
+                      <button
+                        type="button"
+                        className="bencher-cover-clear-btn"
+                        onClick={() => { setLogoSrc(null); setCoverText(''); setCoverMode('logo'); }}
+                        title="Remove logo and cover text"
+                      >
+                        Clear cover
+                      </button>
+                    )}
                   </div>
                 </div>
+                )}
 
                 <div className="sb2-toolbar-section">
                   <div className="sb2-toolbar-section-title">Style</div>
@@ -1341,17 +1359,15 @@ export default function BencherApp() {
                 <div className="sb2-toolbar-section">
                   <div className="sb2-toolbar-section-title">Download</div>
                   <div className="sb2-toolbar-action-row">
-                    <button type="button" onClick={handleDownloadBookletPdf} disabled={!pdfSource || isDownloading} title={pdfSource ? 'Download a booklet-imposed PDF ready for double-sided printing' : 'Switch to Booklet mode to download'}>{isDownloading ? 'Generating…' : 'Print Booklet'}</button>
-                    <button type="button" onClick={handleDownloadStraightPdf} disabled={!pdfSource || isDownloading} title={pdfSource ? 'Download a straight (non-imposed) PDF' : 'Switch to Booklet mode to download'}>{isDownloading ? 'Generating…' : 'Straight PDF'}</button>
+                    <button type="button" className="bencher-download-btn" onClick={handleDownloadBookletPdf} disabled={!pdfSource || isDownloading} title={pdfSource ? 'Download a print-ready PDF' : 'No PDF available for this mode'}>{isDownloading ? 'Generating…' : pageMode === '2-page' ? 'Download PDF' : 'Print Booklet'}</button>
+                    {pageMode === '8-page' && (
+                      <button type="button" className="bencher-download-btn" onClick={handleDownloadStraightPdf} disabled={!pdfSource || isDownloading} title={pdfSource ? 'Download a straight (non-imposed) PDF' : 'Switch to Booklet mode to download'}>{isDownloading ? 'Generating…' : 'Straight PDF'}</button>
+                    )}
                   </div>
                 </div>
 
                 <div className="sb2-toolbar-status-wrap bencher-mode-switch-wrap">
                   <div className="sb2-status bencher-status">{pageSummary}</div>
-                  <div className="sb2-builder-mode-switch bencher-builder-mode-switch" aria-label="Builder mode">
-                    <Link className="sb2-builder-mode-option" href="/sheet-builder" title="Switch to Sheet Builder">Sheet Mode</Link>
-                    <button type="button" className="sb2-builder-mode-option active" aria-pressed="true" title="You are in Bencher Mode">Bencher Mode</button>
-                  </div>
                 </div>
               </div>
             </div>

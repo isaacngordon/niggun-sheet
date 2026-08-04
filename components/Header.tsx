@@ -59,6 +59,7 @@ export default function Header() {
         <div>
           <HeaderAuthControls />
         </div>
+        {!pathname.startsWith('/bencher') && (
         <NiggunSheetDownloadButton
           style={{ 
             borderRadius: '20px', 
@@ -72,6 +73,7 @@ export default function Header() {
         >
           Download Sheet
         </NiggunSheetDownloadButton>
+        )}
       </div>
     </header>
   );

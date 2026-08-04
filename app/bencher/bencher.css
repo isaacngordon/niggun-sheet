@@ -1087,9 +1087,25 @@
   display: block;
 }
 
-/* When logo is present, second ornament gets a touch more breathing room */
+/* When logo is present, ornaments overlay the logo at absolute top/bottom */
+.bencher-cover-caption-zone:not(.bencher-cover-caption-zone-no-logo) .bencher-cover-ornament {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: 0;
+}
+
+.bencher-cover-caption-zone:not(.bencher-cover-caption-zone-no-logo) .bencher-cover-ornament:first-of-type {
+  top: 2px;
+}
+
 .bencher-cover-caption-zone:not(.bencher-cover-caption-zone-no-logo) .bencher-cover-ornament:last-of-type {
-  padding-bottom: 4px;
+  bottom: 2px;
+}
+
+.bencher-cover-caption-zone:not(.bencher-cover-caption-zone-no-logo) .bencher-cover-caption-logo {
+  flex: 1 1 auto;
+  max-height: none;
 }
 
 /* No-logo: ornament is the separator between title and add-image prompt */
@@ -1113,7 +1129,6 @@
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 6px;
   padding: 8px 10px;
-  font-family: 'Times New Roman', Times, serif;
   font-size: 1.3rem;
   color: #000;
   background: rgba(255, 255, 255, 0.92);
@@ -1151,6 +1166,22 @@
 
 .bencher-cover-font-select:focus {
   outline: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.bencher-cover-clear-btn {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.bencher-cover-clear-btn:hover {
+  color: #f2cb05;
+  border-color: #f2cb05;
 }
 
 /* Cover prompt ("Add text?" / "Just the picture") */
@@ -1237,6 +1268,21 @@
   text-align: center;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ── Download buttons ── */
+
+.bencher-download-btn {
+  background: #f2cb05 !important;
+  color: #1a1a1a !important;
+  border-color: #f2cb05 !important;
+  font-weight: 700;
+}
+
+.bencher-download-btn:disabled {
+  background: #444 !important;
+  color: #888 !important;
+  border-color: #444 !important;
 }
 
 .bencher-sheet-builder-grid .sb2-drop-slot-expanded {
