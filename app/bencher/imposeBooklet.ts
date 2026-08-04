@@ -1,433 +1,194 @@
 'use client';
 
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-
-// ---------------------------------------------------------------------------
-// Booklet imposition adapted from bookbinder-js (MPL-2.0)
-// https://github.com/momijizukamori/bookbinder-js
-// ---------------------------------------------------------------------------
+import { jsPDF } from 'jspdf';
 
 export interface ImposeOptions {
   logoSrc?: string | null;
   coverText?: string;
-  /** Font family key for the cover text. */
   coverFont?: string;
-  /** PNG data URL for the ornamental flourish (top). */
   ornamentPng?: string | null;
-  /** PNG data URL for the flipped ornamental flourish (bottom). */
   ornamentPngFlipped?: string | null;
-  /** Songs to render on the back page (2-page mode only). */
   songs?: Array<{ title: string; artist: string; lyrics: string }>;
-  /** When true, pages are imposed for RTL (right-to-left) reading — spine on the right. */
   rtl?: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Booklet page-pair calculation  (algorithm from bookbinder-js Signatures.booklet)
-// ---------------------------------------------------------------------------
+// ── Font ──
+async function ensureFont(pdf: jsPDF) {
+  try {
+    // Always add to this instance; VFS is global but addFont is per-instance
+    if (!pdf.getFontList()['FrankRuhlLibre']) {
+      const res = await fetch('/assets/fonts/FrankRuhlLibre-400.ttf');
+      if (res.ok) {
+        const buf = await res.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        let bin = '';
+        for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+        pdf.addFileToVFS('FrankRuhlLibre-Regular.ttf', btoa(bin));
+        pdf.addFont('FrankRuhlLibre-Regular.ttf', 'FrankRuhlLibre', 'normal');
+      }
+    }
+  } catch (e) { console.warn('Font load failed:', e); }
+}
 
-/**
- * Calculate saddle-stitch booklet page pairs for a given page count.
- * Uses the standard formula: for n pages (multiple of 4), sheet i has:
- *   front: [n−2i, 2i+1]   back: [2i+2, n−2i−1]
- * Returns `[leftPage, rightPage]` for every half-sheet, in print order
- * (all fronts outermost→innermost, then all backs outermost→innermost).
- * Page numbers are 1-based; `0` means a blank placeholder.
- */
+// ── PDF page → image (high-res) ──
+const PDFJS_URL = 'https://unpkg.com/pdfjs-dist@5.4.296/legacy/build/pdf.min.mjs';
+const WORKER_URL = 'https://unpkg.com/pdfjs-dist@5.4.296/legacy/build/pdf.worker.min.mjs';
+
+async function renderPages(pdfBytes: ArrayBuffer, count: number, targetW: number): Promise<Array<string | null>> {
+  const out: Array<string | null> = [];
+  try {
+    const pdfjs = await import(/* webpackIgnore: true */ PDFJS_URL);
+    pdfjs.GlobalWorkerOptions.workerSrc = WORKER_URL;
+    const doc = await pdfjs.getDocument({ data: pdfBytes }).promise;
+    console.log(`PDF has ${doc.numPages} pages, rendering ${count} at ${targetW}px wide`);
+    for (let i = 0; i < count && i < doc.numPages; i++) {
+      try {
+        const page = await doc.getPage(i + 1);
+        const vp = page.getViewport({ scale: 1 });
+        const s = targetW / vp.width;
+        const svp = page.getViewport({ scale: s });
+        const c = document.createElement('canvas');
+        c.width = svp.width; c.height = svp.height;
+        await page.render({ canvasContext: c.getContext('2d')!, viewport: svp }).promise;
+        out.push(c.toDataURL('image/png'));
+      } catch (e) {
+        console.warn(`Page ${i + 1} render failed:`, e);
+        out.push(null);
+      }
+    }
+  } catch (e) { console.warn('PDF render failed:', e); }
+  return out;
+}
+
+// ── Booklet pairs ──
 export function calculateBookletPairs(pageCount: number): Array<[number, number]> {
-  const padded = Math.ceil(pageCount / 4) * 4;
-  const totalSheets = padded / 4;
+  const pad = Math.ceil(pageCount / 4) * 4;
+  const sheets = pad / 4;
   const pairs: Array<[number, number]> = [];
-
-  for (let sheet = 0; sheet < totalSheets; sheet++) {
-    const leftOuter = padded - 2 * sheet;
-    const rightOuter = 2 * sheet + 1;
-    const leftInner = 2 * sheet + 2;
-    const rightInner = padded - 2 * sheet - 1;
-
-    // Front side
-    pairs.push([
-      leftOuter <= pageCount ? leftOuter : 0,
-      rightOuter <= pageCount ? rightOuter : 0,
-    ]);
-    // Back side
-    pairs.push([
-      leftInner <= pageCount ? leftInner : 0,
-      rightInner <= pageCount ? rightInner : 0,
-    ]);
+  for (let s = 0; s < sheets; s++) {
+    pairs.push([pad - 2 * s, 2 * s + 1]);
+    pairs.push([2 * s + 2, pad - 2 * s - 1]);
   }
-
-  return pairs;
+  return pairs.map(([a, b]) => [a <= pageCount ? a : 0, b <= pageCount ? b : 0]);
 }
 
-// ---------------------------------------------------------------------------
-// PDF generation
-// ---------------------------------------------------------------------------
+// ── Ornament helper ──
+function orn(pdf: jsPDF, img: string | null | undefined, cx: number, cy: number, w: number, h: number) {
+  if (!img) return;
+  try { pdf.addImage(img, 'PNG', cx - w / 2, cy - h / 2, w, h); } catch { /* skip */ }
+}
 
-/**
- * Build an imposed (booklet-ready) PDF: landscape letter sheets, two
- * half-letter pages per side, ordered for saddle-stitch binding.
- */
-export async function imposeBooklet(
-  sourcePdfBytes: ArrayBuffer,
-  options: ImposeOptions = {},
-): Promise<Uint8Array> {
-  const srcDoc = await PDFDocument.load(sourcePdfBytes);
-  const srcPageCount = srcDoc.getPageCount();
+// ── Cover overlay ──
+function cover(pdf: jsPDF, x: number, y: number, w: number, h: number, opts: ImposeOptions) {
+  const OH = 22;
+  const F = 'FrankRuhlLibre';
 
-  const pairs = calculateBookletPairs(srcPageCount);
-  // For RTL: swap left/right in each pair so the spine sits on the right.
-  const orderedPairs: Array<[number, number]> = options.rtl
-    ? pairs.map(([l, r]) => [r, l] as [number, number])
-    : pairs;
-  const outDoc = await PDFDocument.create();
-  // Pick a PDF built-in font based on the cover font choice.
-  // Sans-serif keys ('arial') map to Helvetica; everything else maps to TimesRoman.
-  const fontKey =
-    options.coverFont === 'arial' ? StandardFonts.Helvetica : StandardFonts.TimesRoman;
-  const font = await outDoc.embedFont(fontKey);
-
-  // Landscape letter: 11″ × 8.5″  at 72 dpi
-  const W = 792;
-  const H = 612;
-  const HW = W / 2; // half-width for one imposed page
-
-  // Embed logo if provided
-  let logo: Awaited<ReturnType<typeof outDoc.embedPng>> | null = null;
-  if (options.logoSrc) {
-    try {
-      const b64 = options.logoSrc.split(',')[1] || options.logoSrc;
-      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-      logo = options.logoSrc.startsWith('data:image/png')
-        ? await outDoc.embedPng(bytes)
-        : await outDoc.embedJpg(bytes);
-    } catch {
-      /* skip */
+  if (opts.logoSrc) {
+    const img = new Image(); img.src = opts.logoSrc;
+    if (img.complete) {
+      const m = w * 0.08, maxW = w - m * 2;
+      const maxH = opts.coverText ? h * 0.35 : h * 0.5;
+      const s = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
+      const lw = img.naturalWidth * s, lh = img.naturalHeight * s;
+      const ly = y + (opts.coverText ? h * 0.12 + (maxH - lh) / 2 : (h - lh) / 2);
+      pdf.addImage(img, 'PNG', x + (w - lw) / 2, ly, lw, lh);
+      const ow = w * 0.72;
+      orn(pdf, opts.ornamentPng, x + w / 2, y + 50, ow, OH);
+      orn(pdf, opts.ornamentPngFlipped, x + w / 2, y + h - 50, ow, OH);
     }
   }
 
-  // Embed ornaments if provided
-  let ornamentImg: Awaited<ReturnType<typeof outDoc.embedPng>> | null = null;
-  let ornamentImgFlipped: Awaited<ReturnType<typeof outDoc.embedPng>> | null = null;
-  if (options.ornamentPng) {
-    try {
-      const b64 = options.ornamentPng.split(',')[1] || options.ornamentPng;
-      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-      ornamentImg = await outDoc.embedPng(bytes);
-    } catch {
-      /* skip */
+  if (opts.coverText) {
+    const hasLogo = !!opts.logoSrc;
+    const ty = y + (hasLogo ? h * 0.55 : h * 0.30);
+    const fs = hasLogo ? 14 : 18, lh = fs * 1.4;
+    const lines = opts.coverText.split('\n');
+    if (!hasLogo) {
+      const tb = ty + (lines.length - 1) * lh, ow = w * 0.72;
+      orn(pdf, opts.ornamentPng, x + w / 2, ty - OH - 8, ow, OH);
+      orn(pdf, opts.ornamentPngFlipped, x + w / 2, tb + lh + 4, ow, OH);
     }
+    pdf.setFont(F, 'normal'); pdf.setFontSize(fs); pdf.setTextColor(0, 0, 0);
+    lines.forEach((line, i) => { pdf.text(line, x + (w - pdf.getTextWidth(line)) / 2, ty + i * lh); });
   }
-  if (options.ornamentPngFlipped) {
-    try {
-      const b64 = options.ornamentPngFlipped.split(',')[1] || options.ornamentPngFlipped;
-      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-      ornamentImgFlipped = await outDoc.embedPng(bytes);
-    } catch {
-      /* skip */
-    }
+}
+
+// ── Imposed booklet PDF ──
+export async function imposeBooklet(sourcePdfBytes: ArrayBuffer, options: ImposeOptions = {}): Promise<Uint8Array> {
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+  await ensureFont(pdf);
+  const pageW = 792, pageH = 612, halfW = pageW / 2;
+  const images = await renderPages(sourcePdfBytes, 8, halfW * 4);
+  const actualPageCount = images.filter(i => i !== null).length;
+  const pairs = calculateBookletPairs(Math.max(actualPageCount, 8));
+  const ordered = options.rtl ? pairs.map(([l, r]) => [r, l] as [number, number]) : pairs;
+
+  for (let idx = 0; idx < ordered.length; idx++) {
+    if (idx > 0) pdf.addPage([pageW, pageH]);
+    const [l, r] = ordered[idx];
+    if (l > 0 && images[l - 1]) pdf.addImage(images[l - 1]!, 'PNG', 0, 0, halfW, pageH, undefined, 'FAST');
+    if (r > 0 && images[r - 1]) pdf.addImage(images[r - 1]!, 'PNG', halfW, 0, halfW, pageH, undefined, 'FAST');
+    if (l === 1) cover(pdf, 0, 0, halfW, pageH, options);
+    else if (r === 1) cover(pdf, halfW, 0, halfW, pageH, options);
   }
+  return pdf.output('arraybuffer');
+}
 
-  for (const [leftPage, rightPage] of orderedPairs) {
-    const sheet = outDoc.addPage([W, H]);
+// ── 2-page straight PDF ──
+export async function generateTwoPagePdf(sourcePdfBytes: ArrayBuffer, options: ImposeOptions): Promise<Uint8Array> {
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+  await ensureFont(pdf);
+  const pageW = 612, pageH = 792;
+  const images = await renderPages(sourcePdfBytes, 2, pageW * 4);
 
-    // Left half
-    if (leftPage > 0 && leftPage <= srcPageCount) {
-      sheet.drawPage(await outDoc.embedPage(srcDoc.getPage(leftPage - 1)), {
-        x: 0,
-        y: 0,
-        width: HW,
-        height: H,
-      });
-    }
-
-    // Right half
-    if (rightPage > 0 && rightPage <= srcPageCount) {
-      sheet.drawPage(await outDoc.embedPage(srcDoc.getPage(rightPage - 1)), {
-        x: HW,
-        y: 0,
-        width: HW,
-        height: H,
-      });
-    }
-
-    // Logo + cover text + ornament on the half that contains page 1
-    const coverIsOnLeft = leftPage === 1;
-    const coverIsOnRight = rightPage === 1;
-    if ((coverIsOnLeft || coverIsOnRight) && (logo || options.coverText)) {
-      const cx = coverIsOnLeft ? 0 : HW;
-      const cw = HW;
-      const ch = H;
-
-      /** Draw a pre-rendered ornament PNG at the given y (center-line). */
-      const drawOrnamentImg = (img: typeof ornamentImg, cy: number, oheight: number) => {
-        if (!img) return;
-        const ow = cw * 0.72;
-        const oh = oheight;
-        const ox = cx + (cw - ow) / 2;
-        sheet.drawImage(img, {
-          x: ox,
-          y: cy - oh / 2,
-          width: ow,
-          height: oh,
-        });
-      };
-
-      const ORN_HEIGHT = 22;
-
-      if (logo) {
-        const imgW = logo.width;
-        const imgH = logo.height;
-        const margin = cw * 0.08;
-        const maxW = cw - margin * 2;
-        const maxH = options.coverText ? ch * 0.48 : ch * 0.6;
-        const scale = Math.min(maxW / imgW, maxH / imgH);
-        const lw = imgW * scale;
-        const lh = imgH * scale;
-        const logoY = options.coverText
-          ? ch * 0.45 + (maxH - lh) / 2
-          : (ch - lh) / 2;
-
-        // Draw the logo first (behind ornaments)
-        sheet.drawImage(logo, {
-          x: cx + (cw - lw) / 2,
-          y: logoY,
-          width: lw,
-          height: lh,
-        });
-
-        // Ornaments drawn on top of the logo
-        drawOrnamentImg(ornamentImg, ch - 50, ORN_HEIGHT);
-        drawOrnamentImg(ornamentImgFlipped, 50, ORN_HEIGHT);
-      }
-
-      if (options.coverText) {
-        const hasLogo = !!logo;
-        const ty = hasLogo ? ch * 0.42 : ch * 0.60;
-        const fs = hasLogo ? 14 : 18;
-        const lh = fs * 1.4;
-        const lines = options.coverText.split('\n');
-
-        // Draw ornaments above and below text (when no logo)
-        if (!hasLogo) {
-          const textTop = ty;
-          const textBottom = ty - (lines.length - 1) * lh;
-          drawOrnamentImg(ornamentImg, textTop + lh + ORN_HEIGHT + 8, ORN_HEIGHT);
-          drawOrnamentImg(ornamentImgFlipped, textBottom - lh - ORN_HEIGHT - 4, ORN_HEIGHT);
+  for (let i = 0; i < 2; i++) {
+    if (i > 0) pdf.addPage([pageW, pageH]);
+    if (images[i]) pdf.addImage(images[i]!, 'PNG', 0, 0, pageW, pageH, undefined, 'FAST');
+    if (i === 0) {
+      cover(pdf, 0, 0, pageW, pageH, options);
+    } else if (options.songs?.length) {
+      const F = 'FrankRuhlLibre', m = 48, sFs = 10, tFs = 11, lH = sFs * 1.35;
+      let py = m;
+      for (const song of options.songs) {
+        const lines = (song.lyrics || '').split('\n').filter(l => l.trim());
+        if (song.title) {
+          const tt = song.artist ? `${song.title} \u2014 ${song.artist}` : song.title;
+          pdf.setFont(F, 'bold'); pdf.setFontSize(tFs); pdf.setTextColor(0, 0, 0);
+          pdf.text(tt, (pageW - pdf.getTextWidth(tt)) / 2, py + tFs);
+          py += tFs * 1.6;
         }
-
-        lines.forEach((line, i) => {
-          sheet.drawText(line, {
-            x: cx + (cw - font.widthOfTextAtSize(line, fs)) / 2,
-            y: ty - i * lh,
-            size: fs,
-            font,
-            color: rgb(0, 0, 0),
-          });
-        });
+        pdf.setFont(F, 'normal'); pdf.setFontSize(sFs);
+        for (const line of lines) {
+          if (py > pageH - m) break;
+          pdf.text(line, (pageW - pdf.getTextWidth(line)) / 2, py + sFs);
+          py += lH;
+        }
+        py += sFs * 0.8;
+        if (py > pageH - m) break;
       }
     }
   }
-
-  return outDoc.save();
+  return pdf.output('arraybuffer');
 }
 
-/**
- * Create a straight (non-imposed) copy of the source PDF — pages in original
- * order, same page size.  Useful as a digital / reference copy.
- */
+// ── Bare straight copy ──
 export async function makeStraightPdf(sourcePdfBytes: ArrayBuffer): Promise<Uint8Array> {
-  const srcDoc = await PDFDocument.load(sourcePdfBytes);
-  const outDoc = await PDFDocument.create();
-
-  const pages = await outDoc.copyPages(srcDoc, srcDoc.getPageIndices());
-  pages.forEach((p) => outDoc.addPage(p));
-
-  return outDoc.save();
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+  const pageW = 612, pageH = 792;
+  const images = await renderPages(sourcePdfBytes, 8, pageW * 4);
+  for (let i = 0; i < images.length; i++) {
+    if (i > 0) pdf.addPage([pageW, pageH]);
+    if (images[i]) pdf.addImage(images[i]!, 'PNG', 0, 0, pageW, pageH, undefined, 'FAST');
+  }
+  return pdf.output('arraybuffer');
 }
 
-/**
- * Generate a 2-page (Double Sided) PDF — two letter-size pages with cover
- * overlays on page 1 and songs on page 2.  No imposition needed.
- */
-export async function generateTwoPagePdf(
-  sourcePdfBytes: ArrayBuffer,
-  options: ImposeOptions,
-): Promise<Uint8Array> {
-  const srcDoc = await PDFDocument.load(sourcePdfBytes);
-  const outDoc = await PDFDocument.create();
-
-  // Pick the right font based on user's coverFont selection
-  const isHebrewFont = options.coverFont === 'frank-ruhl-libre' || options.coverFont === 'noto-serif-hebrew';
-  const isSans = options.coverFont === 'arial';
-  let textFont = isSans
-    ? await outDoc.embedFont(StandardFonts.Helvetica)
-    : await outDoc.embedFont(StandardFonts.TimesRoman);
-
-  // Load Frank Ruhl Libre for Hebrew font selections (or as a richer serif)
-  if (isHebrewFont) {
-    try {
-      const fontRes = await fetch('/assets/fonts/FrankRuhlLibre-400.ttf');
-      if (fontRes.ok) {
-        textFont = await outDoc.embedFont(await fontRes.arrayBuffer());
-      }
-    } catch { /* keep built-in fallback */ }
-  }
-
-  // Embed logo
-  let logo: Awaited<ReturnType<typeof outDoc.embedPng>> | null = null;
-  if (options.logoSrc) {
-    try {
-      const b64 = options.logoSrc.split(',')[1] || options.logoSrc;
-      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-      logo = options.logoSrc.startsWith('data:image/png')
-        ? await outDoc.embedPng(bytes)
-        : await outDoc.embedJpg(bytes);
-    } catch { /* skip */ }
-  }
-
-  // Embed ornaments
-  let ornamentImg: Awaited<ReturnType<typeof outDoc.embedPng>> | null = null;
-  let ornamentImgFlipped: Awaited<ReturnType<typeof outDoc.embedPng>> | null = null;
-  if (options.ornamentPng) {
-    try {
-      const b64 = options.ornamentPng.split(',')[1] || options.ornamentPng;
-      ornamentImg = await outDoc.embedPng(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
-    } catch { /* skip */ }
-  }
-  if (options.ornamentPngFlipped) {
-    try {
-      const b64 = options.ornamentPngFlipped.split(',')[1] || options.ornamentPngFlipped;
-      ornamentImgFlipped = await outDoc.embedPng(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
-    } catch { /* skip */ }
-  }
-
-  const pages = await outDoc.copyPages(srcDoc, srcDoc.getPageIndices());
-  for (let i = 0; i < pages.length; i++) {
-    const page = pages[i];
-    const { width: pw, height: ph } = page.getSize();
-    outDoc.addPage(page);
-
-    // Overlays only on page 1 (cover)
-    if (i !== 0) {
-      // Page 2: render songs
-      if (options.songs && options.songs.length > 0) {
-        const margin = 48;
-        const contentW = pw - margin * 2;
-        const songFontSize = 10;
-        const titleFontSize = 11;
-        const lineH = songFontSize * 1.35;
-        let y = ph - margin;
-
-        for (const song of options.songs) {
-          const lyricsLines = (song.lyrics || '').split('\n').filter(l => l.trim());
-
-          // Title
-          if (song.title) {
-            const titleText = song.artist ? `${song.title} — ${song.artist}` : song.title;
-            const titleWidth = textFont.widthOfTextAtSize(titleText, titleFontSize);
-            page.drawText(titleText, {
-              x: (pw - titleWidth) / 2,
-              y,
-              size: titleFontSize,
-              font: textFont,
-              color: rgb(0, 0, 0),
-            });
-            y -= titleFontSize * 1.6;
-          }
-
-          // Lyrics
-          for (const line of lyricsLines) {
-            if (y < margin) break; // stop if we run out of room
-            const lineWidth = textFont.widthOfTextAtSize(line, songFontSize);
-            page.drawText(line, {
-              x: (pw - lineWidth) / 2,
-              y,
-              size: songFontSize,
-              font: textFont,
-              color: rgb(0, 0, 0),
-            });
-            y -= lineH;
-          }
-
-          // Gap between songs
-          y -= songFontSize * 0.8;
-          if (y < margin) break;
-        }
-      }
-      continue;
-    }
-    if (!logo && !options.coverText) continue;
-
-    const drawOrnamentImg = (img: typeof ornamentImg, cy: number, oheight: number) => {
-      if (!img) return;
-      const ow = pw * 0.3;
-      const oh = oheight;
-      const ox = (pw - ow) / 2;
-      page.drawImage(img, { x: ox, y: cy - oh / 2, width: ow, height: oh });
-    };
-
-    const ORN_HEIGHT = 22;
-
-    if (logo) {
-      const imgW = logo.width;
-      const imgH = logo.height;
-      const margin = pw * 0.12;
-      const maxW = pw - margin * 2;
-      const maxH = options.coverText ? ph * 0.35 : ph * 0.5;
-      const scale = Math.min(maxW / imgW, maxH / imgH);
-      const lw = imgW * scale;
-      const lh = imgH * scale;
-      const logoY = options.coverText
-        ? ph * 0.48 + (maxH - lh) / 2
-        : (ph - lh) / 2;
-
-      // Logo behind, ornaments on top
-      page.drawImage(logo, { x: (pw - lw) / 2, y: logoY, width: lw, height: lh });
-      drawOrnamentImg(ornamentImg, ph - 50, ORN_HEIGHT);
-      drawOrnamentImg(ornamentImgFlipped, 50, ORN_HEIGHT);
-    }
-
-    if (options.coverText) {
-      const hasLogo = !!logo;
-      const ty = hasLogo ? ph * 0.40 : ph * 0.58;
-      const fs = hasLogo ? 14 : 20;
-      const lh = fs * 1.4;
-      const lines = options.coverText.split('\n');
-
-      if (!hasLogo) {
-        const textBottom = ty - (lines.length - 1) * lh;
-        drawOrnamentImg(ornamentImg, ty + lh + ORN_HEIGHT + 8, ORN_HEIGHT);
-        drawOrnamentImg(ornamentImgFlipped, textBottom - lh - ORN_HEIGHT - 4, ORN_HEIGHT);
-      }
-
-      lines.forEach((line, idx) => {
-        page.drawText(line, {
-          x: (pw - textFont.widthOfTextAtSize(line, fs)) / 2,
-          y: ty - idx * lh,
-          size: fs,
-          font: textFont,
-          color: rgb(0, 0, 0),
-        });
-      });
-    }
-  }
-
-  return outDoc.save();
-}
-
-// ---------------------------------------------------------------------------
-// Browser download helper
-// ---------------------------------------------------------------------------
-
+// ── Download ──
 export function downloadPdf(bytes: Uint8Array, filename: string) {
-  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  const blob = new Blob([bytes], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
 }

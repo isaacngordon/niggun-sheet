@@ -834,7 +834,6 @@ export default function BencherApp() {
       if (!response.ok) throw new Error('Failed to fetch source PDF');
       const sourceBytes = await response.arrayBuffer();
 
-      // Load ornament PNGs from static assets
       const [ornamentPng, ornamentPngFlipped] = await Promise.all([
         assetToDataUrl('/assets/ornament.png'),
         assetToDataUrl('/assets/ornament-flipped.png'),
@@ -845,16 +844,38 @@ export default function BencherApp() {
       let pdfBytes: Uint8Array;
       if (pageMode === '2-page') {
         pdfBytes = await generateTwoPagePdf(sourceBytes, {
-          ...opts,
           songs: selectedSongs.map(s => ({ title: s.title, artist: s.artist, lyrics: s.lyrics })),
         });
       } else {
         pdfBytes = await imposeBooklet(sourceBytes, opts);
       }
-      downloadPdf(pdfBytes, pageMode === '2-page' ? 'bencher-two-sided.pdf' : 'bencher-booklet.pdf');
+      // Use hidden iframe to open PDF in browser's print dialog
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blobUrl = URL.createObjectURL(blob);
+      const frame = document.createElement('iframe');
+      frame.style.position = 'fixed';
+      frame.style.right = '0';
+      frame.style.bottom = '0';
+      frame.style.width = '0';
+      frame.style.height = '0';
+      frame.style.border = 'none';
+      frame.name = 'bencher-print-frame';
+      frame.src = blobUrl;
+      document.body.appendChild(frame);
+      frame.onload = () => {
+        // Give the PDF viewer time to fully render all pages
+        window.setTimeout(() => {
+          frame.contentWindow?.focus();
+          frame.contentWindow?.print();
+          window.setTimeout(() => {
+            frame.remove();
+            URL.revokeObjectURL(blobUrl);
+          }, 2000);
+        }, 1500);
+      };
     } catch (err) {
       console.error('PDF generation failed:', err);
-      alert('Failed to generate PDF. Please try again.');
+      alert(`Failed to generate PDF: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again.`);
     } finally {
       setIsDownloading(false);
     }
@@ -868,15 +889,23 @@ export default function BencherApp() {
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch source PDF');
       const sourceBytes = await response.arrayBuffer();
-      const straightBytes = await makeStraightPdf(sourceBytes);
+
+      const [ornamentPng, ornamentPngFlipped] = await Promise.all([
+        assetToDataUrl('/assets/ornament.png'),
+        assetToDataUrl('/assets/ornament-flipped.png'),
+      ]);
+
+      const straightBytes = await generateTwoPagePdf(sourceBytes, {
+        logoSrc, coverText, coverFont, ornamentPng, ornamentPngFlipped,
+      });
       downloadPdf(straightBytes, 'bencher-straight.pdf');
     } catch (err) {
       console.error('Straight PDF generation failed:', err);
-      alert('Failed to generate PDF. Please try again.');
+      alert(`Failed to generate straight PDF: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again.`);
     } finally {
       setIsDownloading(false);
     }
-  }, [pdfSource]);
+  }, [coverText, coverFont, logoSrc, pdfSource]);
 
   useEffect(() => {
     document.body.classList.add('bencher-active');
@@ -1357,11 +1386,11 @@ export default function BencherApp() {
                 </div>
 
                 <div className="sb2-toolbar-section">
-                  <div className="sb2-toolbar-section-title">Download</div>
+                  <div className="sb2-toolbar-section-title">Print</div>
                   <div className="sb2-toolbar-action-row">
-                    <button type="button" className="bencher-download-btn" onClick={handleDownloadBookletPdf} disabled={!pdfSource || isDownloading} title={pdfSource ? 'Download a print-ready PDF' : 'No PDF available for this mode'}>{isDownloading ? 'Generating…' : pageMode === '2-page' ? 'Download PDF' : 'Print Booklet'}</button>
+                    <button type="button" className="bencher-download-btn" onClick={handleDownloadBookletPdf} disabled={!pdfSource || isDownloading} title={pdfSource ? 'Open print-ready PDF' : 'No PDF available for this mode'}>{isDownloading ? 'Generating…' : 'Print'}</button>
                     {pageMode === '8-page' && (
-                      <button type="button" className="bencher-download-btn" onClick={handleDownloadStraightPdf} disabled={!pdfSource || isDownloading} title={pdfSource ? 'Download a straight (non-imposed) PDF' : 'Switch to Booklet mode to download'}>{isDownloading ? 'Generating…' : 'Straight PDF'}</button>
+                      <button type="button" className="bencher-download-btn" onClick={handleDownloadStraightPdf} disabled={!pdfSource || isDownloading} title="Download a straight (non-imposed) PDF for print shops">Straight PDF</button>
                     )}
                   </div>
                 </div>
