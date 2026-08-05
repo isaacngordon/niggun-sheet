@@ -834,6 +834,10 @@ export default function BencherApp() {
       const remaining = Math.max(0, 5000 - elapsed);
       setTimeout(() => setIsDownloading(false), remaining);
     };
+
+    // Open a blank window synchronously while we have user gesture
+    const printWindow = window.open('about:blank', '_blank');
+
     try {
       const config = getBencherModeConfig(pageMode);
       const pageW = pageMode === '8-page' ? 396 : config.designWidth;
@@ -868,30 +872,19 @@ export default function BencherApp() {
 
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);
-      const frame = document.createElement('iframe');
-      frame.style.position = 'fixed';
-      frame.style.left = '0';
-      frame.style.top = '0';
-      frame.style.width = '100%';
-      frame.style.height = '100%';
-      frame.style.border = 'none';
-      frame.style.opacity = '0';
-      frame.style.pointerEvents = 'none';
-      frame.style.zIndex = '9999';
-      frame.src = blobUrl;
-      document.body.appendChild(frame);
-      frame.onload = () => {
-        // Wait for PDF viewer to fully render all pages before printing
-        window.setTimeout(() => {
-          frame.contentWindow?.focus();
-          frame.contentWindow?.print();
-          window.setTimeout(() => {
-            frame.remove();
-            URL.revokeObjectURL(blobUrl);
-          }, 3000);
-        }, 5000);
-      };
+
+      if (printWindow && !printWindow.closed) {
+        // Redirect the blank window to the PDF — opens in browser's PDF viewer
+        printWindow.location.href = blobUrl;
+        // Clean up blob URL after giving the window time to load it
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } else {
+        // Popup blocked — fall back to direct download
+        downloadPdf(pdfBytes, `bencher-${pageMode}.pdf`);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      }
     } catch (err) {
+      if (printWindow && !printWindow.closed) printWindow.close();
       const code = (err instanceof Error && err.message.match(/\[E\d+\]/)) ? err.message : `[E99] ${err instanceof Error ? err.message : 'Unknown'}`;
       console.error('PDF generation failed:', err);
       alert(`Failed to generate PDF: ${code}`);
