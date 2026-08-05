@@ -47,7 +47,7 @@ import {
   rectToCss,
   skipEveryOtherLineBreakWithinWidth,
 } from './bencher-layout';
-import { imposeBooklet, makeStraightPdf, generateTwoPagePdf, downloadPdf } from './imposeBooklet';
+import { downloadPdf, renderCoverTextPng, renderSongsPng } from './imposeBooklet';
 
 interface Song extends SongData {
   search_title?: string;
@@ -828,84 +828,116 @@ export default function BencherApp() {
   const handleDownloadBookletPdf = useCallback(async () => {
     if (!pdfSource) return;
     setIsDownloading(true);
+    const startedAt = Date.now();
+    const finishLoading = () => {
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, 5000 - elapsed);
+      setTimeout(() => setIsDownloading(false), remaining);
+    };
     try {
-      const url = `${pdfSource}?v=${Date.now()}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch source PDF');
-      const sourceBytes = await response.arrayBuffer();
+      const config = getBencherModeConfig(pageMode);
+      const pageW = pageMode === '8-page' ? 396 : config.designWidth;
 
-      const [ornamentPng, ornamentPngFlipped] = await Promise.all([
-        assetToDataUrl('/assets/ornament.png'),
-        assetToDataUrl('/assets/ornament-flipped.png'),
+      const [textPng, songsPng] = await Promise.all([
+        renderCoverTextPng(coverText || '', !!logoSrc, pageW),
+        pageMode === '2-page'
+          ? renderSongsPng(selectedSongs.map(s => ({ title: s.title, artist: s.artist, lyrics: s.lyrics })), config.designWidth)
+          : Promise.resolve(null),
       ]);
 
-      const opts = { logoSrc, coverText, coverFont, ornamentPng, ornamentPngFlipped, rtl: pageMode === '8-page' };
-
-      let pdfBytes: Uint8Array;
-      if (pageMode === '2-page') {
-        pdfBytes = await generateTwoPagePdf(sourceBytes, {
-          songs: selectedSongs.map(s => ({ title: s.title, artist: s.artist, lyrics: s.lyrics })),
-        });
-      } else {
-        pdfBytes = await imposeBooklet(sourceBytes, opts);
+      const res = await fetch('/api/bencher/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: pageMode,
+          logoSrc: logoSrc || undefined,
+          textPng: textPng?.dataUrl,
+          textW: textPng?.width,
+          textH: textPng?.height,
+          songsPng: songsPng?.dataUrl,
+          songsW: songsPng?.width,
+          songsH: songsPng?.height,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: res.statusText }));
+        throw new Error(`[E01] ${err.message || 'Server error'}`);
       }
-      // Use hidden iframe to open PDF in browser's print dialog
+      const pdfBytes = new Uint8Array(await res.arrayBuffer());
+      if (!pdfBytes || pdfBytes.byteLength === 0) throw new Error('[E02] Generated PDF is empty');
+
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);
       const frame = document.createElement('iframe');
       frame.style.position = 'fixed';
-      frame.style.right = '0';
-      frame.style.bottom = '0';
-      frame.style.width = '0';
-      frame.style.height = '0';
+      frame.style.left = '0';
+      frame.style.top = '0';
+      frame.style.width = '100%';
+      frame.style.height = '100%';
       frame.style.border = 'none';
-      frame.name = 'bencher-print-frame';
+      frame.style.opacity = '0';
+      frame.style.pointerEvents = 'none';
+      frame.style.zIndex = '9999';
       frame.src = blobUrl;
       document.body.appendChild(frame);
       frame.onload = () => {
-        // Give the PDF viewer time to fully render all pages
+        // Wait for PDF viewer to fully render all pages before printing
         window.setTimeout(() => {
           frame.contentWindow?.focus();
           frame.contentWindow?.print();
           window.setTimeout(() => {
             frame.remove();
             URL.revokeObjectURL(blobUrl);
-          }, 2000);
-        }, 1500);
+          }, 3000);
+        }, 5000);
       };
     } catch (err) {
+      const code = (err instanceof Error && err.message.match(/\[E\d+\]/)) ? err.message : `[E99] ${err instanceof Error ? err.message : 'Unknown'}`;
       console.error('PDF generation failed:', err);
-      alert(`Failed to generate PDF: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again.`);
+      alert(`Failed to generate PDF: ${code}`);
     } finally {
-      setIsDownloading(false);
+      finishLoading();
     }
-  }, [coverText, coverFont, logoSrc, pdfSource, pageMode, selectedSongs]);
+  }, [coverText, logoSrc, pdfSource, pageMode, selectedSongs]);
 
   const handleDownloadStraightPdf = useCallback(async () => {
     if (!pdfSource) return;
     setIsDownloading(true);
+    const startedAt = Date.now();
+    const finishLoading = () => {
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, 5000 - elapsed);
+      setTimeout(() => setIsDownloading(false), remaining);
+    };
     try {
-      const url = `${pdfSource}?v=${Date.now()}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch source PDF');
-      const sourceBytes = await response.arrayBuffer();
+      const config = getBencherModeConfig('2-page');
+      const textPng = await renderCoverTextPng(coverText || '', !!logoSrc, config.designWidth);
 
-      const [ornamentPng, ornamentPngFlipped] = await Promise.all([
-        assetToDataUrl('/assets/ornament.png'),
-        assetToDataUrl('/assets/ornament-flipped.png'),
-      ]);
-
-      const straightBytes = await generateTwoPagePdf(sourceBytes, {
-        logoSrc, coverText, coverFont, ornamentPng, ornamentPngFlipped,
+      const res = await fetch('/api/bencher/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: '2-page',
+          logoSrc: logoSrc || undefined,
+          textPng: textPng?.dataUrl,
+          textW: textPng?.width,
+          textH: textPng?.height,
+        }),
       });
-      downloadPdf(straightBytes, 'bencher-straight.pdf');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: res.statusText }));
+        throw new Error(`[E03] ${err.message || 'Server error'}`);
+      }
+      const pdfBytes = new Uint8Array(await res.arrayBuffer());
+      downloadPdf(pdfBytes, 'bencher-straight.pdf');
     } catch (err) {
+      const code = (err instanceof Error && err.message.match(/\[E\d+\]/)) ? err.message : `[E99] ${err instanceof Error ? err.message : 'Unknown'}`;
       console.error('Straight PDF generation failed:', err);
-      alert(`Failed to generate straight PDF: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again.`);
+      alert(`Failed to generate straight PDF: ${code}`);
     } finally {
-      setIsDownloading(false);
+      finishLoading();
     }
-  }, [coverText, coverFont, logoSrc, pdfSource]);
+  }, [coverText, logoSrc, pdfSource]);
 
   useEffect(() => {
     document.body.classList.add('bencher-active');
@@ -1131,6 +1163,13 @@ export default function BencherApp() {
         <Header />
 
         <main className="bencher-workspace" style={pageMode === '8-page' ? { gridTemplateColumns: '1fr' } : undefined}>
+          {isDownloading && (
+            <div className="bencher-print-loading">
+              <div className="bencher-print-loading-spinner" />
+              <p>Generating your bencher…</p>
+              <p className="bencher-print-loading-sub">This may take a moment while we prepare the PDF for print.</p>
+            </div>
+          )}
           {pageMode !== '8-page' && <aside className="sb2-sidebar bencher-sidebar" aria-label="Song library">
             <div className="sb2-sidebar-header">
               <div className="sb2-sidebar-tabs">

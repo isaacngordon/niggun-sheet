@@ -1,191 +1,109 @@
 'use client';
 
-import { jsPDF } from 'jspdf';
+// ── Text rasterizer (SVG-based) ──
+// Renders Hebrew text via SVG with embedded base64 font, then converts to PNG.
+// SVG text rendering is handled by the browser's layout engine, which is far
+// more reliable for complex scripts than canvas font loading.
 
-export interface ImposeOptions {
-  logoSrc?: string | null;
-  coverText?: string;
-  coverFont?: string;
-  ornamentPng?: string | null;
-  ornamentPngFlipped?: string | null;
-  songs?: Array<{ title: string; artist: string; lyrics: string }>;
-  rtl?: boolean;
+let _fontBase64: string | null = null;
+
+async function getFontBase64(): Promise<string> {
+  if (_fontBase64) return _fontBase64;
+  const res = await fetch('/assets/fonts/FrankRuhlLibre-400.ttf');
+  if (!res.ok) throw new Error(`Font fetch failed: ${res.status}`);
+  const buf = await res.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  _fontBase64 = btoa(binary);
+  return _fontBase64;
 }
 
-// ── Font ──
-async function ensureFont(pdf: jsPDF) {
-  try {
-    // Always add to this instance; VFS is global but addFont is per-instance
-    if (!pdf.getFontList()['FrankRuhlLibre']) {
-      const res = await fetch('/assets/fonts/FrankRuhlLibre-400.ttf');
-      if (res.ok) {
-        const buf = await res.arrayBuffer();
-        const bytes = new Uint8Array(buf);
-        let bin = '';
-        for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
-        pdf.addFileToVFS('FrankRuhlLibre-Regular.ttf', btoa(bin));
-        pdf.addFont('FrankRuhlLibre-Regular.ttf', 'FrankRuhlLibre', 'normal');
+function svgTextToPng(
+  lines: string[],
+  fontSize: number,
+  maxW: number,
+  color: string,
+  scale: number = 3,
+): Promise<{ dataUrl: string; width: number; height: number }> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const fontB64 = await getFontBase64();
+      const lineH = fontSize * 1.5;
+      const padding = fontSize * 0.3;
+      const svgW = maxW;
+      const svgH = Math.ceil(lineH * lines.length + padding * 2);
+
+      // Build SVG with embedded font
+      const textSpans = lines
+        .map((line, i) => `<tspan x="${svgW / 2}" dy="${i === 0 ? 0 : lineH}">${escapeXml(line)}</tspan>`)
+        .join('');
+
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}">
+  <defs>
+    <style>
+      @font-face {
+        font-family: 'BH';
+        src: url(data:font/truetype;charset=utf-8;base64,${fontB64}) format('truetype');
       }
-    }
-  } catch (e) { console.warn('Font load failed:', e); }
-}
+    </style>
+  </defs>
+  <text font-family="BH" font-size="${fontSize}" fill="${color}"
+        text-anchor="middle" x="${svgW / 2}" y="${padding + fontSize * 0.8}">
+    ${textSpans}
+  </text>
+</svg>`;
 
-// ── PDF page → image (high-res) ──
-const PDFJS_URL = 'https://unpkg.com/pdfjs-dist@5.4.296/legacy/build/pdf.min.mjs';
-const WORKER_URL = 'https://unpkg.com/pdfjs-dist@5.4.296/legacy/build/pdf.worker.min.mjs';
-
-async function renderPages(pdfBytes: ArrayBuffer, count: number, targetW: number): Promise<Array<string | null>> {
-  const out: Array<string | null> = [];
-  try {
-    const pdfjs = await import(/* webpackIgnore: true */ PDFJS_URL);
-    pdfjs.GlobalWorkerOptions.workerSrc = WORKER_URL;
-    const doc = await pdfjs.getDocument({ data: pdfBytes }).promise;
-    console.log(`PDF has ${doc.numPages} pages, rendering ${count} at ${targetW}px wide`);
-    for (let i = 0; i < count && i < doc.numPages; i++) {
-      try {
-        const page = await doc.getPage(i + 1);
-        const vp = page.getViewport({ scale: 1 });
-        const s = targetW / vp.width;
-        const svp = page.getViewport({ scale: s });
+      const img = new Image();
+      img.onload = () => {
         const c = document.createElement('canvas');
-        c.width = svp.width; c.height = svp.height;
-        await page.render({ canvasContext: c.getContext('2d')!, viewport: svp }).promise;
-        out.push(c.toDataURL('image/png'));
-      } catch (e) {
-        console.warn(`Page ${i + 1} render failed:`, e);
-        out.push(null);
-      }
+        c.width = Math.round(svgW * scale);
+        c.height = Math.round(svgH * scale);
+        const ctx = c.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        resolve({
+          dataUrl: c.toDataURL('image/png'),
+          width: svgW,
+          height: svgH,
+        });
+      };
+      img.onerror = () => reject(new Error('SVG image failed to load'));
+      img.src = 'data:image/svg+xml,' + encodeURIComponent(svg);
+    } catch (e) {
+      reject(e);
     }
-  } catch (e) { console.warn('PDF render failed:', e); }
-  return out;
+  });
 }
 
-// ── Booklet pairs ──
-export function calculateBookletPairs(pageCount: number): Array<[number, number]> {
-  const pad = Math.ceil(pageCount / 4) * 4;
-  const sheets = pad / 4;
-  const pairs: Array<[number, number]> = [];
-  for (let s = 0; s < sheets; s++) {
-    pairs.push([pad - 2 * s, 2 * s + 1]);
-    pairs.push([2 * s + 2, pad - 2 * s - 1]);
-  }
-  return pairs.map(([a, b]) => [a <= pageCount ? a : 0, b <= pageCount ? b : 0]);
+function escapeXml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// ── Ornament helper ──
-function orn(pdf: jsPDF, img: string | null | undefined, cx: number, cy: number, w: number, h: number) {
-  if (!img) return;
-  try { pdf.addImage(img, 'PNG', cx - w / 2, cy - h / 2, w, h); } catch { /* skip */ }
+// ── Public API for client to pre-render text ──
+
+export async function renderCoverTextPng(coverText: string, logoPresent: boolean, pageW: number): Promise<{ dataUrl: string; width: number; height: number } | null> {
+  if (!coverText) return null;
+  const lines = coverText.split('\n');
+  const fontSize = logoPresent ? 24 : 32;
+  const maxW = Math.round(pageW * 0.8);
+  return svgTextToPng(lines, fontSize, maxW, '#000000');
 }
 
-// ── Cover overlay ──
-function cover(pdf: jsPDF, x: number, y: number, w: number, h: number, opts: ImposeOptions) {
-  const OH = 22;
-  const F = 'FrankRuhlLibre';
-
-  if (opts.logoSrc) {
-    const img = new Image(); img.src = opts.logoSrc;
-    if (img.complete) {
-      const m = w * 0.08, maxW = w - m * 2;
-      const maxH = opts.coverText ? h * 0.35 : h * 0.5;
-      const s = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
-      const lw = img.naturalWidth * s, lh = img.naturalHeight * s;
-      const ly = y + (opts.coverText ? h * 0.12 + (maxH - lh) / 2 : (h - lh) / 2);
-      pdf.addImage(img, 'PNG', x + (w - lw) / 2, ly, lw, lh);
-      const ow = w * 0.72;
-      orn(pdf, opts.ornamentPng, x + w / 2, y + 50, ow, OH);
-      orn(pdf, opts.ornamentPngFlipped, x + w / 2, y + h - 50, ow, OH);
-    }
+export async function renderSongsPng(songs: Array<{ title: string; artist: string; lyrics: string }>, pageW: number): Promise<{ dataUrl: string; width: number; height: number } | null> {
+  if (!songs?.length) return null;
+  const lines: string[] = [];
+  for (const song of songs) {
+    if (song.title) lines.push(song.artist ? `${song.title} — ${song.artist}` : song.title);
+    for (const line of (song.lyrics || '').split('\n').filter(l => l.trim())) lines.push(line);
+    lines.push('');
   }
-
-  if (opts.coverText) {
-    const hasLogo = !!opts.logoSrc;
-    const ty = y + (hasLogo ? h * 0.55 : h * 0.30);
-    const fs = hasLogo ? 14 : 18, lh = fs * 1.4;
-    const lines = opts.coverText.split('\n');
-    if (!hasLogo) {
-      const tb = ty + (lines.length - 1) * lh, ow = w * 0.72;
-      orn(pdf, opts.ornamentPng, x + w / 2, ty - OH - 8, ow, OH);
-      orn(pdf, opts.ornamentPngFlipped, x + w / 2, tb + lh + 4, ow, OH);
-    }
-    pdf.setFont(F, 'normal'); pdf.setFontSize(fs); pdf.setTextColor(0, 0, 0);
-    lines.forEach((line, i) => { pdf.text(line, x + (w - pdf.getTextWidth(line)) / 2, ty + i * lh); });
-  }
-}
-
-// ── Imposed booklet PDF ──
-export async function imposeBooklet(sourcePdfBytes: ArrayBuffer, options: ImposeOptions = {}): Promise<Uint8Array> {
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
-  await ensureFont(pdf);
-  const pageW = 792, pageH = 612, halfW = pageW / 2;
-  const images = await renderPages(sourcePdfBytes, 8, halfW * 4);
-  const actualPageCount = images.filter(i => i !== null).length;
-  const pairs = calculateBookletPairs(Math.max(actualPageCount, 8));
-  const ordered = options.rtl ? pairs.map(([l, r]) => [r, l] as [number, number]) : pairs;
-
-  for (let idx = 0; idx < ordered.length; idx++) {
-    if (idx > 0) pdf.addPage([pageW, pageH]);
-    const [l, r] = ordered[idx];
-    if (l > 0 && images[l - 1]) pdf.addImage(images[l - 1]!, 'PNG', 0, 0, halfW, pageH, undefined, 'FAST');
-    if (r > 0 && images[r - 1]) pdf.addImage(images[r - 1]!, 'PNG', halfW, 0, halfW, pageH, undefined, 'FAST');
-    if (l === 1) cover(pdf, 0, 0, halfW, pageH, options);
-    else if (r === 1) cover(pdf, halfW, 0, halfW, pageH, options);
-  }
-  return pdf.output('arraybuffer');
-}
-
-// ── 2-page straight PDF ──
-export async function generateTwoPagePdf(sourcePdfBytes: ArrayBuffer, options: ImposeOptions): Promise<Uint8Array> {
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
-  await ensureFont(pdf);
-  const pageW = 612, pageH = 792;
-  const images = await renderPages(sourcePdfBytes, 2, pageW * 4);
-
-  for (let i = 0; i < 2; i++) {
-    if (i > 0) pdf.addPage([pageW, pageH]);
-    if (images[i]) pdf.addImage(images[i]!, 'PNG', 0, 0, pageW, pageH, undefined, 'FAST');
-    if (i === 0) {
-      cover(pdf, 0, 0, pageW, pageH, options);
-    } else if (options.songs?.length) {
-      const F = 'FrankRuhlLibre', m = 48, sFs = 10, tFs = 11, lH = sFs * 1.35;
-      let py = m;
-      for (const song of options.songs) {
-        const lines = (song.lyrics || '').split('\n').filter(l => l.trim());
-        if (song.title) {
-          const tt = song.artist ? `${song.title} \u2014 ${song.artist}` : song.title;
-          pdf.setFont(F, 'bold'); pdf.setFontSize(tFs); pdf.setTextColor(0, 0, 0);
-          pdf.text(tt, (pageW - pdf.getTextWidth(tt)) / 2, py + tFs);
-          py += tFs * 1.6;
-        }
-        pdf.setFont(F, 'normal'); pdf.setFontSize(sFs);
-        for (const line of lines) {
-          if (py > pageH - m) break;
-          pdf.text(line, (pageW - pdf.getTextWidth(line)) / 2, py + sFs);
-          py += lH;
-        }
-        py += sFs * 0.8;
-        if (py > pageH - m) break;
-      }
-    }
-  }
-  return pdf.output('arraybuffer');
-}
-
-// ── Bare straight copy ──
-export async function makeStraightPdf(sourcePdfBytes: ArrayBuffer): Promise<Uint8Array> {
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
-  const pageW = 612, pageH = 792;
-  const images = await renderPages(sourcePdfBytes, 8, pageW * 4);
-  for (let i = 0; i < images.length; i++) {
-    if (i > 0) pdf.addPage([pageW, pageH]);
-    if (images[i]) pdf.addImage(images[i]!, 'PNG', 0, 0, pageW, pageH, undefined, 'FAST');
-  }
-  return pdf.output('arraybuffer');
+  const maxW = Math.round(pageW * 0.85);
+  return svgTextToPng(lines, 10, maxW, '#000000');
 }
 
 // ── Download ──
 export function downloadPdf(bytes: Uint8Array, filename: string) {
-  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename;
