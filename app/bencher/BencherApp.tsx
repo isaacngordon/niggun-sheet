@@ -16,6 +16,7 @@ import dynamic from 'next/dynamic';
 import HTMLFlipBook from 'react-pageflip';
 import AddSongModal from '@/components/AddSongModal';
 import Header from '@/components/Header';
+import BencherPrintView from './PrintView';
 import { useOptionalGoogleAuth } from '@/components/GoogleAuthProvider';
 import type { PrivateSong } from '@/lib/google-drive';
 
@@ -37,7 +38,6 @@ import {
   type BencherPagePlacement,
   type BencherRect,
   BENCHER_MODE_CONFIGS,
-  DEFAULT_BENCHER_MODE,
   type BencherMode,
   getBencherModeConfig,
   getBencherPageBackground,
@@ -45,9 +45,12 @@ import {
   getBencherPages,
   getBencherSongDropPlacement,
   rectToCss,
-  skipEveryOtherLineBreakWithinWidth,
+  BENCHER_SONG_FONT_SIZE,
+  BENCHER_DESIGN_PAGE_WIDTH,
+  bencherPrintContentWidth,
+  formatBencherLyrics,
 } from './bencher-layout';
-import { downloadPdf, renderCoverTextPng, renderSongsPng } from './imposeBooklet';
+import { downloadPdf } from './imposeBooklet';
 
 interface Song extends SongData {
   search_title?: string;
@@ -69,9 +72,6 @@ interface LibrarySongDragData {
 
 type BencherDragData = SlotDragData | SheetSongDragData | LibrarySongDragData;
 
-const BENCHER_SONG_FONT_SIZE = 12;
-const BENCHER_DESIGN_PAGE_WIDTH = 768;
-const BENCHER_FONT_FALLBACK_WIDTH_RATIO = 4.3 / BENCHER_SONG_FONT_SIZE;
 
 const COVER_FONT_OPTIONS = [
   { value: 'times-new-roman', label: 'Times New Roman', family: '"Times New Roman", Times, serif' },
@@ -138,26 +138,10 @@ function getRenderedBencherTextMetrics(element: HTMLElement, rectWidthPercent: n
   };
 }
 
-function measureBencherLyricLine(line: string, fontSize: number) {
-  if (typeof document === 'undefined') {
-    return line.length * fontSize * BENCHER_FONT_FALLBACK_WIDTH_RATIO;
-  }
-
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-
-  if (!context) {
-    return line.length * fontSize * BENCHER_FONT_FALLBACK_WIDTH_RATIO;
-  }
-
-  context.font = `${fontSize}px var(--font-frank-ruhl-libre), var(--font-noto-serif-hebrew), Arial, Helvetica, sans-serif`;
-  return context.measureText(line).width;
-}
-
 function formatDraggedBencherSong<T extends SongData>(song: T, maxLineWidth: number, fontSize: number): T {
   return {
     ...song,
-    lyrics: skipEveryOtherLineBreakWithinWidth(song.lyrics || '', maxLineWidth, (line) => measureBencherLyricLine(line, fontSize)),
+    lyrics: formatBencherLyrics(song.lyrics || '', maxLineWidth, fontSize),
   };
 }
 
@@ -191,10 +175,10 @@ function SongDropZone({
   const [isPrinting, setIsPrinting] = useState(false);
   const slots = Array.from({ length: positionedSongs.length + 1 }, (_, slotIndex) => slotIndex);
 
-  const printContentWidth = useMemo(() => {
-    const designDropZoneWidth = BENCHER_DESIGN_PAGE_WIDTH * (pagePlacement.rect.width / 100);
-    return Math.max(0, designDropZoneWidth - 24);
-  }, [pagePlacement.rect.width]);
+  const printContentWidth = useMemo(
+    () => bencherPrintContentWidth(pagePlacement.rect.width),
+    [pagePlacement.rect.width],
+  );
 
   const effectiveSongFontSize = isPrinting ? BENCHER_SONG_FONT_SIZE : songFontSize;
   const effectiveMaxLyricLineWidth = isPrinting ? printContentWidth : maxLyricLineWidth;
@@ -396,9 +380,11 @@ function CoverCaptionTextarea({ value, onChange, fontFamily }: { value: string; 
   );
 }
 
-export default function BencherApp() {
-  const [pageMode, setPageMode] = useState<BencherMode>(DEFAULT_BENCHER_MODE);
-  const [hasSelectedMode, setHasSelectedMode] = useState(false);
+interface BencherAppProps {
+  mode: BencherMode;
+}
+
+export default function BencherApp({ mode: pageMode }: BencherAppProps) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [sidebarTab, setSidebarTab] = useState<'library' | 'my'>('library');
   const [search, setSearch] = useState('');
@@ -423,6 +409,7 @@ export default function BencherApp() {
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [overwriteTargetId, setOverwriteTargetId] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
+  const [twoSidedPreviewScale, setTwoSidedPreviewScale] = useState(1);
   const overSlotRef = useRef<SlotDragData | null>(null);
   const previewSelectedSongsRef = useRef<Song[] | null>(null);
   const dragSnapshotSongsRef = useRef<Song[] | null>(null);
@@ -461,6 +448,34 @@ export default function BencherApp() {
     'When the pages look right, print the bencher or clear songs and try a different mix.',
   ], [bencherLogoPlacement.pageNumber, songDropPageNumber]);
   const clampPage = useCallback((pageNumber: number) => clampBencherPage(pageNumber, bencherPageCount), [bencherPageCount]);
+
+  useEffect(() => {
+    if (pageMode !== '2-page') {
+      setTwoSidedPreviewScale(1);
+      return;
+    }
+
+    const container = pagesRef.current;
+    if (!container) return;
+
+    const updateScale = () => {
+      const { width, height } = container.getBoundingClientRect();
+      const styles = window.getComputedStyle(container);
+      const availableWidth = width - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
+      const availableHeight = height - parseFloat(styles.paddingTop) - parseFloat(styles.paddingBottom);
+      setTwoSidedPreviewScale(Math.min(1, availableWidth / designWidth, availableHeight / designHeight));
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(container);
+    window.addEventListener('resize', updateScale);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateScale);
+    };
+  }, [designHeight, designWidth, pageMode]);
 
   const flipToPage = useCallback((targetPage: number) => {
     if (isPageTurningRef.current) {
@@ -825,96 +840,30 @@ export default function BencherApp() {
     reader.readAsDataURL(file);
   }, []);
 
-  const handleDownloadBookletPdf = useCallback(async () => {
+  const handlePrint = useCallback(() => {
     if (!pdfSource) return;
-    setIsDownloading(true);
-    const startedAt = Date.now();
-    const finishLoading = () => {
-      const elapsed = Date.now() - startedAt;
-      const remaining = Math.max(0, 5000 - elapsed);
-      setTimeout(() => setIsDownloading(false), remaining);
-    };
-
-    // Open a blank window synchronously while we have user gesture
-    const printWindow = window.open('about:blank', '_blank');
-
-    try {
-      const config = getBencherModeConfig(pageMode);
-      const pageW = pageMode === '8-page' ? 396 : config.designWidth;
-
-      const [textPng, songsPng] = await Promise.all([
-        renderCoverTextPng(coverText || '', !!logoSrc, pageW),
-        pageMode === '2-page'
-          ? renderSongsPng(selectedSongs.map(s => ({ title: s.title, artist: s.artist, lyrics: s.lyrics })), config.designWidth)
-          : Promise.resolve(null),
-      ]);
-
-      const res = await fetch('/api/bencher/generate-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: pageMode,
-          logoSrc: logoSrc || undefined,
-          textPng: textPng?.dataUrl,
-          textW: textPng?.width,
-          textH: textPng?.height,
-          songsPng: songsPng?.dataUrl,
-          songsW: songsPng?.width,
-          songsH: songsPng?.height,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: res.statusText }));
-        throw new Error(`[E01] ${err.message || 'Server error'}`);
-      }
-      const pdfBytes = new Uint8Array(await res.arrayBuffer());
-      if (!pdfBytes || pdfBytes.byteLength === 0) throw new Error('[E02] Generated PDF is empty');
-
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const blobUrl = URL.createObjectURL(blob);
-
-      if (printWindow && !printWindow.closed) {
-        // Redirect the blank window to the PDF — opens in browser's PDF viewer
-        printWindow.location.href = blobUrl;
-        // Clean up blob URL after giving the window time to load it
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-      } else {
-        // Popup blocked — fall back to direct download
-        downloadPdf(pdfBytes, `bencher-${pageMode}.pdf`);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-      }
-    } catch (err) {
-      if (printWindow && !printWindow.closed) printWindow.close();
-      const code = (err instanceof Error && err.message.match(/\[E\d+\]/)) ? err.message : `[E99] ${err instanceof Error ? err.message : 'Unknown'}`;
-      console.error('PDF generation failed:', err);
-      alert(`Failed to generate PDF: ${code}`);
-    } finally {
-      finishLoading();
-    }
-  }, [coverText, logoSrc, pdfSource, pageMode, selectedSongs]);
+    // Print the client-rendered SVG/HTML view (BencherPrintView), not a
+    // generated PDF — plain page content prints via window.print() with no
+    // native-PDF-viewer isolation issues, no server round-trip, no popup.
+    document.body.classList.add('bencher-svg-printing');
+    const cleanup = () => document.body.classList.remove('bencher-svg-printing');
+    window.addEventListener('afterprint', cleanup, { once: true });
+    window.print();
+    // Fallback in case `afterprint` doesn't fire for some reason.
+    setTimeout(cleanup, 60000);
+  }, [pdfSource]);
 
   const handleDownloadStraightPdf = useCallback(async () => {
     if (!pdfSource) return;
     setIsDownloading(true);
-    const startedAt = Date.now();
-    const finishLoading = () => {
-      const elapsed = Date.now() - startedAt;
-      const remaining = Math.max(0, 5000 - elapsed);
-      setTimeout(() => setIsDownloading(false), remaining);
-    };
     try {
-      const config = getBencherModeConfig('2-page');
-      const textPng = await renderCoverTextPng(coverText || '', !!logoSrc, config.designWidth);
-
       const res = await fetch('/api/bencher/generate-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mode: '2-page',
           logoSrc: logoSrc || undefined,
-          textPng: textPng?.dataUrl,
-          textW: textPng?.width,
-          textH: textPng?.height,
+          coverText: coverText || undefined,
         }),
       });
       if (!res.ok) {
@@ -928,7 +877,7 @@ export default function BencherApp() {
       console.error('Straight PDF generation failed:', err);
       alert(`Failed to generate straight PDF: ${code}`);
     } finally {
-      finishLoading();
+      setIsDownloading(false);
     }
   }, [coverText, logoSrc, pdfSource]);
 
@@ -1009,6 +958,19 @@ export default function BencherApp() {
           );
         })()}
 
+        {pageMode === '2-page' && page.pageNumber === bencherLogoPlacement.pageNumber && (
+          <button
+            type="button"
+            className="bencher-logo-target"
+            style={rectToCss(bencherLogoPlacement.rect)}
+            onClick={() => fileInputRef.current?.click()}
+            aria-label={`Upload logo for page ${bencherLogoPlacement.pageNumber}`}
+            data-testid="bencher-logo-target"
+          >
+            {logoSrc ? <img src={logoSrc} alt="Uploaded logo" /> : <span>Upload logo</span>}
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoChange} />
+          </button>
+        )}
         {pageMode === '8-page' && page.pageNumber === bencherLogoPlacement.pageNumber && coverMode === 'logo' && (
           <>
             <button
@@ -1091,58 +1053,6 @@ export default function BencherApp() {
   const activeModeLabel = BENCHER_MODE_CONFIGS.find((config) => config.mode === pageMode)?.label ?? 'Double Sided';
   const pageSummary = `Page ${currentPreviewPage} of ${bencherPageCount}`;
 
-  const handleSelectMode = useCallback((mode: BencherMode) => {
-    setPageMode(mode);
-    setHasSelectedMode(true);
-  }, []);
-
-  if (!hasSelectedMode) {
-    return (
-      <div className="bencher-app">
-        <Header />
-        <main className="bencher-mode-picker">
-          <div className="bencher-mode-picker-inner">
-            <h1 className="bencher-mode-picker-heading">Choose Your Bencher Style</h1>
-            <p className="bencher-mode-picker-sub">Select how you want your bencher laid out. You can switch later.</p>
-            <div className="bencher-mode-picker-cards">
-              {BENCHER_MODE_CONFIGS.map((config) => (
-                <button
-                  key={config.mode}
-                  type="button"
-                  className="bencher-mode-picker-card"
-                  onClick={() => handleSelectMode(config.mode)}
-                  aria-label={`Choose ${config.label} mode`}
-                >
-                  <div className={`bencher-mode-picker-visual bencher-mode-picker-visual-${config.mode}`}>
-                    {config.mode === '2-page' ? (
-                      <div className="bencher-mode-visual-spread">
-                        <div className="bencher-mode-visual-page bencher-mode-visual-left" />
-                        <div className="bencher-mode-visual-page bencher-mode-visual-right" />
-                      </div>
-                    ) : (
-                      <div className="bencher-mode-visual-booklet">
-                        <div className="bencher-mode-visual-sheet" />
-                        <div className="bencher-mode-visual-sheet" />
-                        <div className="bencher-mode-visual-sheet" />
-                        <div className="bencher-mode-visual-sheet" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="bencher-mode-picker-card-label">{config.label}</div>
-                  <div className="bencher-mode-picker-card-desc">
-                    {config.mode === '2-page'
-                      ? 'One folded sheet — drag songs onto the back page. Simple and clean.'
-                      : 'Full booklet — upload a logo and add cover text. Songs not available in this mode.'}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   return (
     <DndContext
       sensors={sensors}
@@ -1156,13 +1066,6 @@ export default function BencherApp() {
         <Header />
 
         <main className="bencher-workspace" style={pageMode === '8-page' ? { gridTemplateColumns: '1fr' } : undefined}>
-          {isDownloading && (
-            <div className="bencher-print-loading">
-              <div className="bencher-print-loading-spinner" />
-              <p>Generating your bencher…</p>
-              <p className="bencher-print-loading-sub">This may take a moment while we prepare the PDF for print.</p>
-            </div>
-          )}
           {pageMode !== '8-page' && <aside className="sb2-sidebar bencher-sidebar" aria-label="Song library">
             <div className="sb2-sidebar-header">
               <div className="sb2-sidebar-tabs">
@@ -1309,11 +1212,11 @@ export default function BencherApp() {
                 </div>
                 )}
 
-                {pageMode === '8-page' && (
+                {(pageMode === '8-page' || logoSrc) && (
                 <div className="sb2-toolbar-section">
-                  <div className="sb2-toolbar-section-title">Cover</div>
+                  <div className="sb2-toolbar-section-title">{pageMode === '8-page' ? 'Cover' : 'Logo'}</div>
                   <div className="sb2-toolbar-action-row">
-                    {coverMode === 'caption' && (
+                    {pageMode === '8-page' && coverMode === 'caption' && (
                       <>
                         <span className="bencher-cover-mode-hint">Caption mode — edit text on cover page</span>
                         <select
@@ -1329,7 +1232,7 @@ export default function BencherApp() {
                         </select>
                       </>
                     )}
-                    {coverMode === 'logo' && (
+                    {pageMode === '8-page' && coverMode === 'logo' && (
                       <span className="bencher-cover-mode-hint">Upload a logo on the cover page, or add text</span>
                     )}
                     {(logoSrc || coverText) && (
@@ -1337,34 +1240,14 @@ export default function BencherApp() {
                         type="button"
                         className="bencher-cover-clear-btn"
                         onClick={() => { setLogoSrc(null); setCoverText(''); setCoverMode('logo'); }}
-                        title="Remove logo and cover text"
+                        title={pageMode === '8-page' ? 'Remove logo and cover text' : 'Remove logo'}
                       >
-                        Clear cover
+                        {pageMode === '8-page' ? 'Clear cover' : 'Clear logo'}
                       </button>
                     )}
                   </div>
                 </div>
                 )}
-
-                <div className="sb2-toolbar-section">
-                  <div className="sb2-toolbar-section-title">Style</div>
-                  <div className="sb2-column-controls" aria-label="Bencher mode">
-                    {BENCHER_MODE_CONFIGS.map((config) => (
-                      <button
-                        key={`bencher-mode-${config.mode}`}
-                        type="button"
-                        className={pageMode === config.mode ? 'active' : ''}
-                        aria-label={`Use ${config.mode} mode`}
-                        aria-pressed={pageMode === config.mode}
-                        data-testid={`bencher-mode-${config.mode}`}
-                        onClick={() => setPageMode(config.mode)}
-                        title={config.mode === '2-page' ? 'Use the double-sided bencher layout' : 'Use the booklet bencher layout'}
-                      >
-                        {config.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
                 <div className="sb2-toolbar-section">
                   <div className="sb2-toolbar-section-title">Page</div>
@@ -1420,7 +1303,7 @@ export default function BencherApp() {
                 <div className="sb2-toolbar-section">
                   <div className="sb2-toolbar-section-title">Print</div>
                   <div className="sb2-toolbar-action-row">
-                    <button type="button" className="bencher-download-btn" onClick={handleDownloadBookletPdf} disabled={!pdfSource || isDownloading} title={pdfSource ? 'Open print-ready PDF' : 'No PDF available for this mode'}>{isDownloading ? 'Generating…' : 'Print'}</button>
+                    <button type="button" className="bencher-download-btn" onClick={handlePrint} disabled={!pdfSource} title={pdfSource ? 'Open the print dialog' : 'No PDF available for this mode'}>Print</button>
                     {pageMode === '8-page' && (
                       <button type="button" className="bencher-download-btn" onClick={handleDownloadStraightPdf} disabled={!pdfSource || isDownloading} title="Download a straight (non-imposed) PDF for print shops">Straight PDF</button>
                     )}
@@ -1460,15 +1343,28 @@ export default function BencherApp() {
                 </>);
               })()}
 
-              <div className="bencher-flipbook-wrap">
+              <div
+                className={`bencher-flipbook-wrap${pageMode === '2-page' ? ' bencher-single-page-wrap' : ''}`}
+                style={pageMode === '2-page' ? {
+                  '--bencher-preview-scale': twoSidedPreviewScale,
+                  '--bencher-preview-scaled-width': `${designWidth * twoSidedPreviewScale}px`,
+                  '--bencher-preview-scaled-height': `${designHeight * twoSidedPreviewScale}px`,
+                } as CSSProperties : undefined}
+              >
                 <HTMLFlipBook
                   key={pageMode}
                   ref={flipBookRef}
-                  className="bencher-flipbook"
-                  style={{}}
+                  className={`bencher-flipbook${pageMode === '2-page' ? ' bencher-two-sided-flipbook' : ''}`}
+                  style={pageMode === '2-page' ? {
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    transform: `scale(${twoSidedPreviewScale})`,
+                    transformOrigin: 'top left',
+                  } : {}}
                   width={designWidth}
                   height={designHeight}
-                  size="stretch"
+                  size={pageMode === '2-page' ? 'fixed' : 'stretch'}
                   minWidth={0}
                   maxWidth={0}
                   minHeight={0}
@@ -1507,6 +1403,14 @@ export default function BencherApp() {
           </section>
         </main>
       </div>
+
+      <BencherPrintView
+        mode={pageMode}
+        logoSrc={logoSrc}
+        coverText={coverText}
+        songs={pageMode === '2-page' ? selectedSongs.map(s => ({ title: s.title, artist: s.artist, lyrics: s.lyrics })) : []}
+        showTitles={showTitles}
+      />
 
       {showSaveModal && auth?.user && (
         <div

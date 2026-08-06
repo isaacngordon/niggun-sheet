@@ -52,14 +52,14 @@ export const BENCHER_MODE_CONFIGS: BencherModeConfig[] = [
     designHeight: 1187,
     pdfSource: '/assets/bencher/PDF1_SVG8.pdf',
     pages: [
-      { pageNumber: 1, background: '' },
-      { pageNumber: 2, background: '' },
-      { pageNumber: 3, background: '' },
-      { pageNumber: 4, background: '' },
-      { pageNumber: 5, background: '' },
-      { pageNumber: 6, background: '' },
-      { pageNumber: 7, background: '' },
-      { pageNumber: 8, background: '' },
+      { pageNumber: 1, background: '/assets/bencher/svg8/page-1.svg' },
+      { pageNumber: 2, background: '/assets/bencher/svg8/page-2.svg' },
+      { pageNumber: 3, background: '/assets/bencher/svg8/page-3.svg' },
+      { pageNumber: 4, background: '/assets/bencher/svg8/page-4.svg' },
+      { pageNumber: 5, background: '/assets/bencher/svg8/page-5.svg' },
+      { pageNumber: 6, background: '/assets/bencher/svg8/page-6.svg' },
+      { pageNumber: 7, background: '/assets/bencher/svg8/page-7.svg' },
+      { pageNumber: 8, background: '/assets/bencher/svg8/page-8.svg' },
     ],
   },
 ];
@@ -145,6 +145,52 @@ export function getBencherSongDropPlacement(mode: BencherMode) {
 
 export function skipEveryOtherLineBreak(lyrics: string) {
   return skipEveryOtherLineBreakWithinWidth(lyrics, Number.POSITIVE_INFINITY);
+}
+
+/** Song lyric font size in design-space px. */
+export const BENCHER_SONG_FONT_SIZE = 12;
+/** Design-space page width the rects and font sizes are authored against. */
+export const BENCHER_DESIGN_PAGE_WIDTH = 768;
+const BENCHER_FONT_FALLBACK_WIDTH_RATIO = 4.3 / BENCHER_SONG_FONT_SIZE;
+
+/** Canvas can't resolve CSS custom properties in a font string, so read the real family names once. */
+let _lyricFontFamily: string | null = null;
+function getLyricFontFamily(): string {
+  if (_lyricFontFamily) return _lyricFontFamily;
+  const fallback = 'Georgia, serif';
+  if (typeof document === 'undefined') return fallback;
+  const root = getComputedStyle(document.documentElement);
+  const families = ['--font-frank-ruhl-libre', '--font-noto-serif-hebrew']
+    .map((v) => root.getPropertyValue(v).trim())
+    .filter(Boolean);
+  _lyricFontFamily = families.length ? `${families.join(', ')}, ${fallback}` : fallback;
+  return _lyricFontFamily;
+}
+
+export function measureBencherLyricLine(line: string, fontSize: number) {
+  if (typeof document === 'undefined') {
+    return line.length * fontSize * BENCHER_FONT_FALLBACK_WIDTH_RATIO;
+  }
+
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+
+  if (!context) {
+    return line.length * fontSize * BENCHER_FONT_FALLBACK_WIDTH_RATIO;
+  }
+
+  context.font = `${fontSize}px ${getLyricFontFamily()}`;
+  return context.measureText(line).width;
+}
+
+/** Reflows lyrics to the given rendered width — shared by the on-screen cards and the print view. */
+export function formatBencherLyrics(lyrics: string, maxLineWidth: number, fontSize: number) {
+  return skipEveryOtherLineBreakWithinWidth(lyrics || '', maxLineWidth, (line) => measureBencherLyricLine(line, fontSize));
+}
+
+/** Content width available to lyrics inside a drop-zone rect, in design-space px. */
+export function bencherPrintContentWidth(rectWidthPercent: number) {
+  return Math.max(0, BENCHER_DESIGN_PAGE_WIDTH * (rectWidthPercent / 100) - 24);
 }
 
 export function skipEveryOtherLineBreakWithinWidth(

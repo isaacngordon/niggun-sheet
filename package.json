@@ -23,6 +23,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@google-cloud/speech": "^7.3.0",
     "@pdf-lib/fontkit": "^1.1.1",
+    "@sparticuz/chromium": "^149.0.0",
     "bookbinder": "github:momijizukamori/bookbinder-js",
     "cheerio": "^1.2.0",
     "dotenv": "^17.2.2",
@@ -31,6 +32,7 @@
     "jspdf": "^4.2.1",
     "next": "^16.2.6",
     "pdf-lib": "^1.17.1",
+    "puppeteer-core": "^25.5.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-pageflip": "^2.0.3",
@@ -45,6 +47,7 @@
     "@types/react-dom": "^19",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
+    "puppeteer": "^25.5.0",
     "ts-jest": "^29.4.9",
     "typescript": "^5"
   }

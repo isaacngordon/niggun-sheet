@@ -44,6 +44,7 @@
 }
 
 .bencher-mode-picker-card {
+  text-decoration: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -872,6 +873,22 @@
   overflow-y: visible;
 }
 
+/* Two-sided mode stays in react-pageflip's portrait layout: one visible face. */
+.bencher-single-page-wrap {
+  overflow: hidden;
+  width: var(--bencher-preview-scaled-width);
+  height: var(--bencher-preview-scaled-height);
+  align-self: start;
+}
+
+.bencher-two-sided-flipbook {
+  width: var(--bencher-design-width, 768px) !important;
+  height: var(--bencher-design-height, 994px) !important;
+  max-width: none !important;
+  margin: 0 !important;
+  transform-origin: top left;
+}
+
 /* Booklet mode: shrink spread to fit, no scroll */
 .bencher-mode-8-page.bencher-preview {
   overflow: hidden;
@@ -1269,49 +1286,6 @@
   border-color: #444 !important;
 }
 
-/* ── Print loading overlay ── */
-.bencher-print-loading {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(0, 0, 0, 0.85);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  color: #fff;
-  font-family: var(--font-frank-ruhl-libre), serif;
-  text-align: center;
-  padding: 32px;
-}
-
-.bencher-print-loading p {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.bencher-print-loading-sub {
-  font-size: 14px !important;
-  font-weight: 400 !important;
-  opacity: 0.7;
-  max-width: 360px;
-}
-
-.bencher-print-loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #f2cb05;
-  border-radius: 50%;
-  animation: bencher-spin 0.8s linear infinite;
-}
-
-@keyframes bencher-spin {
-  to { transform: rotate(360deg); }
-}
-
 .bencher-sheet-builder-grid .sb2-drop-slot-expanded {
   min-height: 108px;
 }
@@ -1684,5 +1658,106 @@ body.bencher-active .analytics-pref-trigger:hover {
     min-height: 100% !important;
     width: 100% !important;
     overflow: visible !important;
+  }
+}
+
+/* ── SVG-based print view (BencherPrintView) ──
+   Gated behind body.bencher-svg-printing, set by the Print button right
+   before window.print() — this coexists with the (manual Ctrl+P) workspace
+   print rules above rather than fighting them. */
+.bencher-print-root {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0;
+  }
+
+  html:has(body.bencher-svg-printing) {
+    width: auto;
+  }
+
+  body.bencher-svg-printing {
+    width: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body.bencher-svg-printing .bencher-app {
+    display: none !important;
+  }
+
+  body.bencher-svg-printing .bencher-print-root {
+    display: block;
+  }
+
+  body.bencher-svg-printing .bencher-print-root > .bencher-print-page {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  body.bencher-svg-printing .bencher-print-root > .bencher-print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  body.bencher-svg-printing .bencher-print-root > .bencher-print-sheet {
+    display: flex;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  body.bencher-svg-printing .bencher-print-root > .bencher-print-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  body.bencher-svg-printing .bencher-print-page {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  body.bencher-svg-printing .bencher-print-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* The .bencher-sheet-builder-grid class is used here only to inherit the
+     song-card font rules; its grid layout would stretch each song to an
+     equal-height row, so force normal block flow instead. */
+  body.bencher-svg-printing .bencher-print-songs {
+    position: absolute;
+    overflow: hidden;
+    display: block !important;
+  }
+
+  /* 12pt ≈ the 1.51%-of-page-height gap the on-screen preview uses. */
+  body.bencher-svg-printing .bencher-print-song {
+    margin-bottom: 12pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body.bencher-svg-printing .bencher-print-song:last-child {
+    margin-bottom: 0;
+  }
+
+  body.bencher-svg-printing .bencher-print-song .sb2-song-card-lyrics {
+    white-space: pre-wrap;
+  }
+
+  body.bencher-svg-printing .bencher-print-hebrew {
+    font-family: var(--font-frank-ruhl-libre), var(--font-noto-serif-hebrew), Georgia, serif;
+    text-align: center;
+    white-space: nowrap;
+    color: #000;
   }
 }

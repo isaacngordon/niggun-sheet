@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import BencherRoute from './BencherRoute';
+import BencherAppPicker from './BencherAppPicker';
 
 export const metadata: Metadata = {
-  title: 'Bencher Builder',
-  description: 'Preformatted bencher in Double Sided and Booklet styles. Upload your logo, add oneg songs, and print.',
+  title: 'Bencher Apps',
+  description: 'Choose the dedicated two-sided or booklet bencher builder.',
 };
 
 export default function Page() {
-  return <BencherRoute />;
+  return <BencherAppPicker />;
 }
