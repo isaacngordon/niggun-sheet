@@ -47,3 +47,6 @@ Thumbs.db
 
 # Ignore backup files
 /data/backups/**
+
+.cache/
+_*.py
