@@ -238,8 +238,10 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
 
       <AddSongModal open={showAddForm} onClose={() => setShowAddForm(false)} onSave={addSong} onSaveBulk={addSongs} />
 
+      {/* Count songs, not rows — a song with several recordings expands into
+          multiple entries, which previously produced "Showing 94 of 85 songs". */}
       <p className="songs-count">
-        Showing {displayEntries.length} of {filteredSongs.length} {filteredSongs.length === 1 ? 'song' : 'songs'}
+        Showing {filteredSongs.length} of {totalCount} {totalCount === 1 ? 'song' : 'songs'}
       </p>
 
       {displayEntries.length === 0 ? (

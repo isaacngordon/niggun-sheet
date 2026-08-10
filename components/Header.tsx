@@ -37,40 +37,21 @@ export default function Header() {
   ];
 
   return (
-    <header style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      padding: '1rem 2rem', 
-      backgroundColor: '#1a1a1a', 
-      color: '#fff',
-      borderBottom: '1px solid rgba(255,255,255,0.1)'
-    }}>
-      <Link href="/" style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#f2cb05', marginRight: '2rem', textDecoration: 'none' }}>
-        <span style={{ color: '#888' }}>|||</span> NIGGUN SHEET
+    <header className="site-header">
+      <Link href="/" className="site-header-brand">
+        <span aria-hidden="true">|||</span> NIGGUN SHEET
       </Link>
-      <nav style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', flex: 1 }}>
-        <Link href="/" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Home</Link>
-        <Link href="/songs" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Songs</Link>
-        <Link href="/sheet-builder-v2" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Sheet Builder</Link>
-        <Link href="/bencher" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Bencher</Link>
-        <Link href="/contact" style={{ color: '#e0e0e0', textDecoration: 'none' }}>Contact</Link>
+      <nav className="site-header-nav" aria-label="Main">
+        <Link href="/" aria-current={isActive('/') ? 'page' : undefined}>Home</Link>
+        <Link href="/songs" aria-current={isActive('/songs') ? 'page' : undefined}>Songs</Link>
+        <Link href="/sheet-builder" aria-current={isActive('/sheet-builder') ? 'page' : undefined}>Sheet Builder</Link>
+        <Link href="/bencher" aria-current={isActive('/bencher') ? 'page' : undefined}>Bencher</Link>
+        <Link href="/contact" aria-current={isActive('/contact') ? 'page' : undefined}>Contact</Link>
       </nav>
-      <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', alignItems: 'center' }}>
-        <div>
-          <HeaderAuthControls />
-        </div>
+      <div className="site-header-actions">
+        <HeaderAuthControls />
         {!pathname.startsWith('/bencher') && (
-        <NiggunSheetDownloadButton
-          style={{ 
-            borderRadius: '20px', 
-            border: '1px solid #f2cb05', 
-            color: '#1a1a1a', 
-            backgroundColor: '#f2cb05',
-            padding: '0.4rem 1rem',
-            fontWeight: 600,
-            cursor: 'pointer'
-          }}
-        >
+        <NiggunSheetDownloadButton className="site-header-download">
           Download Sheet
         </NiggunSheetDownloadButton>
         )}

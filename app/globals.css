@@ -1204,7 +1204,10 @@ a {
 
 /* Songs page specific styles */
 .songs-container {
-  padding: 2rem 1rem;
+  /* Single source of truth for the page gutter — the filter-tab strip bleeds
+     to the screen edge by negating it, so the two must always agree. */
+  --songs-gutter: clamp(1.25rem, 4vw, 2rem);
+  padding: 2rem var(--songs-gutter);
   max-width: 1200px;
   margin: 0 auto;
   min-height: calc(100vh - 200px);
@@ -1226,12 +1229,15 @@ a {
   line-height: 1.05;
 }
 
+/* Note: this used to be `max-width: none; padding-left: 15%; padding-right: 0`,
+   which left the content indented from the left but flush against the right
+   edge of the window. It now stays centred in the same 1200px column the rest
+   of the site uses. */
 @media (min-width: 901px) {
-  .songs-container {
-    max-width: none;
-    margin: 0;
-    padding-left: 15%;
-    padding-right: 0;
+  .song-directory-title {
+    font-size: 2.5rem;
+    margin-bottom: 2.25rem;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -2193,6 +2199,100 @@ a {
   border-color: rgba(243, 237, 226, 0.34);
 }
 
+/* ── Shared site header ──
+   Previously inline-styled with a non-wrapping nav, which overflowed the
+   viewport on phones and collided with the auth/download buttons. */
+
+.site-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  padding: 1rem clamp(1rem, 4vw, 2rem);
+  background-color: #1a1a1a;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.site-header-brand {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f2cb05;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-header-brand span[aria-hidden] {
+  color: #888;
+}
+
+.site-header-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  flex: 1 1 auto;
+  font-size: 0.9rem;
+}
+
+.site-header-nav a {
+  color: #e0e0e0;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-header-nav a:hover {
+  color: #fff;
+}
+
+.site-header-nav a[aria-current='page'] {
+  color: #f2cb05;
+}
+
+.site-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+
+.site-header-download {
+  border-radius: 20px;
+  border: 1px solid #f2cb05;
+  color: #1a1a1a;
+  background-color: #f2cb05;
+  padding: 0.4rem 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.site-header-download:hover {
+  background-color: #ffd816;
+}
+
+@media (max-width: 640px) {
+  .site-header {
+    gap: 0.6rem 1rem;
+  }
+
+  .site-header-brand {
+    font-size: 1.05rem;
+  }
+
+  /* Let the nav take its own row rather than squeezing against the buttons. */
+  .site-header-nav {
+    order: 3;
+    flex-basis: 100%;
+    gap: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .site-header-actions {
+    margin-left: auto;
+  }
+}
+
 .header-signin-btn {
   background: var(--accent);
   border: none;
@@ -2323,11 +2423,15 @@ a {
   gap: 0;
 }
 
+/* Shares the row grid below so each label sits over the column it describes —
+   it previously used flex with a magic `width: min(46vw, 760px)`, which drifted
+   out of alignment with the actual columns at most window sizes. */
 .songs-list-header {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.75fr) minmax(0, 1.55fr);
+  column-gap: 0.95rem;
   align-items: center;
-  padding: 0 3rem 0 1rem;
+  padding: 0 1rem;
   height: 36px;
   font-size: 0.68rem;
   font-weight: 600;
@@ -2338,8 +2442,8 @@ a {
 }
 
 .songs-list-header span:last-child {
+  grid-column: 3;
   text-align: right;
-  width: min(46vw, 760px);
 }
 
 .songs-list .song-card {
@@ -2349,7 +2453,7 @@ a {
   column-gap: 0.95rem;
   position: relative;
   border-radius: 0;
-  padding: 0.82rem 0 0.82rem 1rem;
+  padding: 0.82rem 1rem;
   border-bottom: 1px solid rgba(255,255,255,0.055);
   border-left: none;
   border-right: none;
@@ -2391,7 +2495,10 @@ a {
   align-items: center;
   min-width: 0;
   flex: 1;
-  padding-right: 7rem;
+  /* No right padding: the container's own gutter handles the edge now. This
+     was 7rem to claw content back from the window edge under the old
+     full-bleed layout, which left the action buttons short of the column. */
+  padding-right: 0;
   margin-right: 0;
 }
 
@@ -2727,7 +2834,8 @@ a {
   }
 
   .songs-container {
-    padding: 1.05rem 0.85rem 1.8rem;
+    --songs-gutter: 0.85rem;
+    padding: 1.05rem var(--songs-gutter) 1.8rem;
     min-height: auto;
   }
 
@@ -2774,9 +2882,9 @@ a {
   }
 
   .songs-filter-tabs {
-    width: calc(100% + 1.7rem);
-    margin: 0 -0.85rem;
-    padding: 0 0.85rem 0.1rem;
+    width: calc(100% + (2 * var(--songs-gutter)));
+    margin: 0 calc(-1 * var(--songs-gutter));
+    padding: 0 var(--songs-gutter) 0.1rem;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
@@ -2947,8 +3055,7 @@ a {
   }
 
   .songs-container {
-    padding-left: 0.72rem;
-    padding-right: 0.72rem;
+    --songs-gutter: 0.72rem;
   }
 
   .song-directory-title {
@@ -5963,13 +6070,12 @@ a {
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 2rem;
-  max-width: 760px;
 }
 
 .search-input {
-  flex: 0 1 560px;
+  flex: 1 1 auto;
   width: 100%;
-  max-width: 560px;
+  max-width: 720px;
   padding: 1rem 1.25rem;
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
