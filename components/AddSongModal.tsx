@@ -70,7 +70,7 @@ function parseCSV(text: string): string[][] {
 
 function csvToSongs(text: string): { songs: NewSong[]; errors: string[] } {
   const rows = parseCSV(text);
-  if (rows.length < 2) return { songs: [], errors: ['CSV must have a header row and at least one data row.'] };
+  if (rows.length < 2) return { songs: [], errors: ['Your CSV needs a top row and at least one song row.'] };
 
   const header = rows[0].map((h) => h.trim().toLowerCase());
   const titleIdx = header.indexOf('title');
@@ -80,7 +80,7 @@ function csvToSongs(text: string): { songs: NewSong[]; errors: string[] } {
   const ytIdx = header.findIndex((h) => h.includes('youtube'));
   const driveIdx = header.findIndex((h) => h.includes('drive'));
 
-  if (titleIdx === -1) return { songs: [], errors: ['CSV must have a "title" column.'] };
+  if (titleIdx === -1) return { songs: [], errors: ['Your CSV needs a "title" column.'] };
 
   const songs: NewSong[] = [];
   const errors: string[] = [];
@@ -88,7 +88,7 @@ function csvToSongs(text: string): { songs: NewSong[]; errors: string[] } {
   for (let r = 1; r < rows.length; r++) {
     const row = rows[r];
     const title = (row[titleIdx] || '').trim();
-    if (!title) { errors.push(`Row ${r + 1}: missing title, skipped.`); continue; }
+    if (!title) { errors.push(`Row ${r + 1} has no title, so it was skipped.`); continue; }
     const lyrics = lyricsIdx >= 0 ? (row[lyricsIdx] || '').trim().replace(/\\n/g, '\n') : '';
     const artist = artistIdx >= 0 ? (row[artistIdx] || '').trim() : '';
     const audioUrl = audioIdx >= 0 ? (row[audioIdx] || '').trim() || undefined : undefined;
@@ -204,30 +204,30 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
 
         {/* Tabs */}
         <div className="add-song-tabs">
-          <button className={`add-song-tab ${tab === 'single' ? 'active' : ''}`} onClick={() => setTab('single')}>Single Song</button>
-          <button className={`add-song-tab ${tab === 'csv' ? 'active' : ''}`} onClick={() => setTab('csv')}>Import CSV</button>
+          <button className={`add-song-tab ${tab === 'single' ? 'active' : ''}`} onClick={() => setTab('single')}>One Song</button>
+          <button className={`add-song-tab ${tab === 'csv' ? 'active' : ''}`} onClick={() => setTab('csv')}>CSV File</button>
         </div>
 
         {tab === 'single' ? (
           <>
             <div className="add-song-modal-body">
-              <input type="text" placeholder="Song title *" value={title} onChange={(e) => setTitle(e.target.value)} className="add-song-input" />
-              <input type="text" placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} className="add-song-input" />
-              <textarea placeholder="Lyrics *" value={lyrics} onChange={(e) => setLyrics(e.target.value)} className="add-song-textarea" rows={6} />
+              <input type="text" placeholder="Song name *" value={title} onChange={(e) => setTitle(e.target.value)} className="add-song-input" />
+              <input type="text" placeholder="Singer name" value={artist} onChange={(e) => setArtist(e.target.value)} className="add-song-input" />
+              <textarea placeholder="Paste the words *" value={lyrics} onChange={(e) => setLyrics(e.target.value)} className="add-song-textarea" rows={6} />
               <div className="add-song-links-group">
                 <label>YouTube Links</label>
-                <p className="add-song-help">Primary playback source right now. Add one or more YouTube URLs.</p>
+                <p className="add-song-help">Use YouTube links to play the song. You can add more than one.</p>
                 {youtubeLinks.map((link, i) => (
                   <div key={i} className="add-song-link-row">
                     <input type="url" placeholder="https://youtube.com/watch?v=..." value={link} onChange={(e) => { const a = [...youtubeLinks]; a[i] = e.target.value; setYoutubeLinks(a); }} className="add-song-input" />
                     {youtubeLinks.length > 1 && <button type="button" className="add-song-link-remove" onClick={() => setYoutubeLinks(youtubeLinks.filter((_, j) => j !== i))}>×</button>}
                   </div>
                 ))}
-                <button type="button" className="add-song-link-add" onClick={() => setYoutubeLinks([...youtubeLinks, ''])}>+ Add another link</button>
+                <button type="button" className="add-song-link-add" onClick={() => setYoutubeLinks([...youtubeLinks, ''])}>+ Add one more link</button>
               </div>
               <div className="add-song-links-group">
-                <label>Direct Audio URL</label>
-                <p className="add-song-help">Optional advanced source. Leave blank if you only use YouTube.</p>
+                <label>Extra Audio Link</label>
+                <p className="add-song-help">Optional. Leave this empty if YouTube is enough.</p>
                 <input type="url" placeholder="https://example.com/song.mp3" value={audioUrl} onChange={(e) => setAudioUrl(e.target.value)} className="add-song-input" />
               </div>
               <div className="add-song-links-group">
@@ -238,7 +238,7 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
             <div className="add-song-modal-footer">
               <button className="add-song-cancel-btn" onClick={onClose}>Cancel</button>
               <button className="add-song-save-btn" onClick={handleSave} disabled={saving || !title.trim() || !lyrics.trim()}>
-                {saving ? 'Saving...' : 'Save to My Drive'}
+                {saving ? 'Saving...' : 'Save My Song'}
               </button>
             </div>
           </>
@@ -246,11 +246,11 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
           <>
             <div className="add-song-modal-body">
               <div className="csv-instructions">
-                <p>Import multiple songs at once from a CSV file.</p>
-                <p className="add-song-help">Use `youtube_links` as the main playback field. `audio_url` is optional.</p>
+                <p>Add many songs at once with a CSV file.</p>
+                <p className="add-song-help">Use `youtube_links` for the main play link. `audio_url` is optional.</p>
                 <button className="csv-template-btn" onClick={downloadTemplate}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  Download Template
+                  Get Template
                 </button>
               </div>
 
@@ -285,7 +285,7 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
                 ) : (
                   <div className="csv-drop-prompt">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    <span>Drop a CSV file here or click to browse</span>
+                    <span>Drop a CSV file here or click to pick one</span>
                   </div>
                 )}
               </div>
@@ -298,7 +298,7 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
 
               {csvPreview && csvPreview.length > 0 && (
                 <div className="csv-preview">
-                  <div className="csv-preview-header">{csvPreview.length} song{csvPreview.length !== 1 ? 's' : ''} found</div>
+                  <div className="csv-preview-header">{csvPreview.length} song{csvPreview.length !== 1 ? 's' : ''} ready</div>
                   <div className="csv-preview-list">
                     {csvPreview.map((s, i) => (
                       <div key={i} className="csv-preview-row">
@@ -313,7 +313,7 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
             <div className="add-song-modal-footer">
               <button className="add-song-cancel-btn" onClick={onClose}>Cancel</button>
               <button className="add-song-save-btn" onClick={handleCsvUpload} disabled={csvSaving || !csvPreview || csvPreview.length === 0}>
-                {csvSaving ? 'Saving...' : `Import ${csvPreview?.length || 0} Song${(csvPreview?.length || 0) !== 1 ? 's' : ''}`}
+                {csvSaving ? 'Saving...' : `Add ${csvPreview?.length || 0} Song${(csvPreview?.length || 0) !== 1 ? 's' : ''}`}
               </button>
             </div>
           </>

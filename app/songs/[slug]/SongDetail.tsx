@@ -310,7 +310,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [isTimelineScrubbing, setIsTimelineScrubbing] = useState(false);
-  const [activeMediaSourceKey, setActiveMediaSourceKey] = useState<string | null>(null);
+  const [selectedMediaSourceKey, setSelectedMediaSourceKey] = useState<string | null>(null);
   const [savedSourceLabels, setSavedSourceLabels] = useState<Record<string, string>>({});
   const [editSourceLabels, setEditSourceLabels] = useState<Record<string, string>>({});
   const [manualTargetVerseIndex, setManualTargetVerseIndex] = useState<number | null>(0);
@@ -326,19 +326,16 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
   );
   const defaultMediaSourceKey = mediaSources[0]?.key ?? null;
   const requestedTimingSourceKey = searchParams.get('timingSource');
+  const activeMediaSourceKey = useMemo(() => {
+    if (requestedTimingSourceKey && mediaSources.some((source) => source.key === requestedTimingSourceKey)) {
+      return requestedTimingSourceKey;
+    }
+    if (selectedMediaSourceKey && mediaSources.some((source) => source.key === selectedMediaSourceKey)) {
+      return selectedMediaSourceKey;
+    }
+    return defaultMediaSourceKey;
+  }, [defaultMediaSourceKey, mediaSources, requestedTimingSourceKey, selectedMediaSourceKey]);
   const activeMediaSource = mediaSources.find((source) => source.key === activeMediaSourceKey) ?? mediaSources[0] ?? null;
-
-  useEffect(() => {
-    setActiveMediaSourceKey((current) => {
-      if (requestedTimingSourceKey && mediaSources.some((source) => source.key === requestedTimingSourceKey)) {
-        return requestedTimingSourceKey;
-      }
-      if (current && mediaSources.some((source) => source.key === current)) {
-        return current;
-      }
-      return defaultMediaSourceKey;
-    });
-  }, [defaultMediaSourceKey, mediaSources, requestedTimingSourceKey]);
 
   useEffect(() => {
     setCurrentTime(0);
@@ -346,6 +343,13 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
     setYtPlaying(false);
     ytPlayerRef.current = null;
   }, [activeMediaSourceKey]);
+
+  const buildTimingSourceHref = useCallback((sourceKey: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('timingSource', sourceKey);
+    const query = params.toString();
+    return query ? `/songs/${slug}?${query}` : `/songs/${slug}`;
+  }, [searchParams, slug]);
 
   // Load saved timings
   useEffect(() => {
@@ -620,16 +624,16 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
       edge: 'in' as const,
       label: 'In',
       point: editBounds.inPoint,
-      text: editBounds.inPoint != null ? 'Song start is locked to this time.' : 'Mark where the song officially begins.',
-      stamp: editBounds.inPoint != null ? `Starts ${fmtPrecise(editBounds.inPoint)}` : 'Set at playhead',
+      text: editBounds.inPoint != null ? 'The song now starts here.' : 'Mark where the song starts.',
+      stamp: editBounds.inPoint != null ? `Starts at ${fmtPrecise(editBounds.inPoint)}` : 'Set it here',
     },
     {
       key: 'out',
       edge: 'out' as const,
       label: 'Out',
       point: editBounds.outPoint,
-      text: editBounds.outPoint != null ? 'Song end is locked to this time.' : 'Mark where the song officially ends.',
-      stamp: editBounds.outPoint != null ? `Ends ${fmtPrecise(editBounds.outPoint)}` : 'Set at playhead',
+      text: editBounds.outPoint != null ? 'The song now ends here.' : 'Mark where the song ends.',
+      stamp: editBounds.outPoint != null ? `Ends at ${fmtPrecise(editBounds.outPoint)}` : 'Set it here',
     },
   ]), [editBounds.inPoint, editBounds.outPoint]);
 
@@ -644,7 +648,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
         const visualEnd = nextClip ? Math.max(clip.start, end - TIMELINE_CLIP_GAP_SECONDS) : end;
         const visualDuration = Math.max(0, visualEnd - clip.start);
         const isBlank = clip.verseIndex < 0;
-        const text = isBlank ? '(Pause / blank)' : (lyricsLines[clip.verseIndex] || `Verse ${clip.verseIndex + 1}`);
+        const text = isBlank ? '(Pause)' : (lyricsLines[clip.verseIndex] || `Line ${clip.verseIndex + 1}`);
         return {
           ...clip,
           isBlank,
@@ -1004,7 +1008,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
     <main className="song-detail-container">
       <Link href="/songs" className="song-detail-back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
-        Back to Songs
+        Back to songs
       </Link>
 
       <div className="song-detail-card">
@@ -1019,20 +1023,22 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
             {mediaSources.length > 1 && (
               <div className="song-detail-source-switcher" role="tablist" aria-label="Timing source selector">
                 {mediaSources.map((source) => (
-                  <button
+                  <Link
                     key={source.key}
-                    type="button"
+                    href={buildTimingSourceHref(source.key)}
+                    replace
+                    scroll={false}
                     role="tab"
                     aria-selected={activeMediaSource?.key === source.key}
                     className={`song-detail-source-pill${activeMediaSource?.key === source.key ? ' active' : ''}`}
                     onClick={() => {
                       if (source.key === activeMediaSource?.key) return;
                       cancelTiming();
-                      setActiveMediaSourceKey(source.key);
+                      setSelectedMediaSourceKey(source.key);
                     }}
                   >
                     {source.label}
-                  </button>
+                  </Link>
                 ))}
               </div>
             )}
@@ -1045,7 +1051,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
                     {mediaSources.length > 1 && (
                       <div className="song-detail-player-caption">
                         <span>{source.label}</span>
-                        <span>{isActiveSource ? 'Timing source' : 'Inactive for timing'}</span>
+                        <span>{isActiveSource ? 'This one controls timing' : 'Not used for timing right now'}</span>
                       </div>
                     )}
                     <MediaPlayer
@@ -1069,7 +1075,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
           <div className="timing-toolbar">
             <button className="timing-edit-btn" onClick={startTimingMode}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              {hasSavedTimingData ? 'Edit Timings' : 'Add Timings'}
+              {hasSavedTimingData ? 'Edit timing' : 'Add timing'}
             </button>
             {activeMediaSource && mediaSources.length > 1 && (
               <span className="timing-source-indicator">{activeMediaSource.label}</span>
@@ -1084,7 +1090,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
         {timingMode && (
           <div className="timing-editor">
             <div className="timing-editor-header">
-              <span className="timing-editor-title">Timing Editor</span>
+              <span className="timing-editor-title">Timing editor</span>
               <span className="timing-editor-time">
                 {ytPlaying ? fmtPrecise(currentTime) : 'Paused'}
               </span>
@@ -1093,7 +1099,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
               <div className="timing-source-editor">
                 {mediaSources.map((source, index) => (
                   <label key={source.key} className="timing-source-field">
-                    <span className="timing-source-field-label">Source {index + 1}</span>
+                    <span className="timing-source-field-label">Link {index + 1}</span>
                     <input
                       type="text"
                       className="timing-source-input"
@@ -1105,30 +1111,30 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
                           [source.key]: nextValue,
                         }));
                       }}
-                      placeholder={`Link ${index + 1}`}
+                      placeholder={`Name for link ${index + 1}`}
                     />
                   </label>
                 ))}
               </div>
             )}
-            <p className="timing-editor-hint">Click a lyric card to place it at the playhead. Use Previous, Next, or Pause to change the active line without placing it. Press Enter to place, Shift+Enter to place and advance, and [ or ] to nudge the selected clip.</p>
+            <p className="timing-editor-hint">Click a line card when the playhead reaches the right spot. Use Previous, Next, or Pause to change your place. Press Enter to place a line. Press Shift+Enter to place it and move on.</p>
             <div className="timing-manual-workflow">
               <div className="timing-manual-copy">
-                <span className="timing-manual-label">Manual timing flow</span>
+                <span className="timing-manual-label">Place lines by hand</span>
                 <strong className="timing-manual-title">
                   {selectedVerseCard
-                    ? (selectedVerseCard.isBlank ? 'Pause / blank clip selected' : `Line ${selectedVerseCard.verseIndex + 1} selected`)
-                    : 'Choose the next line to place'}
+                    ? (selectedVerseCard.isBlank ? 'Pause is selected' : `Line ${selectedVerseCard.verseIndex + 1} is selected`)
+                    : 'Pick the next line to place'}
                 </strong>
                 <p className="timing-manual-description">
                   {selectedVerseCard
                     ? selectedVerseCard.text
-                    : 'Pick the next line, then click its card when the playhead reaches the right spot.'}
+                    : 'Pick the next line, then click it when the playhead gets there.'}
                 </p>
                 <span className="timing-manual-meta">
                   {suggestedNextVerseIndex >= 0
-                    ? `Suggested next line: ${suggestedNextVerseIndex + 1}`
-                    : 'All lyric lines already have at least one clip.'}
+                    ? `Next line to try: ${suggestedNextVerseIndex + 1}`
+                    : 'Every line already has at least one timing mark.'}
                 </span>
               </div>
               <div className="timing-manual-controls">
@@ -1150,7 +1156,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
                     onClick={moveSelectedClipToPlayhead}
                     disabled={!selectedTimelineClip}
                   >
-                    Move selected clip to {fmtPrecise(getPlayheadTime())}
+                    Move selected mark to {fmtPrecise(getPlayheadTime())}
                   </button>
                   <button
                     type="button"
@@ -1158,7 +1164,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
                     onClick={() => nudgeSelectedClip(-0.25)}
                     disabled={!selectedTimelineClip}
                   >
-                    Nudge clip -0.25s
+                    Move back 0.25s
                   </button>
                   <button
                     type="button"
@@ -1182,18 +1188,18 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
                     onClick={() => nudgeSelectedClip(0.25)}
                     disabled={!selectedTimelineClip}
                   >
-                    Nudge clip +0.25s
+                    Move forward 0.25s
                   </button>
                 </div>
                 {selectedTimelineClip && (
                   <span className="timing-manual-selection">
-                    Selected clip: {selectedTimelineClip.isBlank ? 'Pause' : `Line ${selectedTimelineClip.verseIndex + 1}`} at {fmtPrecise(selectedTimelineClip.start)}
+                    Picked mark: {selectedTimelineClip.isBlank ? 'Pause' : `Line ${selectedTimelineClip.verseIndex + 1}`} at {fmtPrecise(selectedTimelineClip.start)}
                   </span>
                 )}
               </div>
             </div>
             <div className="timing-editor-meta">
-              <span>{editClips.length} clips on track, {usedVerseCount}/{lyricsLines.length} verses used</span>
+              <span>{editClips.length} marks placed, {usedVerseCount}/{lyricsLines.length} lines used</span>
               <div className="timing-editor-meta-tools">
                 <label className="timing-boundary-toggle">
                   <input
@@ -1201,7 +1207,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
                     checked={editUseClipEdgeBounds}
                     onChange={(e) => setEditUseClipEdgeBounds(e.target.checked)}
                   />
-                  Use first/last card as song boundaries
+                  Use the first and last marks as the song edges
                 </label>
                 <span>Timeline length {fmtPrecise(editorDuration)}</span>
                 <label className="timing-zoom-controls" aria-label="Timeline zoom control">
@@ -1261,10 +1267,10 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
                     <span className="timing-verse-copy">{card.text}</span>
                     <span className="timing-verse-stamp">
                       {card.verseIndex === manualTargetVerseIndex
-                        ? 'Click again to place here'
+                        ? 'Click again to place it here'
                         : card.clipCount > 0
-                          ? `${card.clipCount} clip${card.clipCount === 1 ? '' : 's'} on track`
-                          : 'Click to place at playhead'}
+                          ? `${card.clipCount} mark${card.clipCount === 1 ? '' : 's'} here`
+                          : 'Click to place it here'}
                     </span>
                   </button>
                 </div>
@@ -1278,7 +1284,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
                     : 'Preview'}
                 </span>
                 <span className="timing-timeline-preview-text">
-                  {previewTimelineClip?.text || 'Hover a timeline card to preview its full text.'}
+                  {previewTimelineClip?.text || 'Point to a mark below to read the whole line.'}
                 </span>
                 {previewTimelineClip && (
                   <span className="timing-timeline-preview-time">{fmtPrecise(previewTimelineClip.start)}</span>
@@ -1432,7 +1438,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
             </div>
             <div className="timing-editor-actions">
               <button className="timing-save-btn" onClick={saveTiming} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Timings'}
+                {saving ? 'Saving...' : 'Save timing'}
               </button>
               <button className="timing-cancel-btn" onClick={cancelTiming}>Cancel</button>
             </div>

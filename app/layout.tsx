@@ -1,9 +1,10 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
-import { Frank_Ruhl_Libre, Noto_Serif_Hebrew } from 'next/font/google';
+import { Frank_Ruhl_Libre, Noto_Serif_Hebrew, DM_Sans } from 'next/font/google';
 import { Suspense } from 'react';
 import Analytics from '@/components/Analytics';
 import AnalyticsPreferences from '@/components/AnalyticsPreferences';
+import DebugRectTool from '@/components/DebugRectTool';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://niggunsheet.com';
 
@@ -17,6 +18,13 @@ const notoSerifHebrew = Noto_Serif_Hebrew({
   subsets: ['hebrew', 'latin'],
   display: 'swap',
   variable: '--font-noto-serif-hebrew',
+});
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  display: 'swap',
+  variable: '--font-dm-sans',
 });
 
 export const metadata: Metadata = {
@@ -76,9 +84,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${frankRuhlLibre.variable} ${notoSerifHebrew.variable}`}>
+    <html lang="en" className={`${frankRuhlLibre.variable} ${notoSerifHebrew.variable} ${dmSans.variable}`}>
       <body>
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         {children}
+        {process.env.NODE_ENV === 'development' && <DebugRectTool />}
         <AnalyticsPreferences />
         <Suspense fallback={null}>
           <Analytics />

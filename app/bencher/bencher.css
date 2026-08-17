@@ -1,0 +1,1763 @@
+.bencher-app {
+  height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  background: #0d0d0d;
+  color: #f7f2df;
+  overflow: hidden;
+}
+
+/* ── Mode Picker (initial selection screen) ── */
+
+.bencher-mode-picker {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  overflow-y: auto;
+}
+
+.bencher-mode-picker-inner {
+  max-width: 900px;
+  width: 100%;
+  text-align: center;
+}
+
+.bencher-mode-picker-heading {
+  font-family: var(--font-frank-ruhl-libre), serif;
+  font-size: 2rem;
+  margin: 0 0 8px;
+  color: #f7f2df;
+}
+
+.bencher-mode-picker-sub {
+  font-size: 0.95rem;
+  color: rgba(247, 242, 223, 0.6);
+  margin: 0 0 40px;
+}
+
+.bencher-mode-picker-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.bencher-mode-picker-card {
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 20px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: #1a1a1a;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  text-align: center;
+}
+
+.bencher-mode-picker-card:hover,
+.bencher-mode-picker-card:focus-visible {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: #222;
+}
+
+.bencher-mode-picker-visual {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+/* Double Sided — open spread */
+.bencher-mode-visual-spread {
+  display: flex;
+  gap: 2px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+
+.bencher-mode-visual-page {
+  width: 80px;
+  height: 110px;
+  background: #f7f2df;
+  border-radius: 2px;
+  border: 1px solid rgba(0,0,0,0.2);
+}
+
+.bencher-mode-visual-left {
+  border-right: 1px solid rgba(0,0,0,0.15);
+}
+
+.bencher-mode-visual-right {
+  border-left: 1px solid rgba(0,0,0,0.15);
+}
+
+/* Booklet — stacked pages */
+.bencher-mode-visual-booklet {
+  position: relative;
+  width: 100px;
+  height: 130px;
+}
+
+.bencher-mode-visual-sheet {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #f7f2df;
+  border: 1px solid rgba(0,0,0,0.25);
+  border-radius: 2px;
+}
+
+.bencher-mode-visual-sheet:nth-child(1) {
+  transform: rotate(-3deg) translate(-3px, 1px);
+  z-index: 4;
+}
+.bencher-mode-visual-sheet:nth-child(2) {
+  transform: rotate(1deg) translate(2px, -2px);
+  z-index: 3;
+}
+.bencher-mode-visual-sheet:nth-child(3) {
+  transform: rotate(-2deg) translate(-1px, 3px);
+  z-index: 2;
+}
+.bencher-mode-visual-sheet:nth-child(4) {
+  transform: rotate(2deg) translate(3px, -1px);
+  z-index: 1;
+}
+
+.bencher-mode-picker-card-label {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f7f2df;
+}
+
+.bencher-mode-picker-card-desc {
+  font-size: 0.8rem;
+  color: rgba(247, 242, 223, 0.55);
+  line-height: 1.5;
+  max-width: 260px;
+}
+
+@media (max-width: 620px) {
+  .bencher-mode-picker-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bencher-workspace {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: 280px 1fr;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.bencher-sidebar {
+  height: 100%;
+  min-height: 0;
+}
+
+.bencher-song-option {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: #1a1a1a;
+  color: inherit;
+  text-align: left;
+  cursor: grab;
+  touch-action: none;
+}
+
+.bencher-song-option span {
+  font-weight: 800;
+}
+
+.bencher-song-option small {
+  color: rgba(247, 242, 223, 0.62);
+}
+
+.bencher-song-option.is-dragging {
+  opacity: 0.45;
+}
+
+.bencher-preview {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.bencher-top-prompts {
+  flex-shrink: 0;
+  display: grid;
+  gap: 10px;
+  margin: 14px 18px 8px;
+}
+
+.bencher-topline {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+
+.bencher-topline-main {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.bencher-topline-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.bencher-topline-eyebrow {
+  color: rgba(255, 212, 48, 0.82);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bencher-topline-copy h2 {
+  margin: 0;
+  color: #f7f2df;
+  font-size: 1.1rem;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.bencher-topline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.bencher-topline-meta-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 212, 48, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.bencher-topline-meta-item span {
+  color: rgba(247, 242, 223, 0.5);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bencher-topline-meta-item strong {
+  color: #f7f2df;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.bencher-topline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bencher-utility-trigger {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 212, 48, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  color: #f7f2df;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bencher-utility-trigger:hover {
+  border-color: rgba(255, 212, 48, 0.3);
+  background: rgba(255, 212, 48, 0.05);
+}
+
+.sb2-toolbar.bencher-actions {
+  flex-shrink: 0;
+  display: block !important;
+  margin: 0 18px 10px;
+  padding: 10px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+}
+
+.sb2-toolbar.bencher-actions .sb2-toolbar-rail.bencher-actions-rail {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  align-items: stretch;
+  gap: 10px 16px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.sb2-toolbar.bencher-actions .bencher-mode-switch-wrap {
+  width: auto;
+  gap: 6px;
+}
+
+.sb2-toolbar.bencher-actions .sb2-toolbar-section {
+  flex: 0 0 auto;
+  min-width: 140px;
+  min-height: 68px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.sb2-toolbar.bencher-actions .sb2-toolbar-action-row,
+.sb2-toolbar.bencher-actions .sb2-column-controls,
+.sb2-toolbar.bencher-actions .sb2-toolbar-status-wrap {
+  flex-wrap: nowrap;
+}
+
+.sb2-toolbar.bencher-actions .sb2-toolbar-status-wrap {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.sb2-toolbar.bencher-actions .sb2-toolbar-section-title {
+  color: rgba(247, 242, 223, 0.66);
+}
+
+.bencher-status {
+  color: rgba(247, 242, 223, 0.72);
+}
+
+.bencher-title-input {
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 212, 48, 0.35);
+  border-radius: 10px;
+  background: #181818;
+  color: #ffd430;
+  font-size: 0.82rem;
+  font-weight: 600;
+  outline: none;
+  width: 160px;
+}
+
+.bencher-title-input::placeholder {
+  color: rgba(255, 212, 48, 0.3);
+  font-weight: 400;
+}
+
+.bencher-title-input:focus {
+  border-color: rgba(255, 212, 48, 0.7);
+}
+
+.bencher-title-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.bencher-modal-title-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Bencher modals ──────────────────────────────────────────── */
+
+.bencher-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.bencher-modal {
+  background: #181818;
+  border: 1px solid rgba(255, 212, 48, 0.25);
+  border-radius: 14px;
+  width: min(420px, 92vw);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bencher-modal-info {
+  width: min(620px, 92vw);
+}
+
+.bencher-modal-overwrite {
+  width: min(360px, 92vw);
+}
+
+.bencher-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid rgba(255, 212, 48, 0.12);
+}
+
+.bencher-modal-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffd430;
+}
+
+.bencher-modal-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 212, 48, 0.5);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.bencher-modal-close:hover {
+  color: #ffd430;
+}
+
+.bencher-modal-body {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bencher-modal-body-spacious {
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.bencher-modal-lead {
+  margin: 0;
+  color: #fff3bf;
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.bencher-modal-copy {
+  margin: 0;
+  color: rgba(247, 242, 223, 0.9);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.bencher-help-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.bencher-help-step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  align-items: start;
+  color: rgba(247, 242, 223, 0.9);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.bencher-help-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 212, 48, 0.14);
+  color: #ffd430;
+  font-weight: 800;
+}
+
+.bencher-modal-empty {
+  color: rgba(255, 212, 48, 0.4);
+  font-size: 0.85rem;
+  padding: 8px 4px;
+}
+
+.bencher-modal-item {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255, 212, 48, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bencher-modal-item.current {
+  border-color: rgba(255, 212, 48, 0.45);
+}
+
+.bencher-modal-item-load {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bencher-modal-item-load:hover {
+  background: rgba(255, 212, 48, 0.07);
+}
+
+.bencher-modal-item-title {
+  color: #ffd430;
+  font-size: 0.88rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.bencher-modal-item-meta {
+  color: rgba(255, 212, 48, 0.45);
+  font-size: 0.78rem;
+}
+
+.bencher-modal-item-delete {
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-left: 1px solid rgba(255, 212, 48, 0.12);
+  color: rgba(255, 212, 48, 0.35);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.bencher-modal-item-delete:hover {
+  color: #ffd430;
+  background: rgba(255, 212, 48, 0.08);
+}
+
+.bencher-modal-overwrite-desc {
+  color: rgba(255, 212, 48, 0.7);
+  font-size: 0.85rem;
+  margin: 0 0 8px;
+}
+
+.bencher-modal-overwrite-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: rgba(255, 212, 48, 0.6);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.bencher-modal-overwrite-option.selected {
+  background: rgba(255, 212, 48, 0.08);
+  color: #ffd430;
+}
+
+.bencher-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid rgba(255, 212, 48, 0.12);
+}
+
+.bencher-modal-confirm {
+  background: rgba(255, 212, 48, 0.15) !important;
+  border-color: rgba(255, 212, 48, 0.6) !important;
+  color: #ffd430 !important;
+}
+
+.bencher-modal-confirm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
+
+.bencher-pages {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: start center;
+  overflow: hidden;
+  padding-inline: clamp(48px, 8vw, 88px);
+  padding-bottom: 0;
+}
+
+.bencher-page-flutter {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  pointer-events: none;
+  z-index: 26;
+  opacity: 0;
+  perspective: 1800px;
+  overflow: visible;
+}
+
+.bencher-page-flutter.is-active {
+  opacity: 1;
+}
+
+.bencher-page-flutter-sheet {
+  grid-area: 1 / 1;
+  width: min(100%, 850px);
+  height: 100%;
+  aspect-ratio: var(--bencher-design-width, 768) / var(--bencher-design-height, 994);
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(244, 239, 228, 0.9) 48%, rgba(228, 219, 198, 0.74));
+  box-shadow:
+    0 22px 44px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(120, 98, 46, 0.08) inset;
+  opacity: 0;
+  transform-origin: left center;
+  will-change: transform, opacity, filter;
+  filter: blur(0.35px);
+}
+
+.bencher-pages-fluttering .bencher-flipbook {
+  animation: bencher-flipbook-flutter 560ms cubic-bezier(0.18, 0.86, 0.16, 1);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet {
+  transform-origin: left center;
+  clip-path: polygon(0 0, 27% 0, 12% 100%, 0 100%);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet {
+  transform-origin: right center;
+  clip-path: polygon(100% 0, 73% 0, 88% 100%, 100% 100%);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet-1 {
+  animation: bencher-page-flutter-forward-1 560ms cubic-bezier(0.18, 0.82, 0.2, 1);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet-2 {
+  animation: bencher-page-flutter-forward-2 560ms cubic-bezier(0.16, 0.84, 0.18, 1);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet-3 {
+  animation: bencher-page-flutter-forward-3 560ms cubic-bezier(0.14, 0.86, 0.18, 1);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet-4 {
+  animation: bencher-page-flutter-forward-4 560ms cubic-bezier(0.14, 0.88, 0.16, 1);
+}
+
+.bencher-pages-fluttering-forward .bencher-page-flutter-sheet-5 {
+  animation: bencher-page-flutter-forward-5 560ms cubic-bezier(0.12, 0.9, 0.16, 1);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet-1 {
+  animation: bencher-page-flutter-backward-1 560ms cubic-bezier(0.18, 0.82, 0.2, 1);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet-2 {
+  animation: bencher-page-flutter-backward-2 560ms cubic-bezier(0.16, 0.84, 0.18, 1);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet-3 {
+  animation: bencher-page-flutter-backward-3 560ms cubic-bezier(0.14, 0.86, 0.18, 1);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet-4 {
+  animation: bencher-page-flutter-backward-4 560ms cubic-bezier(0.14, 0.88, 0.16, 1);
+}
+
+.bencher-pages-fluttering-backward .bencher-page-flutter-sheet-5 {
+  animation: bencher-page-flutter-backward-5 560ms cubic-bezier(0.12, 0.9, 0.16, 1);
+}
+
+@keyframes bencher-flipbook-flutter {
+  0% {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+  16% {
+    transform: translateX(-12px) rotateZ(-0.28deg);
+    filter: brightness(1.03);
+  }
+  38% {
+    transform: translateX(26px) rotateZ(0.5deg);
+    filter: brightness(0.99);
+  }
+  62% {
+    transform: translateX(-14px) rotateZ(-0.24deg);
+    filter: brightness(1.02);
+  }
+  100% {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+}
+
+@keyframes bencher-page-flutter-forward-1 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  14% { opacity: 0.22; }
+  38% { opacity: 0.42; transform: translate3d(36px, -3px, 0) rotateY(-26deg) rotateZ(-1.1deg) skewY(-1deg); }
+  100% { opacity: 0; transform: translate3d(160px, -8px, 0) rotateY(-58deg) rotateZ(-4.2deg) skewY(-2.2deg); }
+}
+
+@keyframes bencher-page-flutter-forward-2 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  18% { opacity: 0.28; }
+  44% { opacity: 0.48; transform: translate3d(58px, -6px, 0) rotateY(-34deg) rotateZ(-2deg) skewY(-1.4deg); }
+  100% { opacity: 0; transform: translate3d(230px, -14px, 0) rotateY(-68deg) rotateZ(-6deg) skewY(-3.1deg); }
+}
+
+@keyframes bencher-page-flutter-forward-3 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  22% { opacity: 0.32; }
+  48% { opacity: 0.54; transform: translate3d(84px, -10px, 0) rotateY(-42deg) rotateZ(-2.8deg) skewY(-1.8deg); }
+  100% { opacity: 0; transform: translate3d(300px, -22px, 0) rotateY(-80deg) rotateZ(-7.6deg) skewY(-4deg); }
+}
+
+@keyframes bencher-page-flutter-forward-4 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  28% { opacity: 0.36; }
+  54% { opacity: 0.56; transform: translate3d(112px, -14px, 0) rotateY(-50deg) rotateZ(-3.4deg) skewY(-2.1deg); }
+  100% { opacity: 0; transform: translate3d(378px, -30px, 0) rotateY(-84deg) rotateZ(-9deg) skewY(-4.8deg); }
+}
+
+@keyframes bencher-page-flutter-forward-5 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  34% { opacity: 0.4; }
+  58% { opacity: 0.6; transform: translate3d(142px, -18px, 0) rotateY(-58deg) rotateZ(-4.2deg) skewY(-2.4deg); }
+  100% { opacity: 0; transform: translate3d(462px, -38px, 0) rotateY(-88deg) rotateZ(-10.4deg) skewY(-5.4deg); }
+}
+
+@keyframes bencher-page-flutter-backward-1 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  14% { opacity: 0.22; }
+  38% { opacity: 0.42; transform: translate3d(-36px, -3px, 0) rotateY(26deg) rotateZ(1.1deg) skewY(1deg); }
+  100% { opacity: 0; transform: translate3d(-160px, -8px, 0) rotateY(58deg) rotateZ(4.2deg) skewY(2.2deg); }
+}
+
+@keyframes bencher-page-flutter-backward-2 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  18% { opacity: 0.28; }
+  44% { opacity: 0.48; transform: translate3d(-58px, -6px, 0) rotateY(34deg) rotateZ(2deg) skewY(1.4deg); }
+  100% { opacity: 0; transform: translate3d(-230px, -14px, 0) rotateY(68deg) rotateZ(6deg) skewY(3.1deg); }
+}
+
+@keyframes bencher-page-flutter-backward-3 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  22% { opacity: 0.32; }
+  48% { opacity: 0.54; transform: translate3d(-84px, -10px, 0) rotateY(42deg) rotateZ(2.8deg) skewY(1.8deg); }
+  100% { opacity: 0; transform: translate3d(-300px, -22px, 0) rotateY(80deg) rotateZ(7.6deg) skewY(4deg); }
+}
+
+@keyframes bencher-page-flutter-backward-4 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  28% { opacity: 0.36; }
+  54% { opacity: 0.56; transform: translate3d(-112px, -14px, 0) rotateY(50deg) rotateZ(3.4deg) skewY(2.1deg); }
+  100% { opacity: 0; transform: translate3d(-378px, -30px, 0) rotateY(84deg) rotateZ(9deg) skewY(4.8deg); }
+}
+
+@keyframes bencher-page-flutter-backward-5 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  34% { opacity: 0.4; }
+  58% { opacity: 0.6; transform: translate3d(-142px, -18px, 0) rotateY(58deg) rotateZ(4.2deg) skewY(2.4deg); }
+  100% { opacity: 0; transform: translate3d(-462px, -38px, 0) rotateY(88deg) rotateZ(10.4deg) skewY(5.4deg); }
+}
+
+.bencher-page-turn-button {
+  position: absolute;
+  top: 50%;
+  z-index: 30;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: clamp(52px, 5vw, 72px);
+  height: clamp(92px, 18vh, 132px);
+  border: 1px solid rgba(255, 212, 48, 0.32);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(32, 32, 32, 0.96), rgba(14, 14, 14, 0.96));
+  box-shadow: 0 18px 28px rgba(0, 0, 0, 0.35);
+  color: #ffd430;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.bencher-page-turn-button-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1;
+  opacity: 0.78;
+}
+
+.bencher-page-turn-button-number {
+  font-size: clamp(24px, 2.4vw, 34px);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bencher-page-turn-button:hover:not(:disabled),
+.bencher-page-turn-button:focus-visible:not(:disabled) {
+  background: linear-gradient(180deg, rgba(52, 52, 52, 0.98), rgba(18, 18, 18, 0.98));
+  border-color: rgba(255, 212, 48, 0.68);
+  transform: translateY(-50%) scale(1.02);
+}
+
+.bencher-page-turn-button:focus-visible {
+  outline: 2px solid rgba(255, 212, 48, 0.55);
+  outline-offset: 3px;
+}
+
+.bencher-page-turn-button:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.bencher-page-turn-button-left {
+  left: max(10px, calc(50% - min(425px, 50%) - clamp(56px, 7vw, 92px)));
+}
+
+.bencher-page-turn-button-right {
+  right: max(10px, calc(50% - min(425px, 50%) - clamp(56px, 7vw, 92px)));
+}
+
+.bencher-flipbook {
+  width: min(100%, 850px) !important;
+  height: 100%;
+  aspect-ratio: var(--bencher-design-width, 768) / var(--bencher-design-height, 994);
+  margin: 0 auto !important;
+  overflow: visible !important;
+}
+
+/* Wrapper handles centering — isolates flipbook from page layout */
+.bencher-flipbook-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* Two-sided mode stays in react-pageflip's portrait layout: one visible face. */
+.bencher-single-page-wrap {
+  overflow: hidden;
+  width: var(--bencher-preview-scaled-width);
+  height: var(--bencher-preview-scaled-height);
+  align-self: start;
+}
+
+.bencher-two-sided-flipbook {
+  width: var(--bencher-design-width, 768px) !important;
+  height: var(--bencher-design-height, 994px) !important;
+  max-width: none !important;
+  margin: 0 !important;
+  transform-origin: top left;
+}
+
+/* Booklet mode: shrink spread to fit, no scroll */
+.bencher-mode-8-page.bencher-preview {
+  overflow: hidden;
+}
+
+.bencher-mode-8-page .bencher-pages {
+  padding-inline: clamp(56px, 8vw, 88px);
+  overflow: hidden;
+}
+
+.bencher-mode-8-page .bencher-flipbook-wrap {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.bencher-mode-8-page .bencher-flipbook {
+  margin: 0 auto !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+.bencher-mode-8-page .bencher-page-turn-button-left {
+  left: max(10px, calc(50% - min(850px, 50%) - clamp(56px, 7vw, 92px)));
+}
+
+.bencher-mode-8-page .bencher-page-turn-button-right {
+  right: max(10px, calc(50% - min(850px, 50%) - clamp(56px, 7vw, 92px)));
+}
+
+.bencher-flipbook .stf__wrapper,
+.bencher-flipbook .stf__block {
+  overflow: visible !important;
+}
+
+.bencher-flipbook .stf__outerShadow,
+.bencher-flipbook .stf__innerShadow,
+.bencher-flipbook .stf__hardShadow,
+.bencher-flipbook .stf__hardInnerShadow {
+  pointer-events: none !important;
+}
+
+.bencher-flipbook .stf__item {
+  background: transparent !important;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+}
+
+.bencher-flip-sheet {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.bencher-flip-sheet .bencher-page {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+}
+
+.bencher-page {
+  position: relative;
+  isolation: isolate;
+  width: min(100%, 850px);
+  aspect-ratio: var(--bencher-design-width, 768) / var(--bencher-design-height, 994);
+  background-color: #fff;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+}
+
+.bencher-page-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bencher-page-art .react-pdf__Document,
+.bencher-page-art .react-pdf__Page {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.bencher-page-art .react-pdf__Page canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: fill;
+}
+
+.bencher-pdf-loading,
+.bencher-pdf-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.8rem;
+}
+
+.bencher-page::before,
+.bencher-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+}
+
+.bencher-page::before {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.1), transparent 5%, transparent 94%, rgba(0, 0, 0, 0.12)),
+    radial-gradient(ellipse at 96% 4%, rgba(255, 255, 255, 0.4), transparent 16%);
+  mix-blend-mode: multiply;
+  opacity: 0.42;
+}
+
+.bencher-page::after {
+  inset: 0 0 0 auto;
+  width: 10%;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.08));
+  opacity: 0.55;
+}
+
+.bencher-logo-target {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2px dashed rgba(255, 212, 48, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #171717;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bencher-logo-target input {
+  display: none;
+}
+
+.bencher-logo-target img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Cover caption mode */
+.bencher-cover-caption-zone {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.bencher-cover-caption-logo {
+  flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2px dashed rgba(255, 212, 48, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #171717;
+  font-weight: 800;
+  cursor: pointer;
+  min-height: 0;
+  max-height: 50%;
+}
+
+/* When no logo: text is the title — sits in the top third, logo prompt is small at the bottom */
+.bencher-cover-caption-zone-no-logo {
+  /* use normal column order: ornament → text → ornament(flipped) → button */
+}
+
+.bencher-cover-caption-zone-no-logo .bencher-cover-caption-logo {
+  flex: 0 0 auto;
+  max-height: none;
+  height: auto;
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-style: dotted;
+  border-color: rgba(255, 212, 48, 0.45);
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.bencher-cover-caption-zone-no-logo .bencher-cover-caption-text {
+  flex: 1 1 auto;
+  padding-top: 8%;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.bencher-cover-ornament {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 0;
+  pointer-events: none;
+}
+
+.bencher-cover-ornament img {
+  width: 200px;
+  height: auto;
+  max-width: 85%;
+  display: block;
+}
+
+/* When logo is present, ornaments overlay the logo at absolute top/bottom */
+.bencher-cover-caption-zone:not(.bencher-cover-caption-zone-no-logo) .bencher-cover-ornament {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: 0;
+}
+
+.bencher-cover-caption-zone:not(.bencher-cover-caption-zone-no-logo) .bencher-cover-ornament:first-of-type {
+  top: 2px;
+}
+
+.bencher-cover-caption-zone:not(.bencher-cover-caption-zone-no-logo) .bencher-cover-ornament:last-of-type {
+  bottom: 2px;
+}
+
+.bencher-cover-caption-zone:not(.bencher-cover-caption-zone-no-logo) .bencher-cover-caption-logo {
+  flex: 1 1 auto;
+  max-height: none;
+}
+
+/* No-logo: ornament is the separator between title and add-image prompt */
+.bencher-cover-caption-zone-no-logo .bencher-cover-ornament {
+  padding: 8px 0 4px;
+}
+
+.bencher-cover-caption-logo input {
+  display: none;
+}
+
+.bencher-cover-caption-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.bencher-cover-caption-text {
+  flex: 1 1 50%;
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 1.3rem;
+  color: #000;
+  background: rgba(255, 255, 255, 0.92);
+  resize: none;
+  line-height: 1.4;
+  text-align: center;
+  min-height: 0;
+  pointer-events: auto;
+  z-index: 5;
+  position: relative;
+}
+
+.bencher-cover-caption-text::placeholder {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+}
+
+.bencher-cover-mode-hint {
+  font-size: 0.7rem;
+  color: #888;
+  font-style: italic;
+}
+
+.bencher-cover-font-select {
+  font-size: 0.75rem;
+  padding: 3px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  background: #1a1a1a;
+  color: #f7f2df;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.bencher-cover-font-select:focus {
+  outline: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Cover prompt ("Add text?" / "Just the picture") */
+.bencher-cover-prompt {
+  position: absolute;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.bencher-cover-prompt-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 212, 48, 0.9);
+  background: rgba(255, 255, 255, 0.95);
+  color: #171717;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bencher-cover-prompt-btn-secondary {
+  border-color: rgba(0, 0, 0, 0.2);
+  font-weight: 500;
+}
+
+.bencher-cover-prompt-btn:hover {
+  background: rgba(255, 212, 48, 0.15);
+}
+
+.bencher-song-drop-zone {
+  position: absolute;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.bencher-sheet-builder-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+}
+
+.bencher-sheet-builder-grid .sb2-sheet-column {
+  min-width: 0;
+  min-height: 100%;
+  overflow: visible;
+}
+
+.bencher-sheet-builder-grid .sb2-song-card {
+  margin: 0;
+  padding: 2px 1px 5px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: #17110a;
+}
+
+.bencher-sheet-builder-grid .sb2-song-card-title {
+  margin: 0 0 2px;
+  color: #000;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.004em;
+  line-height: 1.08;
+  text-align: center;
+}
+
+.bencher-sheet-builder-grid .sb2-song-card-lyrics {
+  color: #000;
+  direction: rtl;
+  font-family: var(--font-frank-ruhl-libre), var(--font-noto-serif-hebrew), Georgia, serif;
+  font-weight: 500;
+  letter-spacing: 0.002em;
+  line-height: 1.36;
+  text-align: center;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Download buttons ── */
+
+.bencher-download-btn {
+  background: #f2cb05 !important;
+  color: #1a1a1a !important;
+  border-color: #f2cb05 !important;
+  font-weight: 700;
+}
+
+.bencher-download-btn:disabled {
+  background: #444 !important;
+  color: #888 !important;
+  border-color: #444 !important;
+}
+
+.bencher-sheet-builder-grid .sb2-drop-slot-expanded {
+  min-height: 108px;
+}
+
+.bencher-page-footer {
+  display: none;
+}
+
+.bencher-page.drag-over {
+  box-shadow: 0 0 0 3px #f2cb05, 0 18px 60px rgba(0, 0, 0, 0.5);
+}
+
+.bencher-page.drag-over .bencher-song-drop-zone {
+  background: rgba(242, 203, 5, 0.05);
+}
+
+.bencher-page-turn-zone {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  color: #17110a;
+  cursor: pointer;
+  z-index: 30;
+  overflow: hidden;
+  padding: 0;
+}
+
+.bencher-page-turn-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(242, 203, 5, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.bencher-page-turn-zone:hover::before,
+.bencher-page-turn-zone:focus-visible::before {
+  opacity: 1;
+  transform: scaleX(1.04);
+}
+
+.bencher-page-turn-zone:focus-visible {
+  outline: 3px solid rgba(242, 203, 5, 0.55);
+  outline-offset: 3px;
+}
+
+.bencher-drop-hint {
+  position: absolute;
+  inset: 8px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: rgba(0, 0, 0, 0.52);
+  font-weight: 900;
+}
+
+.bencher-selected-song {
+  position: relative;
+  padding: 5px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111;
+  direction: rtl;
+}
+
+.bencher-selected-song button {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  border: 0;
+  background: transparent;
+  color: #111;
+  cursor: pointer;
+}
+
+.bencher-selected-song h3 {
+  margin: 0 0 3px;
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+.bencher-selected-song p {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 8px;
+  line-height: 1.25;
+}
+
+/* Analytics privacy widget — transparent on bencher page */
+body.bencher-active .analytics-pref-trigger {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.72rem;
+  padding: 0.4rem 0.6rem;
+}
+
+body.bencher-active .analytics-pref-trigger:hover {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+@media (max-width: 900px) {
+  .bencher-workspace {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+
+  .bencher-preview {
+    order: 1;
+    min-height: 0;
+  }
+
+  .bencher-top-prompts {
+    margin: 12px 12px 8px;
+  }
+
+  .bencher-topline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .bencher-topline-main {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .bencher-topline-meta {
+    justify-content: flex-start;
+  }
+
+  .bencher-topline-actions {
+    width: auto;
+  }
+
+  .bencher-utility-trigger {
+    flex: 1 1 auto;
+  }
+
+  .bencher-sidebar {
+    order: 2;
+    position: static;
+    max-height: min(42vh, 420px);
+    overflow: auto;
+  }
+
+  .bencher-pages {
+    padding-inline: 12px;
+  }
+
+  .sb2-toolbar.bencher-actions {
+    display: grid !important;
+    margin: 0 12px 8px;
+    padding: 10px 0 0;
+    gap: 8px;
+  }
+
+  .sb2-toolbar.bencher-actions .sb2-toolbar-rail.bencher-actions-rail {
+    overflow-x: visible;
+    flex-wrap: wrap;
+  }
+
+  .sb2-toolbar.bencher-actions .sb2-toolbar-section,
+  .sb2-toolbar.bencher-actions .bencher-mode-switch-wrap {
+    width: 100%;
+    margin-left: 0;
+    min-height: 0;
+  }
+
+  .sb2-toolbar.bencher-actions .sb2-toolbar-section {
+    min-height: 0;
+  }
+
+  .sb2-toolbar.bencher-actions .sb2-toolbar-action-row,
+  .sb2-toolbar.bencher-actions .sb2-column-controls {
+    justify-content: center;
+  }
+
+  .sb2-toolbar.bencher-actions button {
+    flex: 1 1 auto;
+  }
+
+  .bencher-builder-mode-switch {
+    width: 100%;
+  }
+
+  .bencher-builder-mode-switch .sb2-builder-mode-option {
+    flex: 1 1 0;
+  }
+}
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0;
+  }
+
+  .bencher-mode-8-page {
+    --_pw: var(--bencher-print-width, 5.5in);
+    --_ph: var(--bencher-print-height, 8.5in);
+  }
+
+  html,
+  body {
+    width: var(--bencher-print-width, 8.5in);
+    min-height: var(--bencher-print-height, 11in);
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .bencher-app header,
+  .bencher-sidebar,
+  .bencher-top-prompts,
+  .sb2-toolbar.bencher-actions,
+  .bencher-page-flutter,
+  .bencher-page-turn-button {
+    display: none !important;
+  }
+
+  .bencher-app,
+  .bencher-workspace,
+  .bencher-preview,
+  .bencher-pages {
+    display: block;
+    width: var(--bencher-print-width, 8.5in) !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0;
+    margin: 0;
+    background: #fff;
+  }
+
+  .bencher-flipbook,
+  .bencher-flipbook .stf__wrapper,
+  .bencher-flipbook .stf__block {
+    display: block !important;
+    position: static !important;
+    width: var(--bencher-print-width, 8.5in) !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+  }
+
+  .bencher-flipbook .stf__item,
+  .bencher-flip-sheet {
+    display: block !important;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: var(--bencher-print-width, 8.5in) !important;
+    height: var(--bencher-print-height, 11in) !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    transform: none !important;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .bencher-flipbook .stf__item:last-child,
+  .bencher-flip-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .bencher-pages-single .bencher-page-active,
+  .bencher-pages-single .bencher-page-inactive {
+    display: block !important;
+    width: var(--bencher-print-width, 8.5in) !important;
+    max-width: none !important;
+    height: var(--bencher-print-height, 11in) !important;
+  }
+
+  .bencher-page {
+    display: block !important;
+    box-sizing: border-box;
+    width: var(--bencher-print-width, 8.5in) !important;
+    max-width: none !important;
+    height: var(--bencher-print-height, 11in) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none;
+    break-after: auto;
+    page-break-after: auto;
+    break-before: auto;
+    page-break-before: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    overflow: hidden;
+  }
+
+  .bencher-flip-sheet .bencher-page {
+    width: var(--bencher-print-width, 8.5in) !important;
+    height: var(--bencher-print-height, 11in) !important;
+    max-width: none !important;
+  }
+
+  .bencher-page::before,
+  .bencher-page::after {
+    display: none !important;
+  }
+
+  .bencher-page-footer {
+    display: block;
+    position: absolute;
+    bottom: 15px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    font-size: 7pt;
+    color: rgba(0, 0, 0, 0.35);
+    letter-spacing: 0.04em;
+    pointer-events: none;
+  }
+
+  .bencher-logo-target {
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .bencher-drop-hint {
+    display: none;
+  }
+
+  .bencher-song-drop-zone:not(:has(.sb2-song-card))::after {
+    content: 'niggunsheet.com';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    font-size: 9pt;
+    color: rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+  }
+
+  .bencher-song-drop-zone {
+    transform: none !important;
+    margin: 0 !important;
+  }
+
+  .bencher-song-drop-zone .bencher-sheet-builder-grid {
+    transform: none !important;
+    transform-origin: top left !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .bencher-song-drop-zone .sb2-sheet-column {
+    min-height: 100% !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+}
+
+/* ── SVG-based print view (BencherPrintView) ──
+   Gated behind body.bencher-svg-printing, set by the Print button right
+   before window.print() — this coexists with the (manual Ctrl+P) workspace
+   print rules above rather than fighting them. */
+.bencher-print-root {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0;
+  }
+
+  html:has(body.bencher-svg-printing) {
+    width: auto;
+  }
+
+  body.bencher-svg-printing {
+    width: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body.bencher-svg-printing .bencher-app {
+    display: none !important;
+  }
+
+  body.bencher-svg-printing .bencher-print-root {
+    display: block;
+  }
+
+  body.bencher-svg-printing .bencher-print-root > .bencher-print-page {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  body.bencher-svg-printing .bencher-print-root > .bencher-print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  body.bencher-svg-printing .bencher-print-root > .bencher-print-sheet {
+    display: flex;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  body.bencher-svg-printing .bencher-print-root > .bencher-print-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  body.bencher-svg-printing .bencher-print-page {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  body.bencher-svg-printing .bencher-print-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* The .bencher-sheet-builder-grid class is used here only to inherit the
+     song-card font rules; its grid layout would stretch each song to an
+     equal-height row, so force normal block flow instead. */
+  body.bencher-svg-printing .bencher-print-songs {
+    position: absolute;
+    overflow: hidden;
+    display: block !important;
+  }
+
+  /* 12pt ≈ the 1.51%-of-page-height gap the on-screen preview uses. */
+  body.bencher-svg-printing .bencher-print-song {
+    margin-bottom: 12pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body.bencher-svg-printing .bencher-print-song:last-child {
+    margin-bottom: 0;
+  }
+
+  body.bencher-svg-printing .bencher-print-song .sb2-song-card-lyrics {
+    white-space: pre-wrap;
+  }
+
+  body.bencher-svg-printing .bencher-print-hebrew {
+    font-family: var(--font-frank-ruhl-libre), var(--font-noto-serif-hebrew), Georgia, serif;
+    text-align: center;
+    white-space: nowrap;
+    color: #000;
+  }
+}

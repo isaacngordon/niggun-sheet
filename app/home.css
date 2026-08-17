@@ -1,0 +1,331 @@
+/* ── Homepage ──
+   Dark surface with the yellow brand accent, matching the rest of the app.
+   Styles live here rather than inline so hover/focus states, media queries
+   and reduced-motion support are all expressible. */
+
+.hp-page {
+  --hp-bg: #000;
+  --hp-surface: rgba(255, 255, 255, 0.035);
+  --hp-surface-hover: rgba(255, 255, 255, 0.075);
+  --hp-border: rgba(255, 255, 255, 0.14);
+  --hp-accent: #f2cb05;
+  --hp-muted: #a9a9a9;
+  --hp-max: 1200px;
+  --hp-gutter: clamp(1.25rem, 4vw, 2rem);
+
+  background-color: var(--hp-bg);
+  color: #fff;
+}
+
+.hp-inner {
+  width: 100%;
+  max-width: var(--hp-max);
+  margin: 0 auto;
+}
+
+/* ── Announcement bar ── */
+
+.hp-ticker {
+  background-color: #fafafa;
+  color: #2b2b2b;
+  text-align: center;
+  padding: 0.65rem var(--hp-gutter);
+  border-bottom: 1px solid #e2e2e2;
+}
+
+.hp-ticker p {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.hp-ticker a {
+  color: #000;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 2px solid var(--hp-accent);
+}
+
+.hp-ticker a:hover {
+  background-color: var(--hp-accent);
+}
+
+/* ── Hero ──
+   The photo sits in its own layer with a gradient scrim over it, so the
+   headline keeps a readable contrast ratio no matter how the image crops. */
+
+.hp-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  min-height: min(78vh, 600px);
+  padding: clamp(3rem, 8vw, 5.5rem) var(--hp-gutter);
+  overflow: hidden;
+}
+
+.hp-hero-media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+
+.hp-hero-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 72% center;
+}
+
+.hp-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.96) 0%,
+      rgba(0, 0, 0, 0.88) 34%,
+      rgba(0, 0, 0, 0.45) 62%,
+      rgba(0, 0, 0, 0.15) 100%
+    ),
+    linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 45%);
+}
+
+.hp-hero-copy {
+  max-width: 34rem;
+}
+
+.hp-eyebrow {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hp-accent);
+}
+
+.hp-title {
+  margin: 0;
+  font-size: clamp(2.25rem, 6vw, 4.25rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.hp-lede {
+  margin: 1.25rem 0 0;
+  max-width: 32rem;
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.hp-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+/* ── Buttons ── */
+
+.hp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0.8rem 1.6rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast, 0.15s ease),
+    color var(--transition-fast, 0.15s ease),
+    border-color var(--transition-fast, 0.15s ease);
+}
+
+.hp-btn-primary {
+  background-color: #fff;
+  color: #000;
+}
+
+.hp-btn-primary:hover {
+  background-color: var(--hp-accent);
+}
+
+.hp-btn-secondary {
+  background-color: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #fff;
+}
+
+.hp-btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: #fff;
+}
+
+/* ── Sections ── */
+
+.hp-section {
+  padding: clamp(3rem, 7vw, 4.5rem) var(--hp-gutter);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hp-section-head {
+  max-width: 44rem;
+  margin-bottom: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.hp-h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.hp-section-lede {
+  margin: 0.75rem 0 0;
+  color: var(--hp-muted);
+  line-height: 1.6;
+}
+
+/* ── Tool cards ──
+   One card per destination. Descriptions let the grid be scanned without
+   clicking through, and every card carries the same visual weight. */
+
+.hp-tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hp-tool {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.5rem;
+  border: 1px solid var(--hp-border);
+  border-radius: 14px;
+  background-color: var(--hp-surface);
+  color: #fff;
+  text-decoration: none;
+  transition:
+    background-color var(--transition-fast, 0.15s ease),
+    border-color var(--transition-fast, 0.15s ease),
+    transform var(--transition-fast, 0.15s ease);
+}
+
+.hp-tool:hover {
+  background-color: var(--hp-surface-hover);
+  border-color: var(--hp-accent);
+  transform: translateY(-2px);
+}
+
+.hp-tool-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  background-color: rgba(242, 203, 5, 0.12);
+  color: var(--hp-accent);
+}
+
+.hp-tool-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.hp-tool-name {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.hp-tool-desc {
+  flex: 1;
+  margin: 0;
+  font-size: 0.925rem;
+  line-height: 1.55;
+  color: var(--hp-muted);
+}
+
+.hp-tool-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  transition: color var(--transition-fast, 0.15s ease);
+}
+
+.hp-tool:hover .hp-tool-more {
+  color: var(--hp-accent);
+}
+
+.hp-tool-more span[aria-hidden] {
+  transition: transform var(--transition-fast, 0.15s ease);
+}
+
+.hp-tool:hover .hp-tool-more span[aria-hidden] {
+  transform: translateX(3px);
+}
+
+/* ── Small screens ── */
+
+@media (max-width: 640px) {
+  .hp-hero {
+    min-height: 0;
+    align-items: flex-end;
+    padding-top: clamp(4rem, 22vw, 7rem);
+  }
+
+  /* Bias the scrim vertically — at this width the photo sits behind the text
+     rather than beside it. */
+  .hp-hero::before {
+    background:
+      linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.7) 45%, rgba(0, 0, 0, 0.35) 100%);
+  }
+
+  .hp-hero-media img {
+    object-position: 60% top;
+  }
+
+  .hp-btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-page *,
+  .hp-page *::before,
+  .hp-page *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+
+  .hp-tool:hover {
+    transform: none;
+  }
+
+  .hp-tool:hover .hp-tool-more span[aria-hidden] {
+    transform: none;
+  }
+}

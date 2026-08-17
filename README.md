@@ -34,9 +34,25 @@
    - Add:
      - `GOOGLE_SHEETS_ID`
      - `GOOGLE_API_KEY`
+   - `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (or `GOOGLE_CLIENT_ID` as fallback)
      - `SHEET_RANGE` (optional)
 
 3. Redeploy after adding environment variables
+
+### Google OAuth Setup For Live Site
+
+1. In Google Cloud Console, open "APIs & Services" > "Credentials".
+2. Create or edit an "OAuth 2.0 Client ID" of type "Web application".
+3. Add your production origins under "Authorized JavaScript origins":
+   - `https://niggunsheet.com`
+   - `https://www.niggunsheet.com` (if you use www)
+   - `http://localhost:3000` (for local dev)
+4. Save, then copy the OAuth client id into Vercel as `NEXT_PUBLIC_GOOGLE_CLIENT_ID`.
+5. Redeploy the site.
+
+Notes:
+- This app uses Google Identity Services popup/token flow, so JavaScript origins are the critical OAuth setting.
+- If sign-in fails with `origin_mismatch`, your current site origin is not listed in the OAuth client origins.
 
 ### Getting Google Sheets API Credentials
 

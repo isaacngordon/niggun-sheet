@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import AuthBoundary from '@/components/AuthBoundary';
 import SongsList from './SongsList';
 import { getSongs } from '@/app/api/songs/data';
+import Image from 'next/image';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -31,7 +32,17 @@ export default async function SongsPage({
     <AuthBoundary>
       <Header />
       <main className="songs-container">
-        <h1 style={{ marginBottom: '2rem', fontSize: '2rem' }}>Song Directory</h1>
+        <div className="songs-hero-image-wrap" aria-hidden="true">
+          <Image
+            src="/assets/background_small.jpg"
+            alt=""
+            width={2048}
+            height={768}
+            className="songs-hero-image"
+            priority
+          />
+        </div>
+        <h1 className="song-directory-title">Song Directory</h1>
         <SongsList songs={songs} initialSearch={searchQuery} />
       </main>
       <Footer />

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useGoogleAuth } from '@/components/GoogleAuthProvider';
 import AddSongModal from '@/components/AddSongModal';
 import MediaPlayer from '@/components/MediaPlayer';
+import QuickInstructions from '@/components/QuickInstructions';
 import { buildMediaTimingSources, resolveBoundsFromTimingEntry, resolveSourceLabelsFromTimingEntry, type TimingEntry } from '@/lib/timings';
 import { extractAllYouTubeUrls } from '@/lib/youtube';
 
@@ -191,12 +192,21 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
 
   return (
     <>
+      <QuickInstructions
+        title="How to use the song directory"
+        steps={[
+          'Type a song name, singer, or lyric word in the search box.',
+          'Click a song to open the full words and tools for that song.',
+          'Sign in if you want to save your own songs under My Songs.',
+        ]}
+        note={user ? 'Your saved songs are in My Songs.' : 'Want your own songs here? Sign in, then press Add Song.'}
+      />
       <div className="search-section">
         <input
           type="search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by title, artist, or lyrics..."
+          placeholder="Find a song by name, singer, or words..."
           className="search-input"
         />
         {user && (
@@ -228,8 +238,10 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
 
       <AddSongModal open={showAddForm} onClose={() => setShowAddForm(false)} onSave={addSong} onSaveBulk={addSongs} />
 
+      {/* Count songs, not rows — a song with several recordings expands into
+          multiple entries, which previously produced "Showing 94 of 85 songs". */}
       <p className="songs-count">
-        Showing {displayEntries.length} {displayEntries.length === 1 ? 'entry' : 'entries'} from {filteredSongs.length} {filteredSongs.length === 1 ? 'song' : 'songs'}
+        Showing {filteredSongs.length} of {totalCount} {totalCount === 1 ? 'song' : 'songs'}
       </p>
 
       {displayEntries.length === 0 ? (
@@ -237,7 +249,7 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
           <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
             {filter === 'mine' ? 'No private songs yet' : 'No songs found'}
           </p>
-          <p>{filter === 'mine' ? 'Use "+ Add Song" to create your first private song' : 'Try a different search term'}</p>
+          <p>{filter === 'mine' ? 'Press Add Song to save your first song.' : 'Try a different word in the search box.'}</p>
         </div>
       ) : (
         <div className={viewMode === 'list' ? 'songs-list' : 'songs-grid'}>

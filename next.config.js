@@ -1,9 +1,17 @@
 /** @type {import('next').NextConfig} */
 const isDev = process.env.NODE_ENV !== 'production';
+const { version } = require('./package.json');
 
 const nextConfig = {
   turbopack: {
     root: __dirname,
+  },
+  // Expose the Google OAuth client id to client bundles.
+  // Fallback supports deployments that set GOOGLE_CLIENT_ID only.
+  env: {
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '',
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID_BETA: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_BETA || '',
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || version,
   },
   // CORS headers for API routes + security headers
   async headers() {
@@ -26,7 +34,8 @@ const nextConfig = {
       "connect-src 'self' https://www.googleapis.com https://sheets.googleapis.com https://accounts.google.com https://formsubmit.co https://www.google-analytics.com https://region1.google-analytics.com https://www.google.com https://stats.g.doubleclick.net",
       "frame-src 'self' blob: data: https://accounts.google.com https://content.googleapis.com https://www.youtube.com",
       "img-src 'self' data: https: https://www.google-analytics.com https://stats.g.doubleclick.net",
-      "object-src 'none'",
+      "worker-src 'self' blob:",
+      "object-src 'self'",
       "base-uri 'self'",
     ].join('; ') + ';';
 

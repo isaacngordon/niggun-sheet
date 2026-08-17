@@ -4,18 +4,25 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import NiggunSheetDownloadButton from '@/components/NiggunSheetDownloadButton';
 
 const HeaderAuthControls = dynamic(() => import('@/components/HeaderAuthControls'), {
   ssr: false,
-  loading: () => <button disabled className="header-signin-btn">Sign In</button>,
+  loading: () => <button disabled className="header-signin-btn">Loading...</button>,
 });
 
 export default function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showBetaVersion, setShowBetaVersion] = useState(false);
   const showSheetBuilderTour = pathname === '/sheet-builder';
+  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || 'dev';
+  const betaAppVersion = process.env.NEXT_PUBLIC_APP_VERSION_BETA || '1.2';
+
+  useEffect(() => {
+    setShowBetaVersion(window.location.hostname === 'beta.niggunsheet.com');
+  }, []);
 
   const isActive = (path: string) => pathname === path;
 
@@ -23,107 +30,32 @@ export default function Header() {
     window.dispatchEvent(new CustomEvent('sheet-builder:start-tour'));
   };
 
-  const navLinks = [
-    { href: '/', label: 'Home' },
+  const navLinks: Array<{ href: string; label: string; badge?: string }> = [
     { href: '/songs', label: 'Song Directory' },
-    { href: '/sheet-builder', label: 'Sheet Builder', badge: 'new' },
-    { href: '/contact', label: 'Contact' },
+    { href: '/sheet-builder', label: 'Sheet Builder' },
+    { href: '/bencher', label: 'Bencher' },
   ];
 
   return (
-    <header className="header">
-      <div className="header-container">
-        {/* Logo */}
-        <div className="header-logo">
-          <Link href="/">
-            <Image
-              className="header-logo-image"
-              src="/assets/Niggun_Sheet_Header_Logo.png"
-              alt="Niggun Sheet"
-              width={220}
-              height={36}
-              priority={pathname === '/'}
-            />
-          </Link>
-        </div>
-
-        {/* Desktop Navigation */}
-        <nav className="header-nav">
-          <ul>
-            {navLinks.map((link) => (
-              <li key={link.href}>
-                <Link 
-                  href={link.href}
-                  className={isActive(link.href) ? 'active' : ''}
-                >
-                  {link.label}
-                  {link.badge && <span className="nav-badge">{link.badge}</span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        {/* Actions */}
-        <div className="header-actions">
-          {showSheetBuilderTour && (
-            <button className="header-tour-btn" onClick={handleStartSheetBuilderTour}>Tour</button>
-          )}
-          <HeaderAuthControls />
-          <NiggunSheetDownloadButton className="btn-primary header-download-btn">
-            Download Sheet
-          </NiggunSheetDownloadButton>
-          
-          {/* Mobile menu button */}
-          <button 
-            className="mobile-menu-btn"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              {mobileMenuOpen ? (
-                <path d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
-        </div>
+    <header className="site-header">
+      <Link href="/" className="site-header-brand">
+        <span aria-hidden="true">|||</span> NIGGUN SHEET
+      </Link>
+      <nav className="site-header-nav" aria-label="Main">
+        <Link href="/" aria-current={isActive('/') ? 'page' : undefined}>Home</Link>
+        <Link href="/songs" aria-current={isActive('/songs') ? 'page' : undefined}>Songs</Link>
+        <Link href="/sheet-builder" aria-current={isActive('/sheet-builder') ? 'page' : undefined}>Sheet Builder</Link>
+        <Link href="/bencher" aria-current={isActive('/bencher') ? 'page' : undefined}>Bencher</Link>
+        <Link href="/contact" aria-current={isActive('/contact') ? 'page' : undefined}>Contact</Link>
+      </nav>
+      <div className="site-header-actions">
+        <HeaderAuthControls />
+        {!pathname.startsWith('/bencher') && (
+        <NiggunSheetDownloadButton className="site-header-download">
+          Download Sheet
+        </NiggunSheetDownloadButton>
+        )}
       </div>
-
-      {/* Mobile Navigation */}
-      {mobileMenuOpen && (
-        <nav className="mobile-nav">
-          <ul>
-            {navLinks.map((link) => (
-              <li key={link.href}>
-                <Link 
-                  href={link.href}
-                  className={isActive(link.href) ? 'active' : ''}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.label}
-                  {link.badge && <span className="nav-badge">{link.badge}</span>}
-                </Link>
-              </li>
-            ))}
-            <li className="mobile-nav-auth">
-              {showSheetBuilderTour && (
-                <button
-                  className="mobile-nav-signin mobile-nav-tour-btn"
-                  onClick={() => {
-                    handleStartSheetBuilderTour();
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  Tour
-                </button>
-              )}
-              <HeaderAuthControls mobile onDone={() => setMobileMenuOpen(false)} />
-            </li>
-          </ul>
-        </nav>
-      )}
     </header>
   );
 }

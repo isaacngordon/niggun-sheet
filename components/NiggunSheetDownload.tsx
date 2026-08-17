@@ -544,7 +544,7 @@ export function NiggunSheetDownloadProvider({ children }: { children: React.Reac
                       disabled={setList}
                       onChange={(e) => handleToggleTitles(e.target.checked)}
                     />
-                    Show Titles
+                    Show song names
                   </label>
                   <label className="ns-preview-checkbox">
                     <input
@@ -552,10 +552,10 @@ export function NiggunSheetDownloadProvider({ children }: { children: React.Reac
                       checked={setList}
                       onChange={(e) => handleToggleSetList(e.target.checked)}
                     />
-                    Set List
+                    Song list only
                   </label>
                   <button className="ns-preview-btn ns-preview-btn-download" onClick={savePDF}>
-                    ↓ Download PDF
+                    ↓ Save PDF
                   </button>
                   <button className="ns-preview-btn ns-preview-btn-download" onClick={printPDF}>
                     Print
@@ -578,7 +578,7 @@ export function NiggunSheetDownloadProvider({ children }: { children: React.Reac
               <div className="ns-preview-loading">
                 <div className="ns-modal-spinner" />
                 <p className="ns-preview-loading-text">
-                  {state === 'loading' ? 'Preparing your sheet…' : 'Generating PDF…'}
+                  {state === 'loading' ? 'Getting your sheet ready...' : 'Making your PDF...'}
                 </p>
               </div>
             )}
@@ -595,7 +595,7 @@ export function NiggunSheetDownloadProvider({ children }: { children: React.Reac
             {state === 'error' && (
               <div className="ns-preview-loading">
                 <div className="ns-modal-icon ns-modal-icon-error">X</div>
-                <p className="ns-preview-loading-text">Something went wrong</p>
+                <p className="ns-preview-loading-text">That did not work.</p>
                 <button className="ns-preview-btn ns-preview-btn-download" onClick={closePreview}>
                   Close
                 </button>

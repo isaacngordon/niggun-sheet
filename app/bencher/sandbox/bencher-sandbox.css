@@ -1,0 +1,272 @@
+.bencher-ruffle-sandbox {
+  min-height: calc(100vh - 40px);
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: 14px;
+  padding: 14px;
+  background: #0e0e0e;
+  color: #f7f2df;
+}
+
+.sandbox-controls {
+  border: 1px solid rgba(255, 212, 48, 0.24);
+  border-radius: 16px;
+  background: rgba(24, 24, 24, 0.95);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.sandbox-controls h1 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.sandbox-controls p {
+  margin: 0;
+  color: rgba(247, 242, 223, 0.72);
+  font-size: 0.86rem;
+}
+
+.sandbox-buttons {
+  display: grid;
+  gap: 8px;
+}
+
+.sandbox-buttons button {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 212, 48, 0.45);
+  border-radius: 10px;
+  background: #1a1a1a;
+  color: #ffd430;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sandbox-range-label {
+  font-size: 0.82rem;
+  color: rgba(247, 242, 223, 0.86);
+}
+
+.sandbox-preview {
+  --ruffle-intensity: 1;
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 18px;
+  background: radial-gradient(circle at 35% 18%, rgba(255, 212, 48, 0.1), transparent 48%), #0a0a0a;
+  border: 1px solid rgba(255, 212, 48, 0.16);
+}
+
+.sandbox-page {
+  width: min(76vw, 640px);
+  aspect-ratio: 768 / 994;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 2;
+}
+
+.sandbox-page img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sandbox-page-indicator {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.66);
+  border: 1px solid rgba(255, 212, 48, 0.4);
+  color: #ffd430;
+  z-index: 4;
+  font-size: 0.8rem;
+}
+
+.sandbox-flutter-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  perspective: 1900px;
+}
+
+.is-ruffling .sandbox-flutter-overlay {
+  opacity: 1;
+}
+
+.sandbox-flutter-sheet {
+  grid-area: 1 / 1;
+  width: min(76vw, 640px);
+  aspect-ratio: 768 / 994;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(244, 239, 228, 0.9) 48%, rgba(228, 219, 198, 0.74));
+  box-shadow:
+    0 22px 44px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(120, 98, 46, 0.08) inset;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+}
+
+.is-ruffling-forward .sandbox-flutter-sheet {
+  transform-origin: left center;
+  clip-path: polygon(0 0, 27% 0, 12% 100%, 0 100%);
+}
+
+.is-ruffling-backward .sandbox-flutter-sheet {
+  transform-origin: right center;
+  clip-path: polygon(100% 0, 73% 0, 88% 100%, 100% 100%);
+}
+
+.is-ruffling-forward .sandbox-page {
+  animation: sandbox-blast-forward 560ms cubic-bezier(0.18, 0.86, 0.16, 1);
+}
+
+.is-ruffling-backward .sandbox-page {
+  animation: sandbox-blast-backward 560ms cubic-bezier(0.18, 0.86, 0.16, 1);
+}
+
+.is-ruffling-forward .sandbox-flutter-sheet-1 {
+  animation: sandbox-ruffle-forward-1 560ms cubic-bezier(0.18, 0.82, 0.2, 1);
+}
+
+.is-ruffling-forward .sandbox-flutter-sheet-2 {
+  animation: sandbox-ruffle-forward-2 560ms cubic-bezier(0.16, 0.84, 0.18, 1);
+}
+
+.is-ruffling-forward .sandbox-flutter-sheet-3 {
+  animation: sandbox-ruffle-forward-3 560ms cubic-bezier(0.14, 0.86, 0.18, 1);
+}
+
+.is-ruffling-forward .sandbox-flutter-sheet-4 {
+  animation: sandbox-ruffle-forward-4 560ms cubic-bezier(0.14, 0.88, 0.16, 1);
+}
+
+.is-ruffling-forward .sandbox-flutter-sheet-5 {
+  animation: sandbox-ruffle-forward-5 560ms cubic-bezier(0.12, 0.9, 0.16, 1);
+}
+
+.is-ruffling-backward .sandbox-flutter-sheet-1 {
+  animation: sandbox-ruffle-backward-1 560ms cubic-bezier(0.18, 0.82, 0.2, 1);
+}
+
+.is-ruffling-backward .sandbox-flutter-sheet-2 {
+  animation: sandbox-ruffle-backward-2 560ms cubic-bezier(0.16, 0.84, 0.18, 1);
+}
+
+.is-ruffling-backward .sandbox-flutter-sheet-3 {
+  animation: sandbox-ruffle-backward-3 560ms cubic-bezier(0.14, 0.86, 0.18, 1);
+}
+
+.is-ruffling-backward .sandbox-flutter-sheet-4 {
+  animation: sandbox-ruffle-backward-4 560ms cubic-bezier(0.14, 0.88, 0.16, 1);
+}
+
+.is-ruffling-backward .sandbox-flutter-sheet-5 {
+  animation: sandbox-ruffle-backward-5 560ms cubic-bezier(0.12, 0.9, 0.16, 1);
+}
+
+@keyframes sandbox-blast-forward {
+  0% { transform: translateX(0) rotateZ(0); }
+  18% { transform: translateX(calc(-12px * var(--ruffle-intensity))) rotateZ(-0.28deg); }
+  40% { transform: translateX(calc(26px * var(--ruffle-intensity))) rotateZ(0.5deg); }
+  64% { transform: translateX(calc(-14px * var(--ruffle-intensity))) rotateZ(-0.24deg); }
+  100% { transform: translateX(0) rotateZ(0); }
+}
+
+@keyframes sandbox-blast-backward {
+  0% { transform: translateX(0) rotateZ(0); }
+  18% { transform: translateX(calc(12px * var(--ruffle-intensity))) rotateZ(0.28deg); }
+  40% { transform: translateX(calc(-26px * var(--ruffle-intensity))) rotateZ(-0.5deg); }
+  64% { transform: translateX(calc(14px * var(--ruffle-intensity))) rotateZ(0.24deg); }
+  100% { transform: translateX(0) rotateZ(0); }
+}
+
+@keyframes sandbox-ruffle-forward-1 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  14% { opacity: 0.22; }
+  38% { opacity: 0.42; transform: translate3d(calc(36px * var(--ruffle-intensity)), -3px, 0) rotateY(-26deg) rotateZ(-1.1deg) skewY(-1deg); }
+  100% { opacity: 0; transform: translate3d(calc(160px * var(--ruffle-intensity)), -8px, 0) rotateY(-58deg) rotateZ(-4.2deg) skewY(-2.2deg); }
+}
+
+@keyframes sandbox-ruffle-forward-2 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  18% { opacity: 0.28; }
+  44% { opacity: 0.48; transform: translate3d(calc(58px * var(--ruffle-intensity)), -6px, 0) rotateY(-34deg) rotateZ(-2deg) skewY(-1.4deg); }
+  100% { opacity: 0; transform: translate3d(calc(230px * var(--ruffle-intensity)), -14px, 0) rotateY(-68deg) rotateZ(-6deg) skewY(-3.1deg); }
+}
+
+@keyframes sandbox-ruffle-forward-3 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  22% { opacity: 0.32; }
+  48% { opacity: 0.54; transform: translate3d(calc(84px * var(--ruffle-intensity)), -10px, 0) rotateY(-42deg) rotateZ(-2.8deg) skewY(-1.8deg); }
+  100% { opacity: 0; transform: translate3d(calc(300px * var(--ruffle-intensity)), -22px, 0) rotateY(-80deg) rotateZ(-7.6deg) skewY(-4deg); }
+}
+
+@keyframes sandbox-ruffle-forward-4 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  28% { opacity: 0.36; }
+  54% { opacity: 0.56; transform: translate3d(calc(112px * var(--ruffle-intensity)), -14px, 0) rotateY(-50deg) rotateZ(-3.4deg) skewY(-2.1deg); }
+  100% { opacity: 0; transform: translate3d(calc(378px * var(--ruffle-intensity)), -30px, 0) rotateY(-84deg) rotateZ(-9deg) skewY(-4.8deg); }
+}
+
+@keyframes sandbox-ruffle-forward-5 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  34% { opacity: 0.4; }
+  58% { opacity: 0.6; transform: translate3d(calc(142px * var(--ruffle-intensity)), -18px, 0) rotateY(-58deg) rotateZ(-4.2deg) skewY(-2.4deg); }
+  100% { opacity: 0; transform: translate3d(calc(462px * var(--ruffle-intensity)), -38px, 0) rotateY(-88deg) rotateZ(-10.4deg) skewY(-5.4deg); }
+}
+
+@keyframes sandbox-ruffle-backward-1 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  14% { opacity: 0.22; }
+  38% { opacity: 0.42; transform: translate3d(calc(-36px * var(--ruffle-intensity)), -3px, 0) rotateY(26deg) rotateZ(1.1deg) skewY(1deg); }
+  100% { opacity: 0; transform: translate3d(calc(-160px * var(--ruffle-intensity)), -8px, 0) rotateY(58deg) rotateZ(4.2deg) skewY(2.2deg); }
+}
+
+@keyframes sandbox-ruffle-backward-2 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  18% { opacity: 0.28; }
+  44% { opacity: 0.48; transform: translate3d(calc(-58px * var(--ruffle-intensity)), -6px, 0) rotateY(34deg) rotateZ(2deg) skewY(1.4deg); }
+  100% { opacity: 0; transform: translate3d(calc(-230px * var(--ruffle-intensity)), -14px, 0) rotateY(68deg) rotateZ(6deg) skewY(3.1deg); }
+}
+
+@keyframes sandbox-ruffle-backward-3 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  22% { opacity: 0.32; }
+  48% { opacity: 0.54; transform: translate3d(calc(-84px * var(--ruffle-intensity)), -10px, 0) rotateY(42deg) rotateZ(2.8deg) skewY(1.8deg); }
+  100% { opacity: 0; transform: translate3d(calc(-300px * var(--ruffle-intensity)), -22px, 0) rotateY(80deg) rotateZ(7.6deg) skewY(4deg); }
+}
+
+@keyframes sandbox-ruffle-backward-4 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  28% { opacity: 0.36; }
+  54% { opacity: 0.56; transform: translate3d(calc(-112px * var(--ruffle-intensity)), -14px, 0) rotateY(50deg) rotateZ(3.4deg) skewY(2.1deg); }
+  100% { opacity: 0; transform: translate3d(calc(-378px * var(--ruffle-intensity)), -30px, 0) rotateY(84deg) rotateZ(9deg) skewY(4.8deg); }
+}
+
+@keyframes sandbox-ruffle-backward-5 {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) skewY(0deg); }
+  34% { opacity: 0.4; }
+  58% { opacity: 0.6; transform: translate3d(calc(-142px * var(--ruffle-intensity)), -18px, 0) rotateY(58deg) rotateZ(4.2deg) skewY(2.4deg); }
+  100% { opacity: 0; transform: translate3d(calc(-462px * var(--ruffle-intensity)), -38px, 0) rotateY(88deg) rotateZ(10.4deg) skewY(5.4deg); }
+}
+
+@media (max-width: 980px) {
+  .bencher-ruffle-sandbox {
+    grid-template-columns: 1fr;
+  }
+
+  .sandbox-page,
+  .sandbox-flutter-sheet {
+    width: min(92vw, 640px);
+  }
+}

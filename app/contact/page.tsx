@@ -5,11 +5,11 @@ import { ContactFormBackground } from '@/components/ContactFormBackground';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Get in Touch',
-  description: 'Help us build the perfect niggun library for rebbeim and communities. Share feedback, suggest songs, or report issues.',
+  title: 'Contact Us',
+  description: 'Send lyrics fixes, song ideas, bug reports, or questions.',
   openGraph: {
-    title: 'Get in Touch | Niggun Sheet',
-    description: 'Help us build the perfect niggun library for rebbeim and communities.',
+    title: 'Contact Us | Niggun Sheet',
+    description: 'Send lyrics fixes, song ideas, bug reports, or questions.',
     type: 'website',
   },
 };
@@ -22,10 +22,10 @@ export default function ContactPage() {
         <div className="contact-card">
           <ContactFormBackground />
           <div className="contact-header">
-            <h1>Get in Touch</h1>
+            <h1>Contact Us</h1>
             <p className="subtitle">
-              Help us build the perfect niggun library for rebbeim and communities.<br />
-              Share lyrics, suggest songs, report issues, or just say hello!
+              Need help, found a problem, or want to share a song?<br />
+              Send us a message here.
             </p>
           </div>
 
