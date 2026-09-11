@@ -1,0 +1,23 @@
+<svg width="480" height="272" viewBox="0 0 480 272" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="480" height="272" rx="28" fill="#242A86"/>
+  <rect x="16" y="16" width="448" height="240" rx="20" fill="url(#cardGlow)" fill-opacity="0.18"/>
+  <path d="M390 40C399.5 40 407.2 47.7 407.2 57.2C407.2 66.8 399.5 74.4 390 74.4C380.5 74.4 372.8 66.8 372.8 57.2C372.8 47.7 380.5 40 390 40Z" fill="#E24A37"/>
+  <rect x="377" y="72" width="26" height="104" rx="12" fill="#F3C64A"/>
+  <rect x="377" y="72" width="26" height="22" fill="#F7E4AA"/>
+  <rect x="377" y="155" width="26" height="21" fill="#E8A739"/>
+  <path d="M377 176H403L390 208L377 176Z" fill="#F2D8A8"/>
+  <path d="M383.5 176H396.5L390 195L383.5 176Z" fill="#444"/>
+  <path d="M92.6 75.5C95.7 62.4 108.2 53 121.7 53H248.3C258.4 53 265.5 62.9 262.2 72.5L257.3 86.8C254.2 95.9 245.6 102 236 102H108.9C97.3 102 89.9 90.9 92.6 79.9L92.6 75.5Z" fill="#F7DF3B" fill-opacity="0.28"/>
+  <text x="52" y="108" fill="#F7DF3B" font-family="Georgia, serif" font-size="68" font-weight="700">Print</text>
+  <text x="52" y="176" fill="#F7DF3B" font-family="Georgia, serif" font-size="68" font-weight="700">On Point</text>
+  <text x="320" y="180" fill="#F04935" font-family="Georgia, serif" font-size="86" font-weight="700">!</text>
+  <text x="108" y="208" fill="#E8D0A6" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" letter-spacing="2">PRINTING FOR REALITY</text>
+  <text x="84" y="232" fill="#FFF9E9" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Work: 516-341-7202</text>
+  <text x="84" y="254" fill="#FFF9E9" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700">E-Mail: Print@PrintOnPoint.com</text>
+  <defs>
+    <linearGradient id="cardGlow" x1="42" y1="30" x2="424" y2="236" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F7DF3B" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>

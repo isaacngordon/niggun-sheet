@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import NiggunSheetDownloadButton from '@/components/NiggunSheetDownloadButton';
+import { getPrintShopFromSearchParams } from '@/lib/printShop';
 
 const HeaderAuthControls = dynamic(() => import('@/components/HeaderAuthControls'), {
   ssr: false,
@@ -16,13 +17,20 @@ export default function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showBetaVersion, setShowBetaVersion] = useState(false);
+  const [printShopSlug, setPrintShopSlug] = useState('');
   const showSheetBuilderTour = pathname === '/sheet-builder';
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || 'dev';
   const betaAppVersion = process.env.NEXT_PUBLIC_APP_VERSION_BETA || '1.2';
+  const printShop = getPrintShopFromSearchParams(new URLSearchParams(printShopSlug));
 
   useEffect(() => {
     setShowBetaVersion(window.location.hostname === 'beta.niggunsheet.com');
+    setPrintShopSlug(window.location.search);
   }, []);
+
+  useEffect(() => {
+    setPrintShopSlug(window.location.search);
+  }, [pathname]);
 
   const isActive = (path: string) => pathname === path;
 
@@ -41,6 +49,21 @@ export default function Header() {
       <Link href="/" className="site-header-brand">
         <span aria-hidden="true">|||</span> NIGGUN SHEET
       </Link>
+      {printShop?.logoPath ? (
+        <div className="site-header-shop-badge" aria-label={`${printShop.name} mode active`}>
+          <Image
+            src={printShop.logoPath}
+            alt={printShop.logoAlt || `${printShop.name} logo`}
+            width={116}
+            height={66}
+            className="site-header-shop-logo"
+          />
+          <div className="site-header-shop-copy">
+            <span className="site-header-shop-label">Print partner</span>
+            <span className="site-header-shop-name">{printShop.name}</span>
+          </div>
+        </div>
+      ) : null}
       <nav className="site-header-nav" aria-label="Main">
         <Link href="/" aria-current={isActive('/') ? 'page' : undefined}>Home</Link>
         <Link href="/songs" aria-current={isActive('/songs') ? 'page' : undefined}>Songs</Link>

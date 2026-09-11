@@ -3,8 +3,13 @@ import { PDFDocument } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { renderOverlayPdf } from '../renderOverlay';
-import { buildCoverOverlayHtml, buildSongsOverlayHtml } from '../overlayHtml';
+import { buildCoverOverlayHtml, buildSongsOverlayHtml, coverFontFamilyCss } from '../overlayHtml';
 import { computeBookletSheets } from '@/app/bencher/imposition';
+import {
+  BENCHER_DESIGN_PAGE_WIDTH,
+  BENCHER_SONG_FONT_SIZE,
+  getBencherSongDropPlacement,
+} from '@/app/bencher/bencher-layout';
 
 // ── helpers ──
 
@@ -26,12 +31,18 @@ interface GenerateRequest {
   coverText?: string | null;
   /** Songs list for the 2-page mode songs page; rendered to vector via headless Chromium */
   songs?: SongInput[] | null;
+  /** Whether song titles render above their lyrics (matches the editor's Titles toggle). */
+  showTitles?: boolean | null;
+  /** Cover caption font key (matches the editor's font options). */
+  coverFont?: string | null;
+  /** Booklet mode only: emit the individual pages in reading order instead of imposed sheets. */
+  straight?: boolean | null;
 }
 
-function songsToLines(songs: SongInput[]): string[] {
+function songsToLines(songs: SongInput[], showTitles: boolean): string[] {
   const lines: string[] = [];
   for (const song of songs) {
-    if (song.title) lines.push(song.artist ? `${song.title} — ${song.artist}` : song.title);
+    if (showTitles && song.title) lines.push(song.title);
     for (const line of (song.lyrics || '').split('\n').filter((l) => l.trim())) lines.push(line);
     lines.push('');
   }
@@ -43,7 +54,9 @@ function songsToLines(songs: SongInput[]): string[] {
 export async function POST(req: NextRequest) {
   try {
     const body: GenerateRequest = await req.json();
-    const { mode, logoSrc, coverText, songs } = body;
+    const { mode, logoSrc, coverText, songs, showTitles: showTitlesRequested, coverFont, straight } = body;
+    const showTitles = showTitlesRequested !== false;
+    const songDropPageNumber = getBencherSongDropPlacement(mode).pageNumber;
 
     const assetsRoot = path.join(process.cwd(), 'public', 'assets');
 
@@ -79,6 +92,7 @@ export async function POST(req: NextRequest) {
         textLines: coverTextLines,
         fontSizePt: coverFontSizePt,
         ornamentWidthFrac,
+        fontFamily: coverFontFamilyCss(coverFont),
       });
       const overlayBytes = await renderOverlayPdf(html, widthPt, heightPt);
       const overlayDoc = await PDFDocument.load(overlayBytes);
@@ -97,7 +111,51 @@ export async function POST(req: NextRequest) {
       page.drawImage(logo, { x: cx + (cw - lw) / 2, y: ly, width: lw, height: lh });
     }
 
-    if (mode === '8-page') {
+    // ── Songs overlay renderer ──
+    // Draws the song column into a page box (`boxWidth`/`boxHeight` are the box's
+    // own size in points) using the same drop-zone rect and font scale as the
+    // on-screen editor, so printed output matches the preview.
+    async function embedSongsOverlay(page: any, boxX: number, boxWidth: number, boxHeight: number, pageSongs: SongInput[]) {
+      const rect = getBencherSongDropPlacement(mode).rect;
+      const lines = songsToLines(pageSongs, showTitles);
+      if (!lines.some((line) => line.trim())) return;
+
+      const fontSizePt = BENCHER_SONG_FONT_SIZE * (boxWidth / BENCHER_DESIGN_PAGE_WIDTH);
+      const overlayWidthPt = boxWidth * (rect.width / 100);
+      const { html, widthPt: renderedWidth, heightPt: renderedHeight } = buildSongsOverlayHtml({
+        widthPt: overlayWidthPt,
+        lines,
+        fontSizePt,
+      });
+      const overlayBytes = await renderOverlayPdf(html, renderedWidth, renderedHeight);
+      const overlayDoc = await PDFDocument.load(overlayBytes);
+      const embedded = await outDoc.embedPage(overlayDoc.getPage(0));
+      const x = boxX + boxWidth * (rect.left / 100);
+      const y = boxHeight - boxHeight * (rect.top / 100) - renderedHeight;
+      page.drawPage(embedded, { x, y, width: renderedWidth, height: renderedHeight });
+    }
+
+    const hasSongs = !!(songs && songs.length);
+
+    if (mode === '8-page' && straight) {
+      // ── Straight booklet: the individual pages in reading order, no imposition ──
+      const pages = await outDoc.copyPages(srcDoc, srcDoc.getPageIndices());
+
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        const { width: pw, height: ph } = page.getSize();
+        outDoc.addPage(page);
+
+        if (i === 0 && (logo || hasText)) {
+          drawLogo(page, 0, pw, ph);
+          await embedCoverOverlay(page, 0, pw, ph, 0.72);
+        }
+
+        if (hasSongs && i + 1 === songDropPageNumber) {
+          await embedSongsOverlay(page, 0, pw, ph, songs!);
+        }
+      }
+    } else if (mode === '8-page') {
       // ── Booklet mode (RTL page ordering for Hebrew) ──
       const srcPageCount = srcDoc.getPageCount();
       const ordered = computeBookletSheets(srcPageCount).map(({ left, right }) => [left, right] as [number, number]);
@@ -111,6 +169,12 @@ export async function POST(req: NextRequest) {
         }
         if (rightPage > 0) {
           sheet.drawPage(await outDoc.embedPage(srcDoc.getPage(rightPage - 1)), { x: HW, y: 0, width: HW, height: H });
+        }
+
+        // The songs page keeps its song column inside whichever half it lands on.
+        if (hasSongs) {
+          if (leftPage === songDropPageNumber) await embedSongsOverlay(sheet, 0, HW, H, songs!);
+          if (rightPage === songDropPageNumber) await embedSongsOverlay(sheet, HW, HW, H, songs!);
         }
 
         // Cover is on page 1 (now on the LEFT half due to RTL)
@@ -138,18 +202,9 @@ export async function POST(req: NextRequest) {
           await embedCoverOverlay(page, 0, pw, ph, 0.3);
         }
 
-        // Page 2: songs
-        if (i === 1 && songs && songs.length) {
-          const songLines = songsToLines(songs);
-          const { html, widthPt, heightPt } = buildSongsOverlayHtml({
-            widthPt: pw * 0.85,
-            lines: songLines,
-            fontSizePt: 10,
-          });
-          const overlayBytes = await renderOverlayPdf(html, widthPt, heightPt);
-          const overlayDoc = await PDFDocument.load(overlayBytes);
-          const embedded = await outDoc.embedPage(overlayDoc.getPage(0));
-          page.drawPage(embedded, { x: (pw - widthPt) / 2, y: 40, width: widthPt, height: heightPt });
+        // Songs page — same drop-zone rect and font scale as the editor preview.
+        if (hasSongs && i + 1 === songDropPageNumber) {
+          await embedSongsOverlay(page, 0, pw, ph, songs!);
         }
       }
     }
@@ -158,7 +213,7 @@ export async function POST(req: NextRequest) {
     return new NextResponse(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="bencher-${mode}.pdf"`,
+        'Content-Disposition': `attachment; filename="bencher-${mode}${straight ? '-straight' : ''}.pdf"`,
       },
     });
   } catch (err) {

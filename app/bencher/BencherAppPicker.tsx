@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import { BENCHER_MODE_CONFIGS } from './bencher-layout';
 import './bencher.css';
@@ -11,6 +12,12 @@ const ROUTES = {
 } as const;
 
 export default function BencherAppPicker() {
+  const [searchSuffix, setSearchSuffix] = useState('');
+
+  useEffect(() => {
+    setSearchSuffix(window.location.search || '');
+  }, []);
+
   return (
     <div className="bencher-app">
       <Header />
@@ -22,7 +29,7 @@ export default function BencherAppPicker() {
             {BENCHER_MODE_CONFIGS.map((config) => (
               <Link
                 key={config.mode}
-                href={ROUTES[config.mode]}
+                href={`${ROUTES[config.mode]}${searchSuffix}`}
                 className="bencher-mode-picker-card"
                 aria-label={`Open the ${config.label} bencher app`}
               >

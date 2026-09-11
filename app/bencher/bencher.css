@@ -598,6 +598,76 @@
   cursor: not-allowed;
 }
 
+.bencher-print-order-modal {
+  width: min(520px, 92vw);
+}
+
+.bencher-print-order-logo {
+  width: 180px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 212, 48, 0.2);
+}
+
+.bencher-print-order-meta {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 4px;
+  color: rgba(255, 212, 48, 0.78);
+  font-size: 0.9rem;
+}
+
+.bencher-print-order-field {
+  display: grid;
+  gap: 6px;
+}
+
+.bencher-print-order-field span {
+  color: rgba(255, 212, 48, 0.82);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.bencher-print-order-field input,
+.bencher-print-order-field textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 212, 48, 0.18);
+  border-radius: 10px;
+  color: #fff8d8;
+  padding: 11px 12px;
+  font: inherit;
+}
+
+.bencher-print-order-field textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.bencher-print-order-field input:focus,
+.bencher-print-order-field textarea:focus {
+  outline: 1px solid rgba(255, 212, 48, 0.9);
+  border-color: rgba(255, 212, 48, 0.65);
+}
+
+.bencher-print-order-field-full {
+  margin-top: 2px;
+}
+
+.bencher-print-order-message {
+  margin: 4px 0 0;
+  font-size: 0.92rem;
+}
+
+.bencher-print-order-message.is-error {
+  color: #fda4af;
+}
+
+.bencher-print-order-message.is-success {
+  color: #86efac;
+}
+
 
 
 .bencher-pages {
