@@ -1,7 +1,9 @@
 // Google Identity Services + Drive appdata helper
 // All private song data lives in the user's own Google Drive (hidden app folder)
 
-const SCOPES = 'https://www.googleapis.com/auth/drive.appdata email';
+/** Required Google scope: private app data in the user's own Drive. */
+export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const SCOPES = `${DRIVE_SCOPE} email`;
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const PRIVATE_SONGS_FILE = 'niggunsheet-songs.json';
 const PREFERENCES_FILE = 'niggunsheet-prefs.json';
@@ -284,6 +286,34 @@ async function restoreCachedToken(): Promise<string | null> {
   return null;
 }
 
+// ─── Granted scope tracking ─────────────────────────────────────
+// Google lets people uncheck individual permissions on its consent screen.
+// Drive access is mandatory for this app, so we remember what was actually
+// granted and can tell the UI to re-prompt instead of silently breaking.
+
+let grantedScopeValue: string | null = null;
+
+/** Space-delimited scopes Google actually granted, or null if not known yet. */
+export function getGrantedScope(): string | null {
+  return grantedScopeValue;
+}
+
+function rememberGrantedScope(scope: unknown): void {
+  grantedScopeValue = typeof scope === 'string' && scope.trim() ? scope : null;
+}
+
+/** true/false once Google reported the granted scopes; null while unknown. */
+export function isDriveScopeGranted(): boolean | null {
+  if (!grantedScopeValue) return null;
+  return grantedScopeValue.split(/\s+/).includes(DRIVE_SCOPE);
+}
+
+/** Detects Drive rejections caused by a missing or insufficient OAuth scope. */
+export function isDrivePermissionError(error: unknown): boolean {
+  const message = error instanceof Error ? `${error.name} ${error.message}` : String(error || '');
+  return /ACCESS_TOKEN_SCOPE_INSUFFICIENT|insufficient|permission|forbidden|403/i.test(message);
+}
+
 /** Check if the current token is expired or about to expire */
 export function isTokenExpired(): boolean {
   return !currentToken || Date.now() >= tokenExpiresAt - 30_000; // 30s grace
@@ -353,6 +383,7 @@ function trysilentReauth(loginHint?: string): Promise<string | null> {
       clearTimeout(timeout);
       if (resp.error) { resolve(null); return; }
       const expiresIn = resp.expires_in ?? 3600;
+      rememberGrantedScope(resp.scope);
       setToken(resp.access_token, expiresIn);
       try {
         await ensureDriveApi();
@@ -372,7 +403,7 @@ function trysilentReauth(loginHint?: string): Promise<string | null> {
 
 let signInInProgress = false;
 
-export function signIn(): Promise<string> {
+export function signIn(options?: { forceConsent?: boolean }): Promise<string> {
   // Debounce — prevent double sign-in from rapid clicks
   if (signInInProgress) return Promise.reject(new Error('Sign-in already in progress'));
   signInInProgress = true;
@@ -388,6 +419,7 @@ export function signIn(): Promise<string> {
       pendingPopupErrorHandler = null;
       if (resp.error) { reject(new Error(resp.error)); return; }
       const expiresIn = resp.expires_in ?? 3600;
+      rememberGrantedScope(resp.scope);
       setToken(resp.access_token, expiresIn);
       markSessionActive();
       try {
@@ -400,11 +432,18 @@ export function signIn(): Promise<string> {
     };
 
     // After first successful sign-in, prefer reusing that account without
-    // forcing the account chooser each time.
+    // forcing the account chooser each time. `forceConsent` re-opens Google's
+    // consent screen, which is how a user who unchecked Drive can grant it.
     const storedEmail = getStoredEmail();
-    const opts: any = storedEmail
-      ? { prompt: '', login_hint: storedEmail }
-      : { prompt: 'select_account' };
+    let opts: any;
+    if (options?.forceConsent) {
+      opts = { prompt: 'consent' };
+      if (storedEmail) opts.login_hint = storedEmail;
+    } else {
+      opts = storedEmail
+        ? { prompt: '', login_hint: storedEmail }
+        : { prompt: 'select_account' };
+    }
     tokenClient.requestAccessToken(opts);
   }).finally(() => {
     pendingPopupErrorHandler = null;
@@ -420,6 +459,7 @@ export function signOut(): void {
   }
   currentToken = null;
   tokenExpiresAt = 0;
+  grantedScopeValue = null;
   if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
   clearSession();
 }
