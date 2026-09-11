@@ -1,8 +1,10 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
+import { getPrintShopFromSearchParams, isPrintShopConfigured } from '@/lib/printShop';
 
 export interface Song {
   search_title?: string;
@@ -338,17 +340,28 @@ async function buildPDF(songs: Song[], opts: PDFOptions): Promise<jsPDF> {
 }
 
 type PreviewState = 'loading' | 'generating' | 'ready' | 'error';
+type PrintShopSubmitState = 'idle' | 'submitting' | 'success' | 'error';
 
 export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => void }) {
+  const searchParams = useSearchParams();
   const [songs, setSongs] = useState<Song[]>([]);
   const [state, setState] = useState<PreviewState>('loading');
   const [previewSource, setPreviewSource] = useState('');
   const [showTitles, setShowTitles] = useState(true);
   const [setList, setSetList] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [shopOrderOpen, setShopOrderOpen] = useState(false);
+  const [submitState, setSubmitState] = useState<PrintShopSubmitState>('idle');
+  const [submitMessage, setSubmitMessage] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
   const pdfRef = useRef<jsPDF | null>(null);
   const printSourceRef = useRef('');
   const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
+  const printShop = getPrintShopFromSearchParams(searchParams);
+  const printShopReady = isPrintShopConfigured(printShop);
 
   const generatePreview = useCallback(async (loadedSongs: Song[], opts: PDFOptions) => {
     setState('generating');
@@ -434,6 +447,56 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
     pdfRef.current?.save('niggun-sheet.pdf');
   }, []);
 
+  const closeShopOrder = useCallback(() => {
+    setShopOrderOpen(false);
+    setSubmitState('idle');
+    setSubmitMessage('');
+  }, []);
+
+  const openShopOrder = useCallback(() => {
+    if (!printShop || !previewSource || state !== 'ready') return;
+    setSubmitState('idle');
+    setSubmitMessage('');
+    setShopOrderOpen(true);
+  }, [previewSource, printShop, state]);
+
+  const submitShopOrder = useCallback(async () => {
+    if (!printShop || !printShopReady || !pdfRef.current) return;
+
+    setSubmitState('submitting');
+    setSubmitMessage('');
+
+    try {
+      const pdfBlob = pdfRef.current.output('blob');
+      const formData = new FormData();
+      formData.set('shopSlug', printShop.slug);
+      formData.set('customerName', customerName.trim());
+      formData.set('customerEmail', customerEmail.trim());
+      formData.set('customerPhone', customerPhone.trim());
+      formData.set('notes', orderNotes.trim());
+      formData.set('sourcePage', window.location.href);
+      formData.set('showTitles', String(showTitles));
+      formData.set('setList', String(setList));
+      formData.set('pdf', new File([pdfBlob], 'niggun-sheet.pdf', { type: 'application/pdf' }));
+
+      const response = await fetch('/api/print-shop-order', {
+        method: 'POST',
+        body: formData,
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(typeof payload.error === 'string' ? payload.error : 'Unable to send this job.');
+      }
+
+      setSubmitState('success');
+      setSubmitMessage(typeof payload.message === 'string' ? payload.message : `Your order was sent to ${printShop.name}.`);
+    } catch (error) {
+      setSubmitState('error');
+      setSubmitMessage(error instanceof Error ? error.message : 'Unable to send this job.');
+    }
+  }, [customerEmail, customerName, customerPhone, orderNotes, printShop, printShopReady, setList, showTitles]);
+
   const printPDF = useCallback(() => {
     const source = printSourceRef.current || previewSource;
     if (!source) return;
@@ -477,6 +540,8 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
   }, [previewSource]);
 
   const busy = state === 'loading' || state === 'generating';
+  const orderBusy = submitState === 'submitting';
+  const missingContactInfo = !customerName.trim() || !customerEmail.trim();
 
   if (!mounted) {
     return null;
@@ -485,7 +550,10 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
   return createPortal(
     <div className="ns-preview-overlay">
       <div className="ns-preview-toolbar">
-        <span className="ns-preview-title">Niggun Sheet Preview</span>
+        <div className="ns-preview-title-wrap">
+          <span className="ns-preview-title">Niggun Sheet Preview</span>
+          {printShop ? <span className="ns-preview-mode-pill">{printShop.name}</span> : null}
+        </div>
         <div className="ns-preview-actions">
           {state === 'ready' ? (
             <>
@@ -509,9 +577,20 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
               <button className="ns-preview-btn ns-preview-btn-download" onClick={savePDF}>
                 ↓ Download PDF
               </button>
-              <button className="ns-preview-btn ns-preview-btn-download" onClick={printPDF}>
-                Print
-              </button>
+              {printShop ? (
+                <button
+                  className="ns-preview-btn ns-preview-btn-download"
+                  onClick={openShopOrder}
+                  disabled={!printShopReady}
+                  title={printShopReady ? `Open ${printShop.name} order form` : 'Configure this print shop before sending jobs'}
+                >
+                  Send to {printShop.name}
+                </button>
+              ) : (
+                <button className="ns-preview-btn ns-preview-btn-download" onClick={printPDF}>
+                  Print
+                </button>
+              )}
             </>
           ) : null}
           <button className="ns-preview-btn ns-preview-btn-close" onClick={onClose} disabled={busy}>
@@ -521,6 +600,32 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
       </div>
 
       <div className="ns-preview-content">
+        {printShop ? (
+          <div className="ns-print-shop-banner">
+            {printShop.logoPath ? (
+              <img
+                className="ns-print-shop-banner-logo"
+                src={printShop.logoPath}
+                alt={printShop.logoAlt || `${printShop.name} logo`}
+              />
+            ) : null}
+            <div>
+              <strong>{printShop.name}</strong>
+              <span>{printShop.intro}</span>
+              {printShop.phone || printShop.email || printShop.address ? (
+                <div className="ns-print-shop-banner-meta">
+                  {printShop.phone ? <span>{printShop.phone}</span> : null}
+                  {printShop.email ? <span>{printShop.email}</span> : null}
+                  {printShop.address ? <span>{printShop.address}</span> : null}
+                </div>
+              ) : null}
+            </div>
+            {!printShopReady ? (
+              <span className="ns-print-shop-banner-status">Set the shop delivery in lib/printShop.ts and lib/printShopDelivery.ts to enable ordering.</span>
+            ) : null}
+          </div>
+        ) : null}
+
         {busy ? (
           <div className="ns-preview-loading">
             <div className="ns-modal-spinner" />
@@ -546,6 +651,69 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
             <button className="ns-preview-btn ns-preview-btn-download" onClick={onClose}>
               Close
             </button>
+          </div>
+        ) : null}
+
+        {shopOrderOpen ? (
+          <div className="ns-print-shop-dialog-backdrop" role="presentation" onClick={closeShopOrder}>
+            <div className="ns-print-shop-dialog" role="dialog" aria-modal="true" aria-label="Send print job" onClick={(event) => event.stopPropagation()}>
+              <div className="ns-print-shop-dialog-header">
+                <div className="ns-print-shop-dialog-header-copy">
+                  {printShop?.logoPath ? (
+                    <img
+                      className="ns-print-shop-dialog-logo"
+                      src={printShop.logoPath}
+                      alt={printShop.logoAlt || `${printShop.name} logo`}
+                    />
+                  ) : null}
+                  <h2>Send to {printShop?.name}</h2>
+                  <p>Add contact info and send this PDF directly to the shop.</p>
+                  {printShop?.phone || printShop?.email || printShop?.address ? (
+                    <div className="ns-print-shop-dialog-meta">
+                      {printShop.phone ? <span>{printShop.phone}</span> : null}
+                      {printShop.email ? <span>{printShop.email}</span> : null}
+                      {printShop.address ? <span>{printShop.address}</span> : null}
+                    </div>
+                  ) : null}
+                </div>
+                <button type="button" className="ns-print-shop-close" onClick={closeShopOrder} disabled={orderBusy}>Close</button>
+              </div>
+
+              <div className="ns-print-shop-fields">
+                <label className="ns-print-shop-field">
+                  <span>Name</span>
+                  <input type="text" value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Your name" autoComplete="name" />
+                </label>
+                <label className="ns-print-shop-field">
+                  <span>Email</span>
+                  <input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" />
+                </label>
+                <label className="ns-print-shop-field">
+                  <span>Phone</span>
+                  <input type="tel" value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="Optional" autoComplete="tel" />
+                </label>
+                <label className="ns-print-shop-field">
+                  <span>Notes</span>
+                  <textarea value={orderNotes} onChange={(event) => setOrderNotes(event.target.value)} placeholder="Pickup details, quantity, deadlines, or anything else the shop should know" rows={4} />
+                </label>
+              </div>
+
+              {submitMessage ? (
+                <p className={`ns-print-shop-message ${submitState === 'error' ? 'is-error' : 'is-success'}`}>{submitMessage}</p>
+              ) : null}
+
+              <div className="ns-print-shop-actions">
+                <button type="button" className="ns-preview-btn ns-preview-btn-close" onClick={closeShopOrder} disabled={orderBusy}>Cancel</button>
+                <button
+                  type="button"
+                  className="ns-preview-btn ns-preview-btn-download"
+                  onClick={submitShopOrder}
+                  disabled={orderBusy || missingContactInfo || !printShopReady || submitState === 'success'}
+                >
+                  {submitState === 'submitting' ? 'Sending…' : submitState === 'success' ? 'Sent' : 'Send Print Job'}
+                </button>
+              </div>
+            </div>
           </div>
         ) : null}
       </div>
