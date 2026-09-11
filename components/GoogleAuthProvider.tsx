@@ -18,6 +18,8 @@ import {
   generateId,
   setOnTokenRefreshed,
   getStoredEmail,
+  isDriveScopeGranted,
+  isDrivePermissionError,
   type GoogleUser,
   type PrivateSong,
   type SavedSheet,
@@ -34,7 +36,11 @@ interface GoogleAuthState {
   restoring: boolean;
   ready: boolean;
   authError: string | null;
+  /** True when the account signed in without granting Drive, which the app requires. */
+  driveScopeMissing: boolean;
   signIn: () => Promise<void>;
+  /** Re-opens Google's consent screen so a user who unchecked Drive can grant it. */
+  grantDriveAccess: () => Promise<void>;
   signOut: () => void;
   addSong: (song: Omit<PrivateSong, 'id' | 'createdAt'>) => Promise<void>;
   addSongs: (songs: Omit<PrivateSong, 'id' | 'createdAt'>[]) => Promise<void>;
@@ -353,6 +359,9 @@ function formatAuthError(error: unknown): string {
   if (message.includes('No client ID')) {
     return 'Google sign-in is not configured for this deployment.';
   }
+  if (isDrivePermissionError(error)) {
+    return 'Google Drive access is required to save your songs and sheets. Please allow it and try again.';
+  }
 
   return 'Google sign-in failed. Please try again.';
 }
@@ -368,6 +377,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   const [restoring, setRestoring] = useState(false);
   const [ready, setReady] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [driveScopeMissing, setDriveScopeMissing] = useState(false);
   const prefsRef = useRef<UserPreferences>({});
   const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -426,6 +436,11 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
           if (cancelled) return;
         } catch (err) {
           console.warn('[GoogleAuth] Session restore failed:', err);
+          if (isDrivePermissionError(err) && !cancelled) {
+            // Restored token exists but cannot reach Drive — most likely the
+            // Drive permission was never granted for this account.
+            setDriveScopeMissing(true);
+          }
           setUser(null);
         } finally {
           if (!cancelled) setRestoring(false);
@@ -457,6 +472,18 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
       const token = await gSignIn();
       const u = await getGoogleUser(token);
       setUser(u);
+
+      // Google lets people uncheck the Drive permission on its consent screen.
+      // Every saved song, sheet, and bencher lives in Drive, so a token without
+      // that scope can only produce a broken half-signed-in session — stop here
+      // and ask for the permission instead.
+      if (isDriveScopeGranted() === false) {
+        console.warn('[GoogleAuth] Signed in without Drive scope');
+        setDriveScopeMissing(true);
+        return;
+      }
+
+      setDriveScopeMissing(false);
       await reloadDriveData();
     } catch (err: any) {
       // Ignore expected user/debounce cancellations.
@@ -469,9 +496,39 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clientId, loading, ready, restoring]);
 
+  // Re-runs the OAuth flow with prompt=consent so Google shows its permission
+  // screen again and the user can tick Drive access.
+  const grantDriveAccess = useCallback(async () => {
+    if (!clientId || loading || restoring) return;
+    setAuthError(null);
+    setLoading(true);
+    try {
+      const token = await gSignIn({ forceConsent: true });
+      const u = await getGoogleUser(token);
+      setUser(u);
+
+      if (isDriveScopeGranted() === false) {
+        setDriveScopeMissing(true);
+        setAuthError('Drive access is still off. Tick the Drive permission on Google\'s screen to continue.');
+        return;
+      }
+
+      setDriveScopeMissing(false);
+      await reloadDriveData();
+    } catch (err: any) {
+      if (err?.message !== 'Sign-in already in progress' && err?.name !== 'popup_closed') {
+        console.error('[GoogleAuth] Drive consent error:', err);
+        setAuthError(formatAuthError(err));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId, loading, restoring]);
+
   const signOut = useCallback(() => {
     gSignOut();
     setAuthError(null);
+    setDriveScopeMissing(false);
     setUser(null);
     setPrivateSongs([]);
     setSavedSheets([]);
@@ -714,7 +771,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GoogleAuthContext.Provider value={{ user, privateSongs, savedSheets, preferences, loading, restoring, ready, authError, signIn, signOut, addSong, addSongs, removeSong, editSong, saveSheet, bencherLayouts, saveBencherLayout, deleteBencherLayout, clearPrivateSongs, clearSavedSheets, clearBencherLayouts, clearPreferences, clearAllStoredData, downloadTransferXml, readTransferXmlFile, importTransferXmlFile, setPref }}>
+    <GoogleAuthContext.Provider value={{ user, privateSongs, savedSheets, preferences, loading, restoring, ready, authError, driveScopeMissing, signIn, grantDriveAccess, signOut, addSong, addSongs, removeSong, editSong, saveSheet, bencherLayouts, saveBencherLayout, deleteBencherLayout, clearPrivateSongs, clearSavedSheets, clearBencherLayouts, clearPreferences, clearAllStoredData, downloadTransferXml, readTransferXmlFile, importTransferXmlFile, setPref }}>
       {children}
     </GoogleAuthContext.Provider>
   );

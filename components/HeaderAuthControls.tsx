@@ -134,6 +134,8 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
     restoring,
     ready: authReady,
     authError,
+    driveScopeMissing,
+    grantDriveAccess,
     downloadTransferXml,
     readTransferXmlFile,
     importTransferXmlFile,
@@ -318,6 +320,17 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
       return (
         <>
           <span className="mobile-nav-user" style={restoring ? { opacity: 0.6 } : undefined}>{user.email}</span>
+          {driveScopeMissing && (
+            <button
+              className="mobile-nav-signin header-drive-required-btn"
+              onClick={() => {
+                void grantDriveAccess();
+              }}
+              disabled={authLoading || !authReady}
+            >
+              {authLoading ? 'Opening Google…' : 'Allow Drive access'}
+            </button>
+          )}
           {!restoring && (
             <button
               className="mobile-nav-signout"
@@ -359,6 +372,9 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
         >
           {authLoading ? 'Signing in...' : 'Sign in with Google'}
         </button>
+        {driveScopeMissing && !authError && (
+          <p className="header-auth-error mobile">Google Drive access is required. Allow it on Google&apos;s screen to save your work.</p>
+        )}
         {authError && <p className="header-auth-error mobile">{authError}</p>}
       </div>
     );
@@ -367,6 +383,21 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
   if (user) {
     return (
       <div className="header-user-menu">
+        {driveScopeMissing && (
+          <div className="header-drive-required" role="alert">
+            <span>Google Drive access is required so your songs, sheets, and benchers can be saved.</span>
+            <button
+              type="button"
+              className="header-signin-btn header-drive-required-btn"
+              onClick={() => {
+                void grantDriveAccess();
+              }}
+              disabled={authLoading || !authReady}
+            >
+              {authLoading ? 'Opening Google…' : 'Allow Drive access'}
+            </button>
+          </div>
+        )}
         <div className="header-account-menu" ref={menuRef}>
           <button
             type="button"
@@ -806,6 +837,9 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
       >
         {authLoading ? 'Signing in...' : 'Sign in'}
       </button>
+      {driveScopeMissing && !authError && (
+        <p className="header-auth-error">Google Drive access is required. Allow it on Google&apos;s screen to save your work.</p>
+      )}
       {authError && <p className="header-auth-error">{authError}</p>}
     </div>
   );
