@@ -406,6 +406,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
   const [currentBencherLayoutId, setCurrentBencherLayoutId] = useState<string | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveDraftTitle, setSaveDraftTitle] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showBencherLibrary, setShowBencherLibrary] = useState(false);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -549,6 +550,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
     if (!auth?.user) return;
     const trimmed = title.trim();
     if (!trimmed) return;
+    setSaveError(null);
     try {
       const matching = auth.bencherLayouts.find(
         (l) => l.title.trim() === trimmed && (currentBencherLayoutId ? l.id === currentBencherLayoutId : true),
@@ -564,7 +566,12 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
       setCurrentBencherLayoutId(saved.id);
       setShowSaveModal(false);
       setShowOverwriteModal(false);
-    } catch {
+    } catch (error) {
+      // Saving writes to the user's Google Drive, so failures (missing Drive
+      // access, quota, offline) used to be swallowed and looked like the Save
+      // button doing nothing. Report them instead.
+      const message = error instanceof Error ? error.message : 'Could not save this layout.';
+      setSaveError(message);
       if (auth.bencherLayouts.length >= 3) {
         setOverwriteTargetId(currentBencherLayoutId ?? auth.bencherLayouts[0]?.id ?? '');
         setShowSaveModal(false);
@@ -977,8 +984,17 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
         }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: res.statusText }));
-        throw new Error(`[E03] ${err.message || 'Server error'}`);
+        // Fall back to the raw body when the response is not JSON (a platform
+        // level crash returns HTML), so the alert shows something actionable.
+        const raw = await res.text().catch(() => '');
+        let detail = res.statusText || 'Server error';
+        try {
+          const parsed = JSON.parse(raw);
+          detail = parsed.message || parsed.error || detail;
+        } catch {
+          if (raw) detail = raw.replace(/<[^>]*>/g, ' ').trim().slice(0, 200) || detail;
+        }
+        throw new Error(`[E03] ${detail} (HTTP ${res.status})`);
       }
       const pdfBytes = new Uint8Array(await res.arrayBuffer());
       downloadPdf(pdfBytes, `bencher-${pageMode}-straight.pdf`);
@@ -1391,6 +1407,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
                       onClick={() => {
                         if (!auth?.user) return;
                         setSaveDraftTitle(bencerTitle);
+                        setSaveError(null);
                         setShowSaveModal(true);
                       }}
                     >
@@ -1634,6 +1651,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
                 onChange={(event) => setSaveDraftTitle(event.target.value)}
                 autoFocus
               />
+              {saveError ? <p className="bencher-modal-error" role="alert">{saveError}</p> : null}
             </div>
             <div className="bencher-modal-footer">
               <button type="button" onClick={() => setShowSaveModal(false)}>Cancel</button>
