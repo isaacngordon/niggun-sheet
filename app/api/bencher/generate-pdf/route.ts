@@ -13,6 +13,10 @@ import {
 
 // ── helpers ──
 
+// Rendering the vector overlays launches headless Chromium, which needs more
+// than the default serverless time budget.
+export const maxDuration = 60;
+
 function base64ToBytes(b64: string): Uint8Array {
   const raw = b64.includes(',') ? b64.split(',')[1] : b64;
   return Uint8Array.from(Buffer.from(raw, 'base64'));

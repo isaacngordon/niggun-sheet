@@ -6,6 +6,25 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // The bencher PDF route renders its overlays with headless Chromium. Both the
+  // puppeteer client and the serverless Chromium build ship binaries/wasm that
+  // cannot be bundled, and the route reads these public assets from disk at
+  // runtime — without listing them here the route crashes in a serverless
+  // deployment (Vercel) even though it works locally.
+  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
+  outputFileTracingIncludes: {
+    '/api/bencher/generate-pdf': [
+      './public/assets/bencher/**',
+      './public/assets/fonts/**',
+      './public/assets/Andy-heading-flourish.svg',
+      // The serverless Chromium build unpacks its browser from bin/*.br at
+      // runtime. Externalizing the package is not enough on its own — the
+      // tracing step does not discover these files, so the function fails with
+      // 'The input directory "/var/task/node_modules/@sparticuz/chromium/bin"
+      // does not exist' unless they are listed explicitly.
+      './node_modules/@sparticuz/chromium/bin/**',
+    ],
+  },
   // Expose the Google OAuth client id to client bundles.
   // Fallback supports deployments that set GOOGLE_CLIENT_ID only.
   env: {
