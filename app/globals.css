@@ -2231,10 +2231,6 @@ a {
   white-space: nowrap;
 }
 
-.site-header-brand span[aria-hidden] {
-  color: #888;
-}
-
 .site-header-shop-badge {
   display: flex;
   align-items: center;

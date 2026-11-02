@@ -41,7 +41,7 @@ export default function Header() {
   return (
     <header className="site-header">
       <Link href="/" className="site-header-brand">
-        <span aria-hidden="true">|||</span> KUMZITZ SHEET
+        KUMZITZ SHEET
       </Link>
       {printShop?.logoPath ? (
         <div className="site-header-shop-badge" aria-label={`${printShop.name} mode active`}>
