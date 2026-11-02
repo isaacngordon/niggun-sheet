@@ -19,18 +19,18 @@ function watchForHydrationErrors(page: Page) {
   return () => expect(messages).toEqual([]);
 }
 
-test.describe('Niggun Sheet site QA', () => {
+test.describe('Kumzitz Sheet site QA', () => {
   test('homepage presents the intended hero, CTAs, footer links, and privacy control', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page).toHaveTitle('Niggun Sheet');
-    await expect(page.getByRole('heading', { name: 'Discover Your Perfect Niggun' })).toBeVisible();
+    await expect(page).toHaveTitle('Kumzitz Sheet');
+    await expect(page.getByRole('heading', { name: 'Discover Your Perfect Kumzitz' })).toBeVisible();
     await expect(page.getByText('Drag + Drop')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Download Niggun Sheet' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Download Kumzitz Sheet' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Try Sheet Builder' })).toHaveAttribute('href', '/sheet-builder');
     await expect(page.getByRole('heading', { name: 'Smartboard Friendly Mode' })).toBeVisible();
 
-    await expect(page.getByRole('contentinfo').getByRole('button', { name: 'Niggun Sheet' })).toBeVisible();
+    await expect(page.getByRole('contentinfo').getByRole('button', { name: 'Kumzitz Sheet' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Tracking Disclosure' })).toHaveAttribute('href', '/tracking-disclosure');
     await expect(page.getByRole('button', { name: 'Privacy' })).toBeVisible();
   });
@@ -38,7 +38,7 @@ test.describe('Niggun Sheet site QA', () => {
   test('contact page has clean metadata and accessible form labels', async ({ page }) => {
     await page.goto('/contact');
 
-    await expect(page).toHaveTitle('Get in Touch | Niggun Sheet');
+    await expect(page).toHaveTitle('Get in Touch | Kumzitz Sheet');
     await expect(page.getByRole('heading', { name: 'Get in Touch' })).toBeVisible();
     await expect(page.getByLabel('Your Name or Yeshiva')).toBeVisible();
     await expect(page.getByLabel('Email')).toBeVisible();
@@ -55,7 +55,7 @@ test.describe('Niggun Sheet site QA', () => {
     expect(response.status()).toBe(200);
 
     await page.goto('/tracking-disclosure');
-    await expect(page).toHaveTitle('Tracking Disclosure | Niggun Sheet');
+    await expect(page).toHaveTitle('Tracking Disclosure | Kumzitz Sheet');
     await expect(page.getByRole('heading', { name: 'Tracking Disclosure' })).toBeVisible();
     await expect(page.getByText('Analytics are used as a count.')).toBeVisible();
     await expect(page.getByText('No personal data is sold, shared, or used for advertising profiles.')).toBeVisible();
@@ -64,7 +64,7 @@ test.describe('Niggun Sheet site QA', () => {
   test('song directory stays in list mode and supports searching/filtering', async ({ page }) => {
     await page.goto('/songs');
 
-    await expect(page).toHaveTitle('Song Directory | Niggun Sheet');
+    await expect(page).toHaveTitle('Song Directory | Kumzitz Sheet');
     await expect(page.getByRole('heading', { name: 'Song Directory' })).toBeVisible();
     await expect(page.getByPlaceholder('Search by title, artist, or lyrics...')).toBeVisible();
     await expect(page.getByRole('button', { name: 'All Songs' })).toBeVisible();
@@ -74,7 +74,7 @@ test.describe('Niggun Sheet site QA', () => {
     await expect(page.getByRole('button', { name: /grid/i })).toHaveCount(0);
     await page.getByPlaceholder('Search by title, artist, or lyrics...').fill('Acheinu');
     await expect(page.getByRole('link', { name: /Acheinu/ }).first()).toBeVisible();
-    await expect(page.getByText(/Showing \d+ of 85 niggunim/)).toBeVisible();
+    await expect(page.getByText(/Showing \d+ of 85 kumzitzim/)).toBeVisible();
   });
 
   test('song detail exposes lyrics and smartboard handoff without relying on external playback', async ({ page }) => {
@@ -89,7 +89,7 @@ test.describe('Niggun Sheet site QA', () => {
     const assertNoHydrationErrors = watchForHydrationErrors(page);
 
     await page.goto('/sheet-builder', { waitUntil: 'commit' });
-    await expect(page).toHaveTitle('Sheet Builder | Niggun Sheet');
+    await expect(page).toHaveTitle('Sheet Builder | Kumzitz Sheet');
     await expect(page.getByRole('button', { name: 'Song Library' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'My Songs' })).toBeVisible();
     await expect(page.getByPlaceholder('Search songs...')).toBeVisible();
@@ -125,8 +125,8 @@ test.describe('Niggun Sheet site QA', () => {
     const sitemap = await request.get('/sitemap.xml');
     expect(sitemap.status()).toBe(200);
     const sitemapText = await sitemap.text();
-    expect(sitemapText).toContain('<loc>https://niggunsheet.com/songs</loc>');
-    expect(sitemapText).toContain('<loc>https://niggunsheet.com/sheet-builder</loc>');
+    expect(sitemapText).toContain('<loc>https://kumzitzsheet.com/songs</loc>');
+    expect(sitemapText).toContain('<loc>https://kumzitzsheet.com/sheet-builder</loc>');
   });
 
   test('API returns usable song records', async ({ request }) => {

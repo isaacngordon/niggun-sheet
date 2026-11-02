@@ -11,20 +11,19 @@ import { metadata as sheetBuilderMetadata } from '@/app/sheet-builder/layout';
 
 describe('SEO route metadata', () => {
   it('keeps page titles compatible with the root title template', () => {
-    expect(contactMetadata.title).toBe('Get in Touch');
+    expect(contactMetadata.title).toBe('Contact Us');
     expect(sheetBuilderMetadata.title).toBe('Sheet Builder');
     expect(trackingMetadata.title).toBe('Tracking Disclosure');
   });
 
-  it('publishes a sitemap for primary public pages', () => {
-    const urls = sitemap().map((entry) => entry.url);
+  it('publishes a sitemap for primary public pages', async () => {
+    const urls = (await sitemap()).map((entry) => entry.url);
 
     expect(urls).toEqual(expect.arrayContaining([
-      'https://niggunsheet.com/',
-      'https://niggunsheet.com/songs',
-      'https://niggunsheet.com/sheet-builder',
-      'https://niggunsheet.com/contact',
-      'https://niggunsheet.com/project-growth-page',
+      'https://kumzitzsheet.com/',
+      'https://kumzitzsheet.com/songs',
+      'https://kumzitzsheet.com/sheet-builder',
+      'https://kumzitzsheet.com/contact',
     ]));
   });
 
@@ -34,6 +33,6 @@ describe('SEO route metadata', () => {
 
     expect(firstRule.allow).toBe('/');
     expect(firstRule.disallow).toEqual(expect.arrayContaining(['/api/', '/sheet-test', '/smartboard-mode']));
-    expect(config.sitemap).toBe('https://niggunsheet.com/sitemap.xml');
+    expect(config.sitemap).toBe('https://kumzitzsheet.com/sitemap.xml');
   });
 });

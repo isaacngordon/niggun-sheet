@@ -7,6 +7,8 @@ import {
   ANALYTICS_PREFERENCE_EVENT,
   ANALYTICS_MODE_KEY,
   ANALYTICS_PREF_VERSION_KEY,
+  LEGACY_ANALYTICS_MODE_KEY,
+  LEGACY_ANALYTICS_PREF_VERSION_KEY,
   GA_MEASUREMENT_ID,
   type AnalyticsMode,
   applyAnalyticsPreference,
@@ -76,12 +78,12 @@ export default function Analytics() {
 
             var mode = 'cookie';
             try {
-              var prefVersion = window.localStorage.getItem('${ANALYTICS_PREF_VERSION_KEY}');
+              var prefVersion = window.localStorage.getItem('${ANALYTICS_PREF_VERSION_KEY}') || window.localStorage.getItem('${LEGACY_ANALYTICS_PREF_VERSION_KEY}');
               if (prefVersion !== '2') {
                 window.localStorage.setItem('${ANALYTICS_MODE_KEY}', 'cookie');
                 window.localStorage.setItem('${ANALYTICS_PREF_VERSION_KEY}', '2');
               }
-              var storedMode = window.localStorage.getItem('${ANALYTICS_MODE_KEY}');
+              var storedMode = window.localStorage.getItem('${ANALYTICS_MODE_KEY}') || window.localStorage.getItem('${LEGACY_ANALYTICS_MODE_KEY}');
               if (storedMode === 'cookie' || storedMode === 'fallback') {
                 mode = storedMode;
               }

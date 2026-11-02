@@ -6636,7 +6636,7 @@ a {
   opacity: 0.3;
 }
 
-/* ─── Niggun Sheet Preview ────────────────────────────────── */
+/* ─── Kumzitz Sheet Preview ────────────────────────────────── */
 
 .ns-preview-overlay {
   position: fixed;
@@ -6814,6 +6814,140 @@ a {
   border: none;
   background: #fff;
 }
+
+/* Stylised SVG sheet preview for phones, which cannot show a PDF in an <iframe>. */
+@font-face {
+  font-family: 'SheetPreviewHebrew';
+  src: url('/assets/fonts/FrankRuhlLibre-500.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SheetPreviewHebrew';
+  src: url('/assets/fonts/FrankRuhlLibre-700.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SheetPreviewSans';
+  src: url('/assets/fonts/Inter-400.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SheetPreviewSans';
+  src: url('/assets/fonts/Inter-700.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --font-sheet-hebrew: 'SheetPreviewHebrew', 'Times New Roman', serif;
+  --font-sheet-sans: 'SheetPreviewSans', Arial, sans-serif;
+}
+
+.ns-sheet-preview {
+  flex: 1;
+  width: 100%;
+  overflow: auto;
+  padding: 16px 16px 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.ns-sheet-preview-pages {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Tap a page to zoom: widen the pages past the viewport and let the panel scroll. */
+.ns-sheet-preview-zoomed {
+  justify-content: flex-start;
+}
+
+.ns-sheet-preview-zoomed .ns-sheet-preview-pages {
+  width: 1100px;
+  max-width: none;
+  flex: 0 0 auto;
+}
+
+.ns-sheet-preview-zoomed .ns-sheet-page-inner {
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ns-sheet-preview-dragging .ns-sheet-page-inner {
+  cursor: grabbing;
+}
+
+.ns-sheet-preview-dragging {
+  scroll-behavior: auto;
+}
+
+.ns-sheet-hint {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.ns-sheet-page {
+  margin: 0;
+}
+
+.ns-sheet-page-inner {
+  position: relative;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #fff;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.ns-sheet-col {
+  position: absolute;
+  overflow: hidden;
+  text-align: right;
+  font-family: var(--font-sheet-hebrew);
+  color: #333;
+  word-break: normal;
+}
+
+.ns-sheet-title {
+  font-family: var(--font-sheet-sans);
+  line-height: 1.25;
+}
+
+.ns-sheet-artist {
+  font-family: var(--font-sheet-sans);
+  line-height: 1.25;
+}
+
+.ns-sheet-rule {
+  position: absolute;
+  width: 0;
+  border-left: 0.5px solid #b4b4b4;
+  pointer-events: none;
+}
+
+.ns-sheet-page-number {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
 
 .ns-preview-loading {
   text-align: center;

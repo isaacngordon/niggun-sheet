@@ -11,18 +11,22 @@ export type PrintShopDeliveryConfig =
       submissionUrl: string;
     };
 
-const PRINT_SHOP_DELIVERY: Record<string, PrintShopDeliveryConfig> = {
+/**
+ * Bundled fallback delivery target.
+ *
+ * The live registry is hydrated from the `PrintShops` tab of the Google Sheet
+ * via `lib/printShopSheet.ts`, which is the source of truth. This map only
+ * keeps the print-shop order flow working if the sheet cannot be reached.
+ */
+const FALLBACK_PRINT_SHOP_DELIVERY: Record<string, PrintShopDeliveryConfig> = {
   'print-on-point': {
     shopSlug: 'print-on-point',
     mode: 'email',
     recipient: 'Print@PrintOnPoint.com',
   },
-  'partner-print': {
-    shopSlug: 'partner-print',
-    mode: 'email',
-    recipient: 'Print@PrintOnPoint.com',
-  },
 };
+
+let registry: Record<string, PrintShopDeliveryConfig> = { ...FALLBACK_PRINT_SHOP_DELIVERY };
 
 function normalizeSlug(value: string | null | undefined): string {
   return (value || '').trim().toLowerCase();
@@ -30,7 +34,7 @@ function normalizeSlug(value: string | null | undefined): string {
 
 export function getPrintShopDeliveryBySlug(slug: string | null | undefined): PrintShopDeliveryConfig | null {
   const normalized = normalizeSlug(slug);
-  return normalized ? PRINT_SHOP_DELIVERY[normalized] || null : null;
+  return normalized ? registry[normalized] || null : null;
 }
 
 export function isPrintShopDeliveryConfigured(delivery: PrintShopDeliveryConfig | null | undefined): delivery is PrintShopDeliveryConfig {
@@ -39,4 +43,31 @@ export function isPrintShopDeliveryConfigured(delivery: PrintShopDeliveryConfig 
     return /^https:\/\//i.test(delivery.submissionUrl);
   }
   return delivery.recipient.includes('@');
+}
+
+export function listPrintShopDeliveries(): PrintShopDeliveryConfig[] {
+  return Object.values(registry);
+}
+
+/** Replaces the delivery registry with the provided records. */
+export function applyPrintShopDeliveries(deliveries: PrintShopDeliveryConfig[]): void {
+  if (deliveries.length === 0) {
+    return;
+  }
+
+  const next: Record<string, PrintShopDeliveryConfig> = {};
+  deliveries.forEach((delivery) => {
+    const normalized = normalizeSlug(delivery.shopSlug);
+    if (normalized) {
+      next[normalized] = delivery;
+    }
+  });
+
+  if (Object.keys(next).length > 0) {
+    registry = next;
+  }
+}
+
+export function getFallbackPrintShopDeliveries(): PrintShopDeliveryConfig[] {
+  return Object.values(FALLBACK_PRINT_SHOP_DELIVERY);
 }

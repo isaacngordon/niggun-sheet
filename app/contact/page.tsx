@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: 'Contact Us',
   description: 'Send lyrics fixes, song ideas, bug reports, or questions.',
   openGraph: {
-    title: 'Contact Us | Niggun Sheet',
+    title: 'Contact Us | Kumzitz Sheet',
     description: 'Send lyrics fixes, song ideas, bug reports, or questions.',
     type: 'website',
   },

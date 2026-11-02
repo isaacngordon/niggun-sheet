@@ -4,7 +4,7 @@ import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
   title: 'Tracking Disclosure',
-  description: 'How Niggun Sheet uses privacy-conscious analytics to count site visits.',
+  description: 'How Kumzitz Sheet uses privacy-conscious analytics to count site visits.',
   alternates: {
     canonical: '/tracking-disclosure',
   },
@@ -18,9 +18,9 @@ export default function TrackingDisclosurePage() {
         <section className="policy-card">
           <h1>Tracking Disclosure</h1>
           <p>
-            Niggun Sheet uses analytics only to understand basic site usage, such as page visits and
+            Kumzitz Sheet uses analytics only to understand basic site usage, such as page visits and
             feature engagement. This helps improve the site for rebbeim, communities, and anyone
-            building or projecting niggun sheets.
+            building or projecting kumzitz sheets.
           </p>
           <p>
             Analytics are used as a count. No personal data is sold, shared, or used for advertising

@@ -1,10 +1,13 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
-import { getPrintShopFromSearchParams, isPrintShopConfigured } from '@/lib/printShop';
+import { isPrintShopConfigured } from '@/lib/printShop';
+import { useDevice } from '@/hooks/useDevice';
+import { usePrintShopMode } from '@/hooks/usePrintShopMode';
+import { type MeasuredSong, type PageCols, type SheetLayout } from '@/lib/sheetLayout';
+import SheetPagesPreview from './SheetPagesPreview';
 
 export interface Song {
   search_title?: string;
@@ -75,13 +78,6 @@ const TITLE_SCALE = 0.9;
 const ARTIST_SCALE = 0.65;
 const TITLE_GAP = 2;
 
-interface MeasuredSong {
-  titleLines: string[];
-  artistLines: string[];
-  lyricLines: string[];
-  height: number;
-}
-
 function measureSong(pdf: jsPDF, song: Song, fontSize: number, colW: number, opts: PDFOptions): MeasuredSong {
   const lineH = fontSize * 1.25;
   const titleFontSize = fontSize * TITLE_SCALE;
@@ -122,9 +118,6 @@ function measureSong(pdf: jsPDF, song: Song, fontSize: number, colW: number, opt
 
   return { titleLines, artistLines, lyricLines, height };
 }
-
-type ColEntry = { songIdx: number };
-type PageCols = ColEntry[][];
 
 function distribute(heights: number[], maxPages: number = Infinity): { pages: PageCols[]; fitted: number } {
   const pages: PageCols[] = [Array.from({ length: NUM_COLS }, () => [])];
@@ -234,7 +227,7 @@ async function loadImageBase64(url: string): Promise<string> {
   });
 }
 
-async function buildPDF(songs: Song[], opts: PDFOptions): Promise<jsPDF> {
+async function buildPDF(songs: Song[], opts: PDFOptions): Promise<{ pdf: jsPDF; layout: SheetLayout }> {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
   const [regular64, medium64, bold64, interRegular64, interBold64, bgDataUrl] = await Promise.all([
     loadFont('/assets/fonts/FrankRuhlLibre-400.ttf'),
@@ -269,6 +262,8 @@ async function buildPDF(songs: Song[], opts: PDFOptions): Promise<jsPDF> {
   while (allPages.length < targetPages) {
     allPages.push(Array.from({ length: NUM_COLS }, () => []));
   }
+
+  const layout: SheetLayout = { fontSize, measured, pages: allPages, showTitles: opts.showTitles, setList: opts.setList };
 
   for (let p = 0; p < allPages.length; p += 1) {
     if (p > 0) pdf.addPage();
@@ -336,19 +331,19 @@ async function buildPDF(songs: Song[], opts: PDFOptions): Promise<jsPDF> {
     }
   }
 
-  return pdf;
+  return { pdf, layout };
 }
 
 type PreviewState = 'loading' | 'generating' | 'ready' | 'error';
 type PrintShopSubmitState = 'idle' | 'submitting' | 'success' | 'error';
 
-export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => void }) {
-  const searchParams = useSearchParams();
+export default function KumzitzSheetDownloadModal({ onClose }: { onClose: () => void }) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [state, setState] = useState<PreviewState>('loading');
   const [previewSource, setPreviewSource] = useState('');
   const [showTitles, setShowTitles] = useState(true);
   const [setList, setSetList] = useState(false);
+  const [previewLayout, setPreviewLayout] = useState<SheetLayout | null>(null);
   const [mounted, setMounted] = useState(false);
   const [shopOrderOpen, setShopOrderOpen] = useState(false);
   const [submitState, setSubmitState] = useState<PrintShopSubmitState>('idle');
@@ -360,14 +355,17 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
   const pdfRef = useRef<jsPDF | null>(null);
   const printSourceRef = useRef('');
   const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
-  const printShop = getPrintShopFromSearchParams(searchParams);
+  const { shop: printShop } = usePrintShopMode();
+  // Phones cannot render a PDF inside an <iframe>, so they get a native-viewer hand-off.
+  const { isPhone } = useDevice();
   const printShopReady = isPrintShopConfigured(printShop);
 
   const generatePreview = useCallback(async (loadedSongs: Song[], opts: PDFOptions) => {
     setState('generating');
     try {
-      const pdf = await buildPDF(loadedSongs, opts);
+      const { pdf, layout } = await buildPDF(loadedSongs, opts);
       pdfRef.current = pdf;
+      setPreviewLayout(layout);
       const blob = pdf.output('blob');
       const blobUrl = URL.createObjectURL(blob);
 
@@ -444,7 +442,7 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
   }, [generatePreview, showTitles, songs]);
 
   const savePDF = useCallback(() => {
-    pdfRef.current?.save('niggun-sheet.pdf');
+    pdfRef.current?.save('kumzitz-sheet.pdf');
   }, []);
 
   const closeShopOrder = useCallback(() => {
@@ -477,7 +475,7 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
       formData.set('sourcePage', window.location.href);
       formData.set('showTitles', String(showTitles));
       formData.set('setList', String(setList));
-      formData.set('pdf', new File([pdfBlob], 'niggun-sheet.pdf', { type: 'application/pdf' }));
+      formData.set('pdf', new File([pdfBlob], 'kumzitz-sheet.pdf', { type: 'application/pdf' }));
 
       const response = await fetch('/api/print-shop-order', {
         method: 'POST',
@@ -551,7 +549,7 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
     <div className="ns-preview-overlay">
       <div className="ns-preview-toolbar">
         <div className="ns-preview-title-wrap">
-          <span className="ns-preview-title">Niggun Sheet Preview</span>
+          <span className="ns-preview-title">Kumzitz Sheet Preview</span>
           {printShop ? <span className="ns-preview-mode-pill">{printShop.name}</span> : null}
         </div>
         <div className="ns-preview-actions">
@@ -621,7 +619,7 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
               ) : null}
             </div>
             {!printShopReady ? (
-              <span className="ns-print-shop-banner-status">Set the shop delivery in lib/printShop.ts and lib/printShopDelivery.ts to enable ordering.</span>
+              <span className="ns-print-shop-banner-status">Add delivery details for this shop in the PrintShops tab of the Google Sheet to enable ordering.</span>
             ) : null}
           </div>
         ) : null}
@@ -636,12 +634,25 @@ export default function NiggunSheetDownloadModal({ onClose }: { onClose: () => v
         ) : null}
 
         {state === 'ready' && previewSource ? (
-          <iframe
-            ref={previewFrameRef}
-            className="ns-preview-iframe"
-            src={previewSource}
-            title="Niggun Sheet Preview"
-          />
+          isPhone ? (
+            previewLayout ? (
+              <SheetPagesPreview layout={previewLayout} />
+            ) : (
+              <iframe
+                ref={previewFrameRef}
+                className="ns-preview-iframe"
+                src={previewSource}
+                title="Kumzitz Sheet Preview"
+              />
+            )
+          ) : (
+            <iframe
+              ref={previewFrameRef}
+              className="ns-preview-iframe"
+              src={previewSource}
+              title="Kumzitz Sheet Preview"
+            />
+          )
         ) : null}
 
         {state === 'error' ? (

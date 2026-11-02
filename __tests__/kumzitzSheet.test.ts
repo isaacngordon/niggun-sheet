@@ -1,5 +1,5 @@
 /**
- * Unit tests for pure functions in NiggunSheetDownload.tsx
+ * Unit tests for pure functions in KumzitzSheetDownload.tsx
  *
  * We mock jsPDF since the real library needs font binaries / canvas.
  * The mock's getTextWidth approximates width as chars * fontSize * factor.
@@ -14,7 +14,7 @@ import {
   findBestFontSize,
   Song,
   PDFOptions,
-} from '@/components/NiggunSheetDownload';
+} from '@/components/KumzitzSheetDownload';
 
 /* ── jsPDF mock ──────────────────────────────────────────────── */
 

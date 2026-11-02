@@ -32,6 +32,13 @@ const nextConfig = {
     NEXT_PUBLIC_GOOGLE_CLIENT_ID_BETA: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_BETA || '',
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || version,
   },
+  // The AI-agent reference used to be an HTML page at /ai; it now lives as plain text
+  // beside /robots.txt.
+  async redirects() {
+    return [
+      { source: '/ai', destination: '/ai.txt', permanent: false },
+    ];
+  },
   // CORS headers for API routes + security headers
   async headers() {
     const cspScriptSrc = [
@@ -62,7 +69,7 @@ const nextConfig = {
       {
         source: '/api/:path*',
         headers: [
-          { key: 'Access-Control-Allow-Origin', value: 'https://niggunsheet.com' },
+          { key: 'Access-Control-Allow-Origin', value: 'https://kumzitzsheet.com' },
           { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'Origin, X-Requested-With, Content-Type, Accept, Authorization' },
         ],

@@ -8,13 +8,13 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Song Directory',
-  description: 'Browse niggunim with lyrics, artist info, and playback links. Search and organize songs for your kumzitz.',
+  description: 'Browse kumzitz songs with lyrics, artist info, and playback links. Search and organize songs for your kumzitz.',
   alternates: {
     canonical: '/songs',
   },
   openGraph: {
-    title: 'Song Directory | Niggun Sheet',
-    description: 'Browse niggunim with lyrics, artist info, and playback links.',
+    title: 'Song Directory | Kumzitz Sheet',
+    description: 'Browse kumzitz songs with lyrics, artist info, and playback links.',
     type: 'website',
   },
 };

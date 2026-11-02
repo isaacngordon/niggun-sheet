@@ -1,10 +1,13 @@
 'use client';
 
 export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-N0MP01KGSP';
-export const ANALYTICS_MODE_KEY = 'niggunsheet-analytics-mode';
-export const ANALYTICS_PREFERENCE_EVENT = 'niggunsheet-analytics-preference';
-export const ANALYTICS_PREF_VERSION_KEY = 'niggunsheet-analytics-pref-version';
-const MODE_COOKIE_NAME = 'niggunsheet_analytics_mode';
+export const ANALYTICS_MODE_KEY = 'kumzitzsheet-analytics-mode';
+export const ANALYTICS_PREFERENCE_EVENT = 'kumzitzsheet-analytics-preference';
+export const ANALYTICS_PREF_VERSION_KEY = 'kumzitzsheet-analytics-pref-version';
+export const LEGACY_ANALYTICS_MODE_KEY = 'niggunsheet-analytics-mode';
+export const LEGACY_ANALYTICS_PREF_VERSION_KEY = 'niggunsheet-analytics-pref-version';
+const MODE_COOKIE_NAME = 'kumzitzsheet_analytics_mode';
+const LEGACY_MODE_COOKIE_NAME = 'niggunsheet_analytics_mode';
 const LEGACY_OPT_OUT_KEY = 'niggunsheet-analytics-opt-out';
 const LEGACY_OPT_OUT_COOKIE_NAME = 'niggunsheet_analytics_opt_out';
 const CURRENT_PREF_VERSION = '2';
@@ -79,10 +82,14 @@ function migrateStoredAnalyticsPreference() {
   if (typeof window === 'undefined') return;
 
   try {
-    const prefVersion = window.localStorage.getItem(ANALYTICS_PREF_VERSION_KEY);
+    const prefVersion =
+      window.localStorage.getItem(ANALYTICS_PREF_VERSION_KEY) ??
+      window.localStorage.getItem(LEGACY_ANALYTICS_PREF_VERSION_KEY);
     if (prefVersion === CURRENT_PREF_VERSION) return;
 
     window.localStorage.setItem(ANALYTICS_MODE_KEY, 'cookie');
+    window.localStorage.removeItem(LEGACY_ANALYTICS_MODE_KEY);
+    window.localStorage.removeItem(LEGACY_ANALYTICS_PREF_VERSION_KEY);
     window.localStorage.removeItem(LEGACY_OPT_OUT_KEY);
     window.localStorage.setItem(ANALYTICS_PREF_VERSION_KEY, CURRENT_PREF_VERSION);
     writeModeCookie('cookie');
@@ -96,7 +103,9 @@ export function hasAnalyticsPreference() {
   if (typeof window === 'undefined') return false;
 
   try {
-    const localValue = window.localStorage.getItem(ANALYTICS_MODE_KEY);
+    const localValue =
+      window.localStorage.getItem(ANALYTICS_MODE_KEY) ??
+      window.localStorage.getItem(LEGACY_ANALYTICS_MODE_KEY);
     if (localValue === 'cookie' || localValue === 'fallback') return true;
 
     const legacyLocal = window.localStorage.getItem(LEGACY_OPT_OUT_KEY);
@@ -105,7 +114,7 @@ export function hasAnalyticsPreference() {
     // Ignore storage failures and fall back to cookies.
   }
 
-  const cookieValue = readCookie(MODE_COOKIE_NAME);
+  const cookieValue = readCookie(MODE_COOKIE_NAME) ?? readCookie(LEGACY_MODE_COOKIE_NAME);
   if (cookieValue === 'cookie' || cookieValue === 'fallback') return true;
 
   const legacyCookieValue = readCookie(LEGACY_OPT_OUT_COOKIE_NAME);
@@ -120,7 +129,9 @@ export function getAnalyticsMode(): AnalyticsMode {
   migrateStoredAnalyticsPreference();
 
   try {
-    const localValue = window.localStorage.getItem(ANALYTICS_MODE_KEY);
+    const localValue =
+      window.localStorage.getItem(ANALYTICS_MODE_KEY) ??
+      window.localStorage.getItem(LEGACY_ANALYTICS_MODE_KEY);
     if (localValue === 'cookie' || localValue === 'fallback') return localValue;
 
     const legacyLocal = window.localStorage.getItem(LEGACY_OPT_OUT_KEY);
@@ -130,7 +141,7 @@ export function getAnalyticsMode(): AnalyticsMode {
     // Ignore storage failures and fall back to cookies.
   }
 
-  const cookieValue = readCookie(MODE_COOKIE_NAME);
+  const cookieValue = readCookie(MODE_COOKIE_NAME) ?? readCookie(LEGACY_MODE_COOKIE_NAME);
   if (cookieValue === 'cookie' || cookieValue === 'fallback') return cookieValue;
 
   const legacyCookieValue = readCookie(LEGACY_OPT_OUT_COOKIE_NAME);
@@ -145,6 +156,8 @@ export function setAnalyticsMode(mode: AnalyticsMode) {
 
   try {
     window.localStorage.setItem(ANALYTICS_MODE_KEY, mode);
+    window.localStorage.removeItem(LEGACY_ANALYTICS_MODE_KEY);
+    window.localStorage.removeItem(LEGACY_ANALYTICS_PREF_VERSION_KEY);
     window.localStorage.removeItem(LEGACY_OPT_OUT_KEY);
     window.localStorage.setItem(ANALYTICS_PREF_VERSION_KEY, CURRENT_PREF_VERSION);
   } catch {

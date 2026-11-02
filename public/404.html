@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Niggun Sheet | 404 Not Found</title>
+    <title>Kumzitz Sheet | 404 Not Found</title>
     <link rel="stylesheet" href="css/main.css">
     <style>
         h1 {
@@ -20,18 +20,20 @@
 <script>
     (function () {
         var measurementId = 'G-N0MP01KGSP';
-        var storageKey = 'niggunsheet-analytics-mode';
-        var prefVersionKey = 'niggunsheet-analytics-pref-version';
-        var cookieName = 'niggunsheet_analytics_mode=';
+        var storageKey = 'kumzitzsheet-analytics-mode';
+        var prefVersionKey = 'kumzitzsheet-analytics-pref-version';
+        var legacyStorageKey = 'niggunsheet-analytics-mode';
+        var legacyPrefVersionKey = 'niggunsheet-analytics-pref-version';
+        var cookieName = 'kumzitzsheet_analytics_mode=';
         var mode = 'cookie';
 
         try {
-            var prefVersion = window.localStorage.getItem(prefVersionKey);
+            var prefVersion = window.localStorage.getItem(prefVersionKey) || window.localStorage.getItem(legacyPrefVersionKey);
             if (prefVersion !== '2') {
                 window.localStorage.setItem(storageKey, 'cookie');
                 window.localStorage.setItem(prefVersionKey, '2');
             }
-            var localMode = window.localStorage.getItem(storageKey);
+            var localMode = window.localStorage.getItem(storageKey) || window.localStorage.getItem(legacyStorageKey);
             if (localMode === 'cookie' || localMode === 'fallback') {
                 mode = localMode;
             }
@@ -90,9 +92,9 @@
 
     <!-- Foot containing links to external sites -->
     <div id="footer">
-        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Niggun Sheet</a>
+        <a href="https://drive.google.com/file/d/1X_aY7tb7E9RxKVyXDYkGAC_wMGznGJe6/view?usp=drive_link" target="_blank">Download Kumzitz Sheet</a>
         <a href="https://drive.google.com/file/d/1GrpBue_ukxtR7mKjuGZljXL_X-I7Y4wu/view?usp=drive_link" target="_blank">Download Simcha Sheet</a>
-        <div class="footer-copyright">© 2025 Yehudah Jacobs - The Niggun Sheet</div>
+        <div class="footer-copyright">© 2025 Yehudah Jacobs - The Kumzitz Sheet</div>
     </div>
 
 </body>

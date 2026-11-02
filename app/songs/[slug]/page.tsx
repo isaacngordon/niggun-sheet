@@ -6,7 +6,7 @@ import AuthBoundary from '@/components/AuthBoundary';
 import SongDetail from './SongDetail';
 import { getSongs, type Song } from '@/app/api/songs/data';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://niggunsheet.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://kumzitzsheet.com';
 
 function slugify(text: string): string {
   return text
@@ -51,21 +51,21 @@ export async function generateMetadata({
   const song = findSong(songs, slug);
 
   if (!song) {
-    return { title: 'Song Not Found | Niggun Sheet' };
+    return { title: 'Song Not Found | Kumzitz Sheet' };
   }
 
   const description = getFirstLyricLine(song.lyrics) || `Lyrics and details for ${song.title}`;
   const artistPart = song.artist ? ` by ${song.artist}` : '';
 
   return {
-    title: `${song.title} | Niggun Sheet`,
+    title: `${song.title} | Kumzitz Sheet`,
     description,
     alternates: { canonical: `${SITE_URL}/songs/${slug}` },
     openGraph: {
       title: `${song.title}${artistPart}`,
       description,
       url: `${SITE_URL}/songs/${slug}`,
-      siteName: 'Niggun Sheet',
+      siteName: 'Kumzitz Sheet',
       type: 'article',
     },
     twitter: {

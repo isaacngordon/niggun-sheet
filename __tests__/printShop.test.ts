@@ -19,8 +19,18 @@ describe('print shop configuration', () => {
   });
 
   it('falls back to the shop query parameter', () => {
-    const params = new URLSearchParams('shop=partner-print');
-    expect(getPrintShopFromSearchParams(params)?.slug).toBe('partner-print');
+    const params = new URLSearchParams('shop=print-on-point');
+    expect(getPrintShopFromSearchParams(params)?.slug).toBe('print-on-point');
+  });
+
+  it('resolves legacy slugs through aliases without duplicating the shop', () => {
+    expect(getPrintShopBySlug('partner-print')?.slug).toBe('print-on-point');
+  });
+
+  it('resolves delivery for an aliased slug through the canonical shop', () => {
+    const shop = getPrintShopBySlug('partner-print');
+    expect(shop).not.toBeNull();
+    expect(isPrintShopDeliveryConfigured(getPrintShopDeliveryBySlug(shop?.slug))).toBe(true);
   });
 
   it('treats configured shops as ready for submission', () => {

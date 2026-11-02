@@ -1709,7 +1709,7 @@ body.bencher-active .analytics-pref-trigger:hover {
   }
 
   .bencher-song-drop-zone:not(:has(.sb2-song-card))::after {
-    content: 'niggunsheet.com';
+    content: 'kumzitzsheet.com';
     position: absolute;
     inset: 0;
     display: flex;

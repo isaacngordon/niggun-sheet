@@ -23,7 +23,7 @@ export async function submitContact(formData: FormData) {
         email,
         subject,
         message,
-        _subject: `New Message from Niggun Sheet: ${subject}`,
+        _subject: `New Message from Kumzitz Sheet: ${subject}`,
         _captcha: 'false',
       }).toString(),
     });

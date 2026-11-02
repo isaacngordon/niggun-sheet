@@ -16,7 +16,8 @@ import dynamic from 'next/dynamic';
 import HTMLFlipBook from 'react-pageflip';
 import AddSongModal from '@/components/AddSongModal';
 import Header from '@/components/Header';
-import { getPrintShopFromSearchParams, isPrintShopConfigured } from '@/lib/printShop';
+import { isPrintShopConfigured } from '@/lib/printShop';
+import { usePrintShopMode } from '@/hooks/usePrintShopMode';
 import BencherPrintView from './PrintView';
 import { useOptionalGoogleAuth } from '@/components/GoogleAuthProvider';
 import type { PrivateSong } from '@/lib/google-drive';
@@ -413,7 +414,6 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [overwriteTargetId, setOverwriteTargetId] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
-  const [printShopSearch, setPrintShopSearch] = useState('');
   const [showPrintShopModal, setShowPrintShopModal] = useState(false);
   const [printShopSubmitState, setPrintShopSubmitState] = useState<PrintShopSubmitState>('idle');
   const [printShopSubmitMessage, setPrintShopSubmitMessage] = useState('');
@@ -457,10 +457,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
   const bencherPageCount = bencherPages.length;
   const songDropPageNumber = bencherSongDropPlacement.pageNumber;
   const { designWidth, designHeight, pdfSource } = useMemo(() => getBencherModeConfig(pageMode), [pageMode]);
-  const printShop = useMemo(
-    () => getPrintShopFromSearchParams(new URLSearchParams(printShopSearch)),
-    [printShopSearch],
-  );
+  const { shop: printShop } = usePrintShopMode();
   const printShopReady = isPrintShopConfigured(printShop);
   const bencherHelpSteps = useMemo(() => [
     `Click the logo box on page ${bencherLogoPlacement.pageNumber} if you want to upload your own logo.`,
@@ -469,10 +466,6 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
     'When the pages look right, print the bencher or clear songs and try a different mix.',
   ], [bencherLogoPlacement.pageNumber, songDropPageNumber]);
   const clampPage = useCallback((pageNumber: number) => clampBencherPage(pageNumber, bencherPageCount), [bencherPageCount]);
-
-  useEffect(() => {
-    setPrintShopSearch(window.location.search || '');
-  }, []);
 
   useEffect(() => {
     if (pageMode !== '2-page') {
@@ -1171,7 +1164,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
           />
         )}
 
-        <div className="bencher-page-footer" aria-hidden>Made with NiggunSheet.com</div>
+        <div className="bencher-page-footer" aria-hidden>Made with KumzitzSheet.com</div>
       </div>
     </div>
   )), [activeSlot, bencherLogoPlacement, bencherSongDropPlacement, coverFont, coverMode, designWidth, displayPages, handleLogoChange, logoSrc, pageMode, pdfSource, positionedSongs, previewSongKey, removeSong, showTitles]);

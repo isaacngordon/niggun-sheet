@@ -3,15 +3,15 @@
 import dynamic from 'next/dynamic';
 import { useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
-const NiggunSheetDownloadModal = dynamic(() => import('@/components/NiggunSheetDownloadModal'), {
+const KumzitzSheetDownloadModal = dynamic(() => import('@/components/KumzitzSheetDownloadModal'), {
   ssr: false,
 });
 
-type NiggunSheetDownloadButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
+type KumzitzSheetDownloadButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
   children: ReactNode;
 };
 
-export default function NiggunSheetDownloadButton({ children, onClick, type = 'button', ...buttonProps }: NiggunSheetDownloadButtonProps) {
+export default function KumzitzSheetDownloadButton({ children, onClick, type = 'button', ...buttonProps }: KumzitzSheetDownloadButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -28,7 +28,7 @@ export default function NiggunSheetDownloadButton({ children, onClick, type = 'b
       >
         {children}
       </button>
-      {open ? <NiggunSheetDownloadModal onClose={() => setOpen(false)} /> : null}
+      {open ? <KumzitzSheetDownloadModal onClose={() => setOpen(false)} /> : null}
     </>
   );
 }

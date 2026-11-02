@@ -20,11 +20,6 @@ export default function CiscoAccordion() {
       title: "Drag-&-Drop Sheet Builder",
       desc: "Drag, drop, and auto-fit your setlist onto printable pages with complex pagination features instantly.",
       img: "/assets/Image%203.png"
-    },
-    {
-      title: "Printable Shabbos Bencher",
-      desc: "Select what elements of benching to include, and dynamically render a PDF bencher ready to print.",
-      img: "/assets/image%204.png"
     }
   ];
 

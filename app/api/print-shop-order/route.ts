@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getPrintShopBySlug } from '@/lib/printShop';
 import { getPrintShopDeliveryBySlug, isPrintShopDeliveryConfigured } from '@/lib/printShopDelivery';
+import { ensureReadyPrintShopRecords } from '@/lib/printShopSheet';
 
 function getString(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -31,12 +32,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'A generated PDF is required.' }, { status: 400 });
     }
 
+    // Resolve print shops from the spreadsheet before looking one up.
+    await ensureReadyPrintShopRecords();
+
     const shop = getPrintShopBySlug(shopSlug);
     if (!shop) {
       return NextResponse.json({ error: 'Unknown print shop.' }, { status: 404 });
     }
 
-    const delivery = getPrintShopDeliveryBySlug(shopSlug);
+    const delivery = getPrintShopDeliveryBySlug(shop.slug);
     if (!isPrintShopDeliveryConfigured(delivery)) {
       return NextResponse.json({ error: 'This print shop is not configured yet.' }, { status: 503 });
     }
@@ -55,7 +59,7 @@ export async function POST(request: Request) {
     outbound.set('showTitles', showTitles);
     outbound.set('setList', setList);
     outbound.set('submittedAt', new Date().toISOString());
-    outbound.set('pdf', pdf, pdf.name || 'niggun-sheet.pdf');
+    outbound.set('pdf', pdf, pdf.name || 'kumzitz-sheet.pdf');
 
     let response: Response;
     if (delivery.mode === 'webhook') {

@@ -3,15 +3,19 @@
 import {
   closestCenter,
   DndContext,
+  DragOverlay,
   PointerSensor,
   pointerWithin,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
+  type ClientRect,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  type Modifier,
+  type UniqueIdentifier,
 } from '@dnd-kit/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -1182,8 +1186,11 @@ export function DropSlot({
   expanded?: boolean;
   preview?: boolean;
 }) {
+  // The id is the slot's position only. It must NOT include insertIndex: that
+  // value changes as the auto-placement preview reflows the sheet, and a shifting
+  // id makes the drag target oscillate (and the render cascade blow up).
   const { setNodeRef, isOver } = useDroppable({
-    id: `slot:${slotData.pageIndex}:${slotData.columnIndex}:${slotData.slotIndex}:${slotData.insertIndex}`,
+    id: `slot:${slotData.pageIndex}:${slotData.columnIndex}:${slotData.slotIndex}`,
     data: slotData,
   });
 
@@ -1200,7 +1207,7 @@ export function SlotStackDropTarget({
   children: React.ReactNode;
 }) {
   const { setNodeRef } = useDroppable({
-    id: `slot-stack:${slotData.pageIndex}:${slotData.columnIndex}:${slotData.slotIndex}:${slotData.insertIndex}`,
+    id: `slot-stack:${slotData.pageIndex}:${slotData.columnIndex}:${slotData.slotIndex}`,
     data: slotData,
   });
 
@@ -1435,6 +1442,14 @@ export function SheetBuilderApp() {
   const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
   const [overSlotData, setOverSlotData] = useState<SlotDragData | null>(null);
   const [libraryPreviewActive, setLibraryPreviewActive] = useState(false);
+  /**
+   * Reordered copy of the sheet shown while a sheet-card drag is in flight. The
+   * preview must not live in `sheetSongs` itself: writing the real state on every
+   * hover step reflows the sheet, which makes dnd-kit re-measure and resolve a new
+   * target, which writes the state again — the preview then oscillates between two
+   * positions and the renders spiral into "Maximum update depth exceeded".
+   */
+  const [dragPreviewSongs, setDragPreviewSongs] = useState<SongData[] | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
   const [tourTargetRect, setTourTargetRect] = useState<TourTargetRect | null>(null);
@@ -1452,6 +1467,14 @@ export function SheetBuilderApp() {
   const previewManualLocksRef = useRef<number[][] | null>(null);
   const dragSnapshotSongsRef = useRef<SongData[] | null>(null);
   const dragSnapshotManualLocksRef = useRef<number[][] | null>(null);
+  /** Slot rects + slot data captured once per drag, before the preview reflows the sheet. */
+  const frozenDragSlotsRef = useRef<Map<UniqueIdentifier, { rect: ClientRect; data: SlotDragData }> | null>(null);
+  /** Whether the fitted single-page stage is in use, held steady for the whole drag. */
+  const singlePageModeRef = useRef(false);
+  /** The cursor-following label, measured so it can be centred on the pointer. */
+  const dragMarkerRef = useRef<HTMLDivElement | null>(null);
+  /** True while a drag is in flight, so layout math can hold still. */
+  const dragActiveRef = useRef(false);
   const tourSnapshotRef = useRef<TourSnapshot | null>(null);
 
   const clearSavedSheetPreviewTimer = useCallback(() => {
@@ -1517,27 +1540,48 @@ export function SheetBuilderApp() {
   }, [isPhone]);
 
   useEffect(() => {
-    async function load() {
+    async function fetchSongs() {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
 
       try {
         const res = await fetch('/api/songs', { signal: controller.signal });
-        if (!res.ok) throw new Error('Failed');
-        setAllSongs(await res.json());
-      } catch {
-        setAllSongs([
-          { title: 'אדיר הוא', artist: 'Traditional', lyrics: 'אדיר הוא\nיבנה ביתו בקרוב\nבמהרה בימינו בקרוב' },
-          { title: 'עוד ישמע', artist: 'Traditional', lyrics: 'עוד ישמע בערי יהודה\nובחוצות ירושלים' },
-          { title: 'ושמחת', artist: 'Traditional', lyrics: 'ושמחת בחגך\nוהיית אך שמח' },
-        ]);
+        if (!res.ok) throw new Error(`Failed (${res.status})`);
+        return (await res.json()) as Song[];
       } finally {
         clearTimeout(timeout);
       }
     }
 
+    async function load() {
+      // A cold server can be slow to answer, and giving up on the first attempt
+      // used to silently swap the whole library for three demo songs.
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const songs = await fetchSongs();
+          if (Array.isArray(songs) && songs.length > 0) {
+            setAllSongs(songs);
+            return;
+          }
+          throw new Error('Empty song list');
+        } catch {
+          if (attempt === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 800));
+          }
+        }
+      }
+
+      // Only an offline demo set when there is no library at all, and say so.
+      setAllSongs((current) => (current.length > 0 ? current : [
+        { title: 'אדיר הוא', artist: 'Traditional', lyrics: 'אדיר הוא\nיבנה ביתו בקרוב\nבמהרה בימינו בקרוב' },
+        { title: 'עוד ישמע', artist: 'Traditional', lyrics: 'עוד ישמע בערי יהודה\nובחוצות ירושלים' },
+        { title: 'ושמחת', artist: 'Traditional', lyrics: 'ושמחת בחגך\nוהיית אך שמח' },
+      ]));
+      updateStatus('Could not load the song library — check your connection');
+    }
+
     load();
-  }, []);
+  }, [updateStatus]);
 
   const privateSongsAsSongs = useMemo<Song[]>(() =>
     privateSongs.map((song) => ({
@@ -1572,9 +1616,11 @@ export function SheetBuilderApp() {
         return;
       }
 
+      // Only the title is required: plenty of library songs have no artist, and
+      // rejecting them here silently dropped those cards on every reload.
       const restoredSongs = parsed
-        .filter((song): song is SongData => !!song?.title && !!song?.artist)
-        .map((song) => availableSongsMap.get(`${song.title}|${song.artist}`) ?? cloneSong(song));
+        .filter((song): song is SongData => !!song?.title)
+        .map((song) => availableSongsMap.get(`${song.title}|${song.artist || ''}`) ?? cloneSong(song));
 
       setSheetSongs(restoredSongs);
     } catch {
@@ -1586,12 +1632,16 @@ export function SheetBuilderApp() {
 
   useEffect(() => {
     if (!loadedSavedSongsRef.current) return;
+    // The guided tour swaps in demo songs. Persisting those would overwrite the
+    // sheet the user actually had, so a reload or crash mid-tour would silently
+    // replace it; only the committed sheet is written.
+    if (tourOpen) return;
     if (sheetSongs.length === 0) {
       localStorage.removeItem(STORAGE_KEY);
       return;
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sheetSongs));
-  }, [sheetSongs]);
+  }, [sheetSongs, tourOpen]);
 
   const filteredSongs = useMemo(() => {
     const query = search.toLowerCase();
@@ -1951,6 +2001,17 @@ export function SheetBuilderApp() {
     return getMeasurementConfigSet([{ cols: manualColumns, fontSize: manualFontSize }]);
   }, [manualColumns, manualFontSize]);
 
+  // Measurements are per-song heights, so they do not depend on the order of the
+  // sheet. Keying re-measurement off the song array made every drag-over reorder
+  // re-measure the whole measurement bank, which buried React in nested updates
+  // ("Maximum update depth exceeded") and cost ~300 card reads per pointer move.
+  const measurementSongSetKey = useMemo(() => {
+    return sheetSongs
+      .map((song) => `${songKey(song)}:${(song.lyrics || '').length}`)
+      .sort()
+      .join('|');
+  }, [sheetSongs]);
+
   const setMeasureRef = useCallback((key: string, node: HTMLDivElement | null) => {
     measurementRefs.current[key] = node;
   }, []);
@@ -1991,12 +2052,26 @@ export function SheetBuilderApp() {
       nextMeasurements[key] = { heights, hasOverflow };
     });
 
-    const signature = JSON.stringify(nextMeasurements);
+    // Canonical order: heights are keyed by song and stored in DOM order, so a
+    // plain JSON.stringify would report a brand new signature every time the
+    // sheet is re-ordered. Sorting keeps re-orderings from re-publishing
+    // measurements (and from feeding extra renders back into the layout).
+    const signature = JSON.stringify(
+      Object.keys(nextMeasurements)
+        .sort()
+        .map((key) => {
+          const entry = nextMeasurements[key];
+          const heights = Object.keys(entry.heights)
+            .sort()
+            .map((songId) => `${songId}:${entry.heights[songId]}`);
+          return `${key}|${entry.hasOverflow ? 1 : 0}|${heights.join(',')}`;
+        }),
+    );
     if (signature !== measurementSignatureRef.current) {
       measurementSignatureRef.current = signature;
       setMeasurements(nextMeasurements);
     }
-  }, [measurementConfigs, sheetSongs, showOrderNumbers, showTitles]);
+  }, [measurementConfigs, measurementSongSetKey, showOrderNumbers, showTitles]);
 
   const autoConfig = useMemo(() => chooseAutoFitConfig(sheetSongs, measurements, showTitles, showOrderNumbers), [
     measurements,
@@ -2165,17 +2240,25 @@ export function SheetBuilderApp() {
   }, [activeDragData]);
 
   const renderedPageLayouts = useMemo(() => {
-    if (!previewSheetSongs) {
+    const previewSongs = previewSheetSongs ?? dragPreviewSongs;
+    if (!previewSongs) {
       return pageLayouts;
     }
 
-    return autoFit
-      ? paginateAutoSongs(previewSheetSongs, activeConfig, measurements, showTitles, showOrderNumbers)
-      : paginateManualSongs(previewSheetSongs, activeConfig, previewManualLocks, measurements, showTitles, showOrderNumbers);
-  }, [activeConfig, autoFit, measurements, pageLayouts, previewManualLocks, previewSheetSongs, showOrderNumbers, showTitles]);
+    const previewPages = autoFit
+      ? paginateAutoSongs(previewSongs, activeConfig, measurements, showTitles, showOrderNumbers)
+      : paginateManualSongs(previewSongs, activeConfig, previewManualLocks, measurements, showTitles, showOrderNumbers);
+
+    // Hovering must not restructure the document. If the preview overflows onto
+    // an extra page, that page appears and disappears as the pointer moves, so
+    // the preview is capped at the committed page count while a drag is live.
+    // The extra page still arrives when the drop commits.
+    const maxPreviewPages = Math.max(1, pageLayouts.length);
+    return previewPages.length > maxPreviewPages ? previewPages.slice(0, maxPreviewPages) : previewPages;
+  }, [activeConfig, autoFit, dragPreviewSongs, measurements, pageLayouts, previewManualLocks, previewSheetSongs, showOrderNumbers, showTitles]);
 
   useLayoutEffect(() => {
-    if (isPhone || renderedPageLayouts.length !== 1) {
+    if (isPhone || pageLayouts.length !== 1) {
       setSinglePagePreviewScale((current) => (current === 1 ? current : 1));
       return;
     }
@@ -2186,6 +2269,12 @@ export function SheetBuilderApp() {
     }
 
     const updateSinglePagePreviewScale = () => {
+      // Never resize the page mid-drag: the preview reflow would make the sheet
+      // visibly zoom, and the resize observer can ping-pong on its own output.
+      if (dragActiveRef.current) {
+        return;
+      }
+
       const styles = window.getComputedStyle(container);
       const containerRect = container.getBoundingClientRect();
       const horizontalPadding = Number.parseFloat(styles.paddingLeft) + Number.parseFloat(styles.paddingRight);
@@ -2197,8 +2286,12 @@ export function SheetBuilderApp() {
         availableHeight / SHEET_PAGE_HEIGHT,
         1,
       );
+      // Round down in 1% steps: a page fitted to a hair's breadth of the
+      // available box can toggle a scrollbar, which resizes the box and
+      // re-triggers this very observer. Quantizing keeps the value still.
+      const quantizedScale = Math.max(0.3, Math.floor(nextScale * 100) / 100);
 
-      setSinglePagePreviewScale((current) => (Math.abs(current - nextScale) < 0.001 ? current : nextScale));
+      setSinglePagePreviewScale((current) => (Math.abs(current - quantizedScale) < 0.005 ? current : quantizedScale));
     };
 
     updateSinglePagePreviewScale();
@@ -2223,7 +2316,7 @@ export function SheetBuilderApp() {
       window.removeEventListener('resize', updateSinglePagePreviewScale);
       window.visualViewport?.removeEventListener('resize', updateSinglePagePreviewScale);
     };
-  }, [isPhone, renderedPageLayouts.length]);
+  }, [isPhone, pageLayouts.length]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -2233,10 +2326,38 @@ export function SheetBuilderApp() {
 
   const collisionDetection = useCallback((args: Parameters<typeof pointerWithin>[0]) => {
     if (activeDragData?.type === 'sheet-song' || activeDragData?.type === 'library-song') {
-      const slotContainers = args.droppableContainers.filter((container) => container.data.current?.type === 'slot');
+      // Capture the slots once, before the auto-placement preview reflows the
+      // sheet. Resolving the target against the live layout makes the decision
+      // depend on its own result: inserting the preview moves the slots under a
+      // stationary pointer, so the target (and the preview) flip between two
+      // positions. Deciding against the pre-drag layout keeps it stable.
+      if (!frozenDragSlotsRef.current) {
+        const snapshot = new Map<UniqueIdentifier, { rect: ClientRect; data: SlotDragData }>();
+        args.droppableContainers.forEach((container) => {
+          const data = container.data.current as DragData | undefined;
+          if (data?.type !== 'slot') return;
+          const rect = args.droppableRects.get(container.id);
+          if (!rect) return;
+          snapshot.set(container.id, { rect, data });
+        });
+
+        // Measurements may not be ready on the very first call — retry later.
+        if (snapshot.size === 0) {
+          return pointerWithin(args);
+        }
+
+        frozenDragSlotsRef.current = snapshot;
+      }
+
+      const frozenSlots = frozenDragSlotsRef.current;
+      const slotContainers = args.droppableContainers.filter((container) => frozenSlots.has(container.id));
+      const frozenRects = new Map<UniqueIdentifier, ClientRect>();
+      frozenSlots.forEach((entry, id) => frozenRects.set(id, entry.rect));
+
       const pointerHits = pointerWithin({
         ...args,
         droppableContainers: slotContainers,
+        droppableRects: frozenRects,
       });
 
       if (pointerHits.length > 0) {
@@ -2246,6 +2367,7 @@ export function SheetBuilderApp() {
       return closestCenter({
         ...args,
         droppableContainers: slotContainers,
+        droppableRects: frozenRects,
       });
     }
 
@@ -2523,7 +2645,9 @@ export function SheetBuilderApp() {
     overSlotRef.current = null;
     previewSheetSongsRef.current = null;
     previewManualLocksRef.current = null;
+    frozenDragSlotsRef.current = null;
     setLibraryPreviewActive(false);
+    setDragPreviewSongs(null);
     dragSnapshotSongsRef.current = nextActiveDragData?.type === 'sheet-song' || nextActiveDragData?.type === 'library-song'
       ? sheetSongs.map(cloneSong)
       : null;
@@ -2535,7 +2659,14 @@ export function SheetBuilderApp() {
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const overData = event.over?.data.current as DragData | undefined;
-    const nextOverSlotData = overData?.type === 'slot' ? overData : null;
+    const liveOverSlotData = overData?.type === 'slot' ? overData : null;
+    // Prefer the slot data captured at drag start (insertIndex /
+    // occupiedGlobalIndex) so the insertion point does not shift as the preview
+    // reflows the sheet.
+    const frozenOverSlotData = event.over
+      ? frozenDragSlotsRef.current?.get(event.over.id)?.data ?? null
+      : null;
+    const nextOverSlotData = frozenOverSlotData ?? liveOverSlotData;
     const snapshotSongs = dragSnapshotSongsRef.current ?? sheetSongs;
     const isValidLibraryHover = nextOverSlotData !== null;
 
@@ -2544,11 +2675,11 @@ export function SheetBuilderApp() {
 
       if (activeDragData?.type === 'sheet-song') {
         const resolvedInsertIndex = resolveInsertIndex(nextOverSlotData, activeDragData);
-        setSheetSongs((prev) => {
-          const nextSongs = reorderSongsInList(prev, activeDragData.song, resolvedInsertIndex);
-          previewSheetSongsRef.current = nextSongs;
-          return songsOrderEqual(prev, nextSongs) ? prev : nextSongs;
-        });
+        // Always reorder from the pre-drag snapshot so repeated hover steps are
+        // idempotent, and only show the result as a preview.
+        const reordered = reorderSongsInList(snapshotSongs, activeDragData.song, resolvedInsertIndex);
+        previewSheetSongsRef.current = reordered;
+        setDragPreviewSongs((current) => (current && songsOrderEqual(current, reordered) ? current : reordered));
 
         if (!autoFit) {
           const nextLocks = buildPreviewManualLocks(nextOverSlotData, activeDragData);
@@ -2577,6 +2708,36 @@ export function SheetBuilderApp() {
     setOverSlotData(nextOverSlotData);
   }, [activeDragData, autoFit, buildInsertedManualLocks, buildPreviewManualLocks, insertSongInList, reorderSongsInList, sheetSongs]);
 
+  // Flag the page while a drag is in flight so the whole UI can show a
+  // consistent "grabbing" cursor instead of flickering between elements.
+  useEffect(() => {
+    const dragging = activeDragData?.type === 'library-song' || activeDragData?.type === 'sheet-song';
+    document.body.classList.toggle('sb2-is-dragging', dragging);
+    return () => document.body.classList.remove('sb2-is-dragging');
+  }, [activeDragData]);
+
+  // dnd-kit reports Escape and lost pointers through onDragCancel, not onDragEnd.
+  // Without this the drag state (active item, preview card, frozen slot rects and
+  // the frozen page geometry) stayed set forever, which also wedged every later
+  // drag onto the stale snapshot.
+  const handleDragCancel = useCallback(() => {
+    const snapshotSongs = dragSnapshotSongsRef.current;
+    const snapshotLocks = dragSnapshotManualLocksRef.current;
+
+    overSlotRef.current = null;
+    previewSheetSongsRef.current = null;
+    previewManualLocksRef.current = null;
+    frozenDragSlotsRef.current = null;
+    dragSnapshotSongsRef.current = null;
+    dragSnapshotManualLocksRef.current = null;
+    setDragPreviewSongs(null);
+    if (snapshotSongs) setSheetSongs(snapshotSongs);
+    if (snapshotLocks) setManualLocks(snapshotLocks);
+    setLibraryPreviewActive(false);
+    setActiveDragData(null);
+    setOverSlotData(null);
+  }, []);
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const activeData = event.active.data.current as DragData | undefined;
     const overData = event.over?.data.current as DragData | undefined;
@@ -2585,6 +2746,8 @@ export function SheetBuilderApp() {
     overSlotRef.current = null;
     previewSheetSongsRef.current = null;
     previewManualLocksRef.current = null;
+    frozenDragSlotsRef.current = null;
+    setDragPreviewSongs(null);
     setLibraryPreviewActive(false);
     setActiveDragData(null);
     setOverSlotData(null);
@@ -2634,9 +2797,51 @@ export function SheetBuilderApp() {
     }
   }, [autoFit, buildInsertedManualLocks, handleAddSong, insertSongInList, manualLocks, sheetSongs, updateStatus]);
 
+  /**
+   * Centre the drag label on the pointer.
+   *
+   * dnd-kit keeps the grabbed point of the source node under the cursor, so the
+   * overlay sits at pointer minus grab offset. Shifting it by that grab offset
+   * minus half the label's own size puts the label's centre on the pointer. The
+   * offset is fixed for the whole drag, so the maths cannot drift.
+   */
+  const centerDragLabelOnCursor = useCallback<Modifier>(({ activatorEvent, active, transform }) => {
+    const node = dragMarkerRef.current;
+    const initialRect = active?.rect.current.initial;
+    if (!node || !initialRect || !activatorEvent) {
+      return transform;
+    }
+
+    const event = activatorEvent as MouseEvent | TouchEvent;
+    const point = (() => {
+      const touches = (event as TouchEvent).touches;
+      if (touches && touches.length > 0) return touches[0];
+      const changed = (event as TouchEvent).changedTouches;
+      if (changed && changed.length > 0) return changed[0];
+      return event as MouseEvent;
+    })();
+
+    const grabX = point.clientX - initialRect.left;
+    const grabY = point.clientY - initialRect.top;
+
+    return {
+      ...transform,
+      x: transform.x + grabX - node.offsetWidth / 2,
+      y: transform.y + grabY - node.offsetHeight / 2,
+    };
+  }, []);
+
   const columns = activeConfig.cols;
   const mobileSheetScale = isPhone ? Math.min((width - 16) / 612, 0.95) : 1;
-  const singlePagePreview = !isPhone && renderedPageLayouts.length === 1;
+  // The drag preview can momentarily push the sheet across a page boundary.
+  // Swapping between the fitted single-page stage and full-size pages while the
+  // pointer is hovering reads as the sheet zooming in and out, so the stage
+  // mode is locked to the committed layout for the whole drag.
+  dragActiveRef.current = activeDragData !== null;
+  if (!activeDragData) {
+    singlePageModeRef.current = !isPhone && pageLayouts.length === 1;
+  }
+  const singlePagePreview = singlePageModeRef.current;
   const singlePagePreviewStyle = singlePagePreview
     ? ({ '--sb2-single-page-scale': singlePagePreviewScale } as React.CSSProperties)
     : undefined;
@@ -2666,6 +2871,7 @@ export function SheetBuilderApp() {
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div
         className="sb2-root"
@@ -2854,7 +3060,7 @@ export function SheetBuilderApp() {
             <div data-tour="sheet-canvas">
               <SheetAreaDropZone
                 enabled={activeDragData?.type === 'library-song'}
-                className={singlePagePreview ? 'sb2-single-page-preview' : undefined}
+                className={singlePagePreview && !activeDragData ? 'sb2-single-page-preview' : undefined}
                 style={singlePagePreviewStyle}
                 containerRef={pageContainerRef}
               >
@@ -3264,6 +3470,21 @@ export function SheetBuilderApp() {
           </div>
         )}
       </div>
+
+      {/* Follows the cursor so the drag feels anchored to the pointer, while
+          the in-place preview card still shows exactly where it will land.
+          DragOverlay stamps the dragged node's measured width/height onto its
+          wrapper, which boxed this label in, so both are reset to auto. */}
+      <DragOverlay dropAnimation={null} style={{ width: 'auto', height: 'auto' }} modifiers={[centerDragLabelOnCursor]}>
+        {activeDragData?.type === 'library-song' || activeDragData?.type === 'sheet-song' ? (
+          <div className="sb2-drag-marker" ref={dragMarkerRef}>
+            <span className="sb2-drag-marker-title">{activeDragData.song.title}</span>
+            {activeDragData.song.artist ? (
+              <span className="sb2-drag-marker-artist">{activeDragData.song.artist}</span>
+            ) : null}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

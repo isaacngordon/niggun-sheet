@@ -398,13 +398,13 @@ const DownloadContext = createContext<DownloadContextValue>({
   download: () => {},
 });
 
-export function useNiggunSheetDownload() {
+export function useKumzitzSheetDownload() {
   return useContext(DownloadContext);
 }
 
 // ─── Provider + preview ──────────────────────────────────────────
 
-export function NiggunSheetDownloadProvider({ children }: { children: React.ReactNode }) {
+export function KumzitzSheetDownloadProvider({ children }: { children: React.ReactNode }) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [state, setState] = useState<PreviewState>('closed');
   const [previewSource, setPreviewSource] = useState<string>('');
@@ -465,7 +465,7 @@ export function NiggunSheetDownloadProvider({ children }: { children: React.Reac
 
   const savePDF = useCallback(() => {
     if (pdfRef.current) {
-      pdfRef.current.save('niggun-sheet.pdf');
+      pdfRef.current.save('kumzitz-sheet.pdf');
     }
   }, []);
 
@@ -533,7 +533,7 @@ export function NiggunSheetDownloadProvider({ children }: { children: React.Reac
         <div className="ns-preview-overlay">
           {/* Toolbar */}
           <div className="ns-preview-toolbar">
-            <span className="ns-preview-title">Niggun Sheet Preview</span>
+            <span className="ns-preview-title">Kumzitz Sheet Preview</span>
             <div className="ns-preview-actions">
               {state === 'ready' && (
                 <>
@@ -588,7 +588,7 @@ export function NiggunSheetDownloadProvider({ children }: { children: React.Reac
                 ref={previewFrameRef}
                 className="ns-preview-iframe"
                 src={previewSource}
-                title="Niggun Sheet Preview"
+                title="Kumzitz Sheet Preview"
               />
             )}
 

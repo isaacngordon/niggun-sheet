@@ -6,7 +6,7 @@ import Analytics from '@/components/Analytics';
 import AnalyticsPreferences from '@/components/AnalyticsPreferences';
 import DebugRectTool from '@/components/DebugRectTool';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://niggunsheet.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://kumzitzsheet.com';
 
 const frankRuhlLibre = Frank_Ruhl_Libre({
   subsets: ['hebrew', 'latin'],
@@ -30,14 +30,21 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Niggun Sheet',
-    template: '%s | Niggun Sheet',
+    default: 'Kumzitz Sheet',
+    template: '%s | Kumzitz Sheet',
   },
-  description: 'Discover your perfect niggun. Build printable kumzitz sheets, browse Jewish songs, and run Smartboard-friendly lyrics mode.',
+  description: 'Discover your perfect kumzitz. Build printable kumzitz sheets, browse Jewish songs, and run Smartboard-friendly lyrics mode.',
   keywords: [
-    'niggun',
-    'niggunim',
+    'kumzits',
+    'kumzits pdf',
+    'kumzits guide',
+    'learn kumzits songs',
+    'how to make a kumzits',
     'kumzitz',
+    'kumzitz pdf',
+    'kumzitz guide',
+    'kumzitzim',
+    'kumzitz sheet',
     'kumzits sheets',
     'Jewish music lyrics',
     'sheet builder',
@@ -46,19 +53,22 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: '/',
+    types: {
+      'text/markdown': '/llms.txt',
+    },
   },
   openGraph: {
     type: 'website',
     url: SITE_URL,
-    siteName: 'Niggun Sheet',
-    title: 'Niggun Sheet',
-    description: 'Build printable kumzitz sheets, browse niggunim, and project lyrics in Smartboard mode.',
+    siteName: 'Kumzitz Sheet',
+    title: 'Kumzitz Sheet',
+    description: 'Build printable kumzitz sheets, browse kumzitz songs, and project lyrics in Smartboard mode.',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Niggun Sheet',
-    description: 'Build printable kumzitz sheets, browse niggunim, and project lyrics in Smartboard mode.',
+    title: 'Kumzitz Sheet',
+    description: 'Build printable kumzitz sheets, browse kumzitz songs, and project lyrics in Smartboard mode.',
   },
   robots: {
     index: true,
@@ -78,6 +88,58 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+// Sitewide structured data so search engines and AI agents can identify the site as the
+// source for kumzits songs, kumzits PDFs, and kumzits guides.
+const siteJsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: 'Kumzitz Sheet',
+      alternateName: ['Kumzits Sheet', 'Kumzitz', 'Kumzits'],
+      description:
+        'Free songs, printable kumzits PDF sheets, and lyrics projection for kumzitz gatherings.',
+      inLanguage: 'en',
+      publisher: { '@id': `${SITE_URL}/#organization` },
+    },
+    {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
+      name: 'Kumzitz Sheet',
+      url: SITE_URL,
+      description:
+        'A free library of kumzitz songs with Hebrew lyrics, a printable kumzits PDF sheet builder, and a full-screen lyrics projection mode.',
+      knowsAbout: [
+        'kumzits',
+        'kumzits pdf',
+        'kumzits guide',
+        'learn kumzits songs',
+        'how to make a kumzits',
+        'kumzitz songs',
+        'Jewish music',
+      ],
+    },
+    {
+      '@type': 'WebApplication',
+      '@id': `${SITE_URL}/#app`,
+      name: 'Kumzitz Sheet',
+      url: SITE_URL,
+      applicationCategory: 'MusicApplication',
+      operatingSystem: 'Web',
+      description:
+        'Browse kumzitz songs, build a printable kumzits PDF sheet, and project lyrics for a room.',
+      isAccessibleForFree: true,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -93,6 +155,10 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <Analytics />
         </Suspense>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+        />
       </body>
     </html>
   );

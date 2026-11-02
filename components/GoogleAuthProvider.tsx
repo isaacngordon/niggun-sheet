@@ -214,10 +214,10 @@ function createTransferXml(payload: TransferPayload) {
   const encoded = utf8ToBase64(serialized);
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<niggunSheetTransfer schemaVersion="${TRANSFER_SCHEMA_VERSION}">`,
+    `<kumzitzSheetTransfer schemaVersion="${TRANSFER_SCHEMA_VERSION}">`,
     `  <meta exportedAt="${escapeXml(payload.exportedAt)}" sourceEmail="${escapeXml(payload.sourceEmail ?? '')}" />`,
     `  <payload encoding="base64">${encoded}</payload>`,
-    '</niggunSheetTransfer>',
+    '</kumzitzSheetTransfer>',
   ].join('\n');
 }
 
@@ -229,9 +229,11 @@ function parseTransferXml(xmlText: string): TransferPayload {
     throw new Error('Invalid XML file.');
   }
 
-  const root = documentNode.querySelector('niggunSheetTransfer');
+  const root =
+    documentNode.querySelector('kumzitzSheetTransfer') ??
+    documentNode.querySelector('niggunSheetTransfer');
   if (!root) {
-    throw new Error('Transfer file missing niggunSheetTransfer root node.');
+    throw new Error('Transfer file missing kumzitzSheetTransfer root node.');
   }
 
   const payloadNode = root.querySelector('payload');
@@ -326,7 +328,7 @@ function mergeTransferItems<T extends { id: string }>(currentItems: T[], incomin
 }
 
 function resolveClientIdForCurrentHost(): string {
-  if (typeof window !== 'undefined' && window.location.hostname === 'beta.niggunsheet.com') {
+  if (typeof window !== 'undefined' && window.location.hostname === 'beta.kumzitzsheet.com') {
     return (BETA_CLIENT_ID || DEFAULT_CLIENT_ID).trim();
   }
   return DEFAULT_CLIENT_ID;
@@ -685,7 +687,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     const dateStamp = new Date().toISOString().slice(0, 10);
 
     anchor.href = url;
-    anchor.download = `niggunsheet-transfer-${dateStamp}.niggun`;
+    anchor.download = `kumzitzsheet-transfer-${dateStamp}.kumzitz`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
