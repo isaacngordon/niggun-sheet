@@ -1,0 +1,234 @@
+/* ==========================================================================
+   Kumzitz Sheet — Design Tokens
+   --------------------------------------------------------------------------
+   Single source of truth for colour, spacing, type, radius, elevation,
+   motion, layering and control sizing.
+
+   Import order matters: this file must be imported BEFORE globals.css so
+   that component styles can override defaults.
+
+   Layers
+   1. Primitives  — raw values. Never referenced directly by components.
+   2. Semantic    — role-based aliases. This is what components should use.
+   3. Scales      — spacing / type / radius / elevation / motion / z-index.
+   4. Legacy      — historic token names kept as aliases so existing rules
+                    in globals.css keep working unchanged.
+
+   Contrast: every semantic text colour below meets WCAG 2.1 AA (>= 4.5:1)
+   against the three surface tokens unless explicitly annotated.
+   ========================================================================== */
+
+:root {
+  /* ------------------------------------------------------------------
+     1. PRIMITIVES — palette ramps
+     ------------------------------------------------------------------ */
+
+  /* Warm neutral ramp (surfaces + dark-mode text) */
+  --p-ink-950: #0b0a09;
+  --p-ink-900: #0f0e0c;
+  --p-ink-850: #141310;
+  --p-ink-800: #1a1814;
+  --p-ink-700: #221f19;
+  --p-ink-500: #3a352c;
+
+  --p-sand-100: #f7f3ea;
+  --p-sand-200: #f3ede2;
+  --p-sand-400: #b3aa9b;
+  --p-sand-600: #8b8275;
+
+  /* Gold / brand ramp */
+  --p-gold-100: #fff4ba;
+  --p-gold-200: #fff2be;
+  --p-gold-300: #f2cb05;
+  --p-gold-400: #f5c500;
+  --p-gold-500: #c7a252;
+  --p-gold-600: #b78f3e;
+  --p-gold-700: #7d6531;
+
+  /* Print-shop accent (Tailwind yellow 400/500, used by .ns-* rules) */
+  --p-amber-400: #facc15;
+  --p-amber-500: #eab308;
+
+  /* Feedback ramps */
+  --p-red-300: #ffb4b4;
+  --p-red-400: #f87171;
+  --p-red-500: #ff6b6b;
+  --p-red-600: #e74c3c;
+  --p-green-300: #b8f7c8;
+  --p-orange-200: #ffd9a0;
+  --p-blue-300: #82aee5;
+
+  /* ------------------------------------------------------------------
+     2. SEMANTIC — use these in components
+     ------------------------------------------------------------------ */
+
+  /* Surfaces */
+  --surface-base: var(--p-ink-900);
+  --surface-raised: var(--p-ink-850);
+  --surface-card: var(--p-ink-800);
+  --surface-inset: var(--p-ink-950);
+  --surface-sunken: var(--p-ink-900);
+  --surface-on-light: #ffffff;
+  --surface-scrim: rgba(0, 0, 0, 0.6);
+
+  /* Text — all AA against every surface above */
+  --text-primary: var(--p-sand-200);      /* 15.2–16.6:1 */
+  --text-secondary: var(--p-sand-400);    /* 7.7–8.4:1   */
+  --text-tertiary: var(--p-sand-600);     /* 4.7–5.1:1   — floor for muted copy */
+  --text-on-light: #333333;               /* dark ink for white/paper surfaces */
+  --text-on-accent: #17120b;              /* 7.7:1 on gold, 11.8:1 on bright gold */
+
+  /* Brand */
+  --brand: var(--p-gold-500);
+  --brand-hover: var(--p-gold-600);
+  --brand-bright: var(--p-gold-300);
+  --brand-soft: var(--p-gold-100);
+  --brand-cta-from: var(--p-gold-500);
+  --brand-cta-to: var(--p-gold-400);
+  --print-accent: var(--p-amber-400);
+  --print-accent-strong: var(--p-amber-500);
+
+  /* Feedback */
+  --danger: var(--p-red-400);             /* 6.4–7.0:1 */
+  --danger-strong: var(--p-red-600);      /* 4.6–5.1:1 */
+  --danger-soft: var(--p-red-300);
+  --success: var(--p-green-300);
+  --warning: var(--p-orange-200);
+  --info: var(--p-blue-300);
+
+  /* Borders — decorative unless noted */
+  --border-subtle: rgba(243, 237, 226, 0.08);
+  --border-default: rgba(243, 237, 226, 0.12);
+  --border-strong: rgba(243, 237, 226, 0.24);
+  --border-interactive: rgba(199, 162, 82, 0.55); /* >= 3:1 non-text contrast */
+  --border-on-light: #dddddd;
+
+  /* Focus — required to be >= 3:1 against adjacent colours */
+  --focus-ring-color: var(--p-gold-500);
+  --focus-ring-glow: rgba(199, 162, 82, 0.32);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* ------------------------------------------------------------------
+     3. SCALES
+     ------------------------------------------------------------------ */
+
+  /* Spacing — 4px base. Replaces the ad-hoc 5/6/7/9/11/15/22px values. */
+  --space-0: 0;
+  --space-1: 0.25rem;  /*  4px */
+  --space-2: 0.5rem;   /*  8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
+  --space-20: 5rem;    /* 80px */
+
+  /* Type scale — body 16px, small sizes kept in rem for zoom safety */
+  --text-2xs: 0.6875rem; /* 11px — badges/metadata only */
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.8125rem;  /* 13px */
+  --text-md: 0.875rem;   /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 1.875rem;  /* 30px */
+  --text-4xl: 2.25rem;   /* 36px */
+  --text-5xl: 3rem;      /* 48px */
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Font stacks */
+  --font-body: var(--font-dm-sans), -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  --font-display: var(--font-frank-ruhl-libre), Georgia, serif;
+  --font-hebrew: var(--font-noto-serif-hebrew), serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  /* Radius */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 38px rgba(0, 0, 0, 0.55);
+  --shadow-focus: 0 0 0 3px var(--focus-ring-glow);
+
+  /* Motion */
+  --duration-instant: 80ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Layering — stop guessing z-index per component */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-header: 300;
+  --z-overlay: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+  --z-tooltip: 700;
+  --z-skip-link: 1000;
+
+  /* Control sizing — 44px is the WCAG 2.5.5 / iOS minimum touch target */
+  --control-height-sm: 32px;
+  --control-height-md: 40px;
+  --control-height-lg: 48px;
+  --touch-target-min: 44px;
+
+  /* Layout */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1440px;
+  --header-height: 64px;
+
+  /* ------------------------------------------------------------------
+     4. LEGACY ALIASES — existing globals.css rules depend on these.
+        Do not remove until those rules are migrated to semantic tokens.
+     ------------------------------------------------------------------ */
+  --bg-dark: var(--surface-raised);
+  --bg-darker: var(--surface-base);
+  --bg-card: var(--surface-card);
+  --accent: var(--brand);
+  --accent-hover: var(--brand-hover);
+  --border-color: var(--border-default);
+  --focus-ring: var(--focus-ring-glow);
+  --transition-fast: var(--duration-fast) ease;
+  --transition-normal: var(--duration-normal) ease;
+}
+
+/* Respect OS-level contrast and motion preferences globally. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+  }
+}

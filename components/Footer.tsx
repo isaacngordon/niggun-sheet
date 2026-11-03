@@ -9,13 +9,13 @@ export default function Footer() {
       <div className="footer-content">
         <div className="footer-links">
           <div className="footer-section">
-            <h4>Start Here</h4>
+            <h2>Start Here</h2>
             <Link href="/songs">Song Directory</Link>
             <Link href="/sheet-builder">Sheet Builder</Link>
           </div>
 
           <div className="footer-section">
-            <h4>Downloads</h4>
+            <h2>Downloads</h2>
             <KumzitzSheetDownloadButton type="button" className="footer-link-button">
               Get Kumzitz Sheet
             </KumzitzSheetDownloadButton>
@@ -29,7 +29,7 @@ export default function Footer() {
           </div>
           
           <div className="footer-section">
-                      <h4>Help</h4>
+                      <h2>Help</h2>
             <Link href="/contact">Contact Us</Link>
             <Link href="/tracking-disclosure">Cookie Info</Link>
             <p className="footer-helper-text">

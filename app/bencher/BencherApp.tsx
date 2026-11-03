@@ -1184,7 +1184,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
       <div className="bencher-app">
         <Header />
 
-        <main className="bencher-workspace" style={pageMode === '8-page' ? { gridTemplateColumns: '1fr' } : undefined}>
+        <main id="main-content" tabIndex={-1} className="bencher-workspace" style={pageMode === '8-page' ? { gridTemplateColumns: '1fr' } : undefined}>
           {pageMode !== '8-page' && <aside className="sb2-sidebar bencher-sidebar" aria-label="Song library">
             <div className="sb2-sidebar-header">
               <div className="sb2-sidebar-tabs">

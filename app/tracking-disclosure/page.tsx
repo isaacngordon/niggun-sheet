@@ -14,7 +14,7 @@ export default function TrackingDisclosurePage() {
   return (
     <>
       <Header />
-      <main className="policy-page">
+      <main id="main-content" tabIndex={-1} className="policy-page">
         <section className="policy-card">
           <h1>Tracking Disclosure</h1>
           <p>

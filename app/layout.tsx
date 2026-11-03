@@ -1,3 +1,4 @@
+import './tokens.css';
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Frank_Ruhl_Libre, Noto_Serif_Hebrew, DM_Sans } from 'next/font/google';

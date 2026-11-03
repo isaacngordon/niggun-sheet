@@ -21,7 +21,7 @@ export default function BencherAppPicker() {
   return (
     <div className="bencher-app">
       <Header />
-      <main className="bencher-mode-picker">
+      <main id="main-content" tabIndex={-1} className="bencher-mode-picker">
         <div className="bencher-mode-picker-inner">
           <h1 className="bencher-mode-picker-heading">Choose Your Bencher App</h1>
           <p className="bencher-mode-picker-sub">Each bencher has its own dedicated builder.</p>
@@ -31,7 +31,6 @@ export default function BencherAppPicker() {
                 key={config.mode}
                 href={`${ROUTES[config.mode]}${searchSuffix}`}
                 className="bencher-mode-picker-card"
-                aria-label={`Open the ${config.label} bencher app`}
               >
                 <div className={`bencher-mode-picker-visual bencher-mode-picker-visual-${config.mode}`}>
                   {config.mode === '2-page' ? (

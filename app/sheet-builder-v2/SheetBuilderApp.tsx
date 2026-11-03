@@ -3023,6 +3023,7 @@ export function SheetBuilderApp() {
                       else handleSetColumns(Number(e.target.value));
                     }}
                     title="Column Layout"
+                    aria-label="Column layout"
                   >
                     <option value="auto">Auto Fit</option>
                     <option value="1">1 Column</option>
@@ -3051,7 +3052,7 @@ export function SheetBuilderApp() {
                 {/* Status & Mode */}
                 <div className="sb2-utility-status">
                   <div className="sb2-status" role="status" aria-live="polite">
-                     {status} <span style={{opacity: 0.5, marginLeft: '8px'}}>• {displaySummary}</span>
+                     {status} <span style={{color: 'var(--text-tertiary)', marginLeft: '8px'}}>• {displaySummary}</span>
                   </div>
                 </div>
               </div>
@@ -3249,7 +3250,12 @@ export function SheetBuilderApp() {
           showOrderNumbers={showOrderNumbers}
         />
 
-        <button className="sb2-sidebar-toggle" onClick={() => setSidebarOpen((value) => !value)} aria-label={sidebarOpen ? 'Close song library' : 'Open song library'}>
+        <button
+          className="sb2-sidebar-toggle"
+          onClick={() => setSidebarOpen((value) => !value)}
+          aria-expanded={sidebarOpen}
+          aria-label={sidebarOpen ? 'Close song library' : 'Songs: open song library'}
+        >
           {sidebarOpen ? 'Close' : 'Songs'}
         </button>
 

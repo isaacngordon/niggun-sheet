@@ -31,7 +31,7 @@ export default async function SongsPage({
   return (
     <AuthBoundary>
       <Header />
-      <main className="songs-container">
+      <main id="main-content" tabIndex={-1} className="songs-container">
         <div className="songs-hero-image-wrap" aria-hidden="true">
           <Image
             src="/assets/background_small.jpg"

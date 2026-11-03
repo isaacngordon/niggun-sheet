@@ -554,7 +554,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
   // Private song still loading
   if (isPrivateSlug && !authReady) {
     return (
-      <main className="song-detail-container">
+      <main id="main-content" tabIndex={-1} className="song-detail-container">
         <div className="song-detail-loading">Loading...</div>
       </main>
     );
@@ -563,7 +563,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
   // Not found
   if (!song) {
     return (
-      <main className="song-detail-container">
+      <main id="main-content" tabIndex={-1} className="song-detail-container">
         <div className="song-detail-not-found">
           <h1>Song Not Found</h1>
           <p>This song may have been removed or the link is incorrect.</p>
@@ -1005,7 +1005,7 @@ export default function SongDetail({ publicSong, slug }: SongDetailProps) {
   }, [adjustTimelineZoom, moveManualTarget, nudgeSelectedClip, placeManualTargetClip, removeClip, rippleTrimNextEditToPlayhead, selectedClipId, timingMode]);
 
   return (
-    <main className="song-detail-container">
+    <main id="main-content" tabIndex={-1} className="song-detail-container">
       <Link href="/songs" className="song-detail-back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
         Back to songs

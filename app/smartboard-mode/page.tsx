@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
-import QuickInstructions from '@/components/QuickInstructions';
 import { extractYouTubeId, ensureYTApi, fmt, warmYouTubeConnections } from '@/lib/youtube';
 import { buildMediaTimingSources, deriveBoundsFromClipEdges, normalizeTimingBounds, type StoredTimingClip, type StoredTimingData, type TimingBounds } from '@/lib/timings';
 import React from 'react';
@@ -817,8 +816,6 @@ function SmartboardContent() {
   const [lineView, setLineView] = useState<'scroll' | 'single'>('scroll');
   const [optionsOpen, setOptionsOpen] = useState(false);
   
-  // start as false to avoid SSR flash. We'll turn it true in useEffect if needed.
-  const [showQuickStart, setShowQuickStart] = useState(false);
   const linesRef = useRef<(HTMLSpanElement | null)[]>([]);
   
   const handlePlaybackTick = useCallback((time: number, duration: number) => {
@@ -907,33 +904,6 @@ function SmartboardContent() {
       setDarkMode(true);
     }
   }, [audioParam, youtubeParam]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !authReady) {
-      return;
-    }
-
-    const dismissedInSession = window.sessionStorage.getItem('smartboard-guide-dismissed-session') === '1';
-    const dismissedInAccount = preferences?.sbSmartboardGuideDismissed === true;
-
-    if (!dismissedInSession && !dismissedInAccount) {
-      setShowQuickStart(true);
-    } else {
-      setShowQuickStart(false);
-    }
-  }, [preferences, authReady]);
-
-  const handleDismissQuickStart = useCallback(() => {
-    setShowQuickStart(false);
-
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem('smartboard-guide-dismissed-session', '1');
-    }
-
-    if (user && setPref) {
-      setPref('sbSmartboardGuideDismissed', true);
-    }
-  }, [user, setPref]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1034,17 +1004,6 @@ function SmartboardContent() {
   }, [previewPlaybackTime, timedPlayheadOn, timelineSequence]);
 
   const hasTimedPlayhead = timelineSequence.length > 0;
-  const smartboardGuideSteps = hasTimedPlayhead
-    ? [
-      'Press Start Playhead to make the words follow the timing for you.',
-      'Click any line if you want to jump to that part.',
-      'Open Options to resize the words, change the background, or show one line at a time.',
-    ]
-    : [
-      'Tap any line to start manual mode.',
-      'Tap another line when you want to move the highlight.',
-      'Open Options to resize the words, change the background, or show one line at a time.',
-    ];
 
   const wheelAnimationRef = useRef<number | null>(null);
   const wheelNativeAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1544,27 +1503,6 @@ function SmartboardContent() {
           color: inherit;
         }
       `}</style>
-      {showQuickStart === true && !playheadOn && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 'min(92vw, 760px)',
-            zIndex: 12,
-          }}
-        >
-          <QuickInstructions
-            title="How Smartboard mode works"
-            steps={smartboardGuideSteps}
-            note={hasTimedPlayhead ? 'This song already has timing saved.' : 'This song does not have timing saved yet.'}
-            tone="dark"
-            compact
-            onDismiss={handleDismissQuickStart}
-          />
-        </div>
-      )}
       {/* Song lyrics */}
       {lineView === 'single' ? (
         // ONE LINE AT A TIME: show only the current line, centered.
@@ -2086,15 +2024,18 @@ function SmartboardContent() {
 export default function SmartboardModePage() {
   return (
     <AuthBoundary>
-      <Suspense
-        fallback={
-          <div style={{ background: 'black', color: 'white', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            Loading...
-          </div>
-        }
-      >
-        <SmartboardContent />
-      </Suspense>
+      <main id="main-content" tabIndex={-1}>
+        <h1 className="sr-only">Smartboard Mode</h1>
+        <Suspense
+          fallback={
+            <div style={{ background: 'black', color: 'white', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              Loading...
+            </div>
+          }
+        >
+          <SmartboardContent />
+        </Suspense>
+      </main>
     </AuthBoundary>
   );
 }

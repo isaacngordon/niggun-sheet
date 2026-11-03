@@ -11,7 +11,10 @@ const SheetBuilderApp = dynamic(() => import('../sheet-builder-v2/SheetBuilderAp
 export default function SheetBuilderRoute() {
   return (
     <AuthBoundary>
-      <SheetBuilderApp />
+      <main id="main-content" tabIndex={-1}>
+        <h1 className="sr-only">Sheet Builder</h1>
+        <SheetBuilderApp />
+      </main>
     </AuthBoundary>
   );
 }

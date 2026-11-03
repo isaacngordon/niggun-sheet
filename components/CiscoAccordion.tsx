@@ -19,7 +19,7 @@ export default function CiscoAccordion() {
     {
       title: "Drag-&-Drop Sheet Builder",
       desc: "Drag, drop, and auto-fit your setlist onto printable pages with complex pagination features instantly.",
-      img: "/assets/Image%203.png"
+      img: "/assets/image%203.png"
     }
   ];
 
@@ -86,7 +86,16 @@ export default function CiscoAccordion() {
            <img 
              src={items[activeIndex].img} 
              alt={items[activeIndex].title} 
-             style={{ width: '100%', height: 'auto', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', transition: 'opacity 0.3s ease' }} 
+             style={{ 
+               display: 'block',
+               width: '100%', 
+               aspectRatio: '3 / 2',
+               objectFit: 'contain',
+               objectPosition: 'center',
+               borderRadius: '12px', 
+               boxShadow: '0 10px 30px rgba(0,0,0,0.5)', 
+               transition: 'opacity 0.3s ease' 
+             }} 
            />
         </div>
 

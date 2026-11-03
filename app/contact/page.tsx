@@ -18,7 +18,7 @@ export default function ContactPage() {
   return (
     <>
       <Header />
-      <main className="contact-container">
+      <main id="main-content" tabIndex={-1} className="contact-container">
         <div className="contact-card">
           <ContactFormBackground />
           <div className="contact-header">

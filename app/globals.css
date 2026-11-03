@@ -1,16 +1,5 @@
-:root {
-  --bg-dark: #141310;
-  --bg-darker: #0f0e0c;
-  --bg-card: #1a1814;
-  --accent: #c7a252;
-  --accent-hover: #b78f3e;
-  --text-primary: #f3ede2;
-  --text-secondary: #b3aa9b;
-  --border-color: rgba(243, 237, 226, 0.12);
-  --focus-ring: rgba(199, 162, 82, 0.32);
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s ease;
-}
+/* Design tokens live in app/tokens.css (imported before this file).
+   Legacy names (--bg-dark, --accent, ...) are aliased there. */
 
 * {
   margin: 0;
@@ -19,10 +8,10 @@
 }
 
 body {
-  font-family: var(--font-dm-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: var(--bg-darker);
+  font-family: var(--font-body);
+  background-color: var(--surface-base);
   color: var(--text-primary);
-  line-height: 1.6;
+  line-height: var(--leading-normal);
 }
 
 a {
@@ -56,6 +45,28 @@ a {
 
 .skip-link:focus {
   transform: translateY(0);
+}
+
+/* Skip-link landing point: keep the target clear of the sticky header. */
+#main-content {
+  scroll-margin-top: 5rem;
+}
+
+#main-content:focus {
+  outline: none;
+}
+
+/* Visually hidden but available to assistive tech. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Header styles */
@@ -637,7 +648,7 @@ a {
   margin-bottom: 2rem;
 }
 
-.footer-section h4 {
+.footer-section h2 {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
@@ -2519,7 +2530,7 @@ a {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--text-secondary);
   border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 
@@ -2663,7 +2674,7 @@ a {
 
 .song-list-index {
   font-size: 0.76rem;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--text-tertiary);
   min-width: 1.8rem;
   font-variant-numeric: tabular-nums;
 }
@@ -2671,7 +2682,7 @@ a {
 .song-list-excerpt {
   text-align: right;
   direction: rtl;
-  color: rgba(255, 255, 255, 0.38);
+  color: var(--text-tertiary);
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.4;
@@ -3045,7 +3056,7 @@ a {
     padding: 0.18rem 0;
     border-radius: 0;
     background: none;
-    color: rgba(255, 255, 255, 0.32);
+    color: var(--text-tertiary);
     letter-spacing: 0.12em;
   }
 
@@ -3056,7 +3067,7 @@ a {
 
   .songs-list .song-artist {
     font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-secondary);
   }
 
   .song-list-excerpt {
@@ -3065,7 +3076,7 @@ a {
     margin-top: 0;
     font-size: 0.78rem;
     line-height: 1.38;
-    color: rgba(255, 255, 255, 0.46);
+    color: var(--text-tertiary);
     white-space: normal;
     display: -webkit-box;
     -webkit-line-clamp: 2;
