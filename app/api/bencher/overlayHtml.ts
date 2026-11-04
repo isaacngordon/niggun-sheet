@@ -55,13 +55,13 @@ export function textBoxHeightPt(lineCount: number, fontSizePt: number): number {
   return Math.ceil(lineH * lineCount + padding * 2);
 }
 
-function baseHtml(widthPt: number, heightPt: number, body: string): string {
+function baseHtml(widthPt: number, heightPt: number, body: string, fontFamily: string = "'BH', serif"): string {
   return `<!doctype html>
 <html><head><meta charset="utf-8"><style>
   html, body { margin: 0; padding: 0; }
   body { width: ${widthPt}pt; height: ${heightPt}pt; position: relative; overflow: hidden; }
   ${getFontFaceCss()}
-  .text { font-family: 'BH', serif; text-align: center; }
+  .text { font-family: ${fontFamily}; text-align: center; }
 </style></head>
 <body>${body}</body></html>`;
 }
@@ -74,11 +74,12 @@ interface CoverOverlayOpts {
   textLines: string[];
   fontSizePt: number;
   ornamentWidthFrac: number;
+  fontFamily?: string;
 }
 
 /** Overlay for a single cover box (booklet cover-half or 2-page cover page), local coords 0..cw, 0..ch. */
 export function buildCoverOverlayHtml(opts: CoverOverlayOpts): { html: string; widthPt: number; heightPt: number } {
-  const { cw, ch, hasLogo, hasText, textLines, fontSizePt, ornamentWidthFrac } = opts;
+  const { cw, ch, hasLogo, hasText, textLines, fontSizePt, ornamentWidthFrac, fontFamily } = opts;
   const ow = cw * ornamentWidthFrac;
   const parts: string[] = [];
 
@@ -99,7 +100,20 @@ export function buildCoverOverlayHtml(opts: CoverOverlayOpts): { html: string; w
     );
   }
 
-  return { html: baseHtml(cw, ch, parts.join('')), widthPt: cw, heightPt: ch };
+  return { html: baseHtml(cw, ch, parts.join(''), fontFamily), widthPt: cw, heightPt: ch };
+}
+
+const COVER_FONT_FAMILY_CSS: Record<string, string> = {
+  'frank-ruhl-libre': "'BH', serif",
+  'noto-serif-hebrew': "'Noto Serif Hebrew', 'Times New Roman', serif",
+  'times-new-roman': "'Times New Roman', Times, serif",
+  'georgia': "Georgia, 'Times New Roman', serif",
+  'arial': 'Arial, Helvetica, sans-serif',
+};
+
+/** Resolves an editor cover-font key to a CSS font-family for the overlay renderer. */
+export function coverFontFamilyCss(coverFont?: string | null): string {
+  return COVER_FONT_FAMILY_CSS[coverFont || ''] ?? "'BH', serif";
 }
 
 interface SongsOverlayOpts {
@@ -112,6 +126,6 @@ interface SongsOverlayOpts {
 export function buildSongsOverlayHtml(opts: SongsOverlayOpts): { html: string; widthPt: number; heightPt: number } {
   const { widthPt, lines, fontSizePt } = opts;
   const heightPt = textBoxHeightPt(lines.length, fontSizePt);
-  const body = `<div class="text" style="font-size:${fontSizePt}pt;">${textLinesHtml(lines, fontSizePt)}</div>`;
+  const body = `<div class="text" style="font-size:${fontSizePt}pt;line-height:1.5;">${textLinesHtml(lines, fontSizePt)}</div>`;
   return { html: baseHtml(widthPt, heightPt, body), widthPt, heightPt };
 }

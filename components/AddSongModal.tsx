@@ -183,7 +183,7 @@ export default function AddSongModal({ open, onClose, onSave, onSaveBulk }: AddS
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'niggunsheet-songs-template.csv';
+    a.download = 'kumzitzsheet-songs-template.csv';
     a.click();
     URL.revokeObjectURL(url);
   }, []);

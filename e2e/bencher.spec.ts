@@ -60,7 +60,7 @@ test.describe('Bencher builder', () => {
   test('supports both four-page and two-page modes with the logo and song drop zones in the required spaces', async ({ page }) => {
     await page.goto('/bencher');
 
-    await expect(page).toHaveTitle('Bencher Builder | Niggun Sheet');
+    await expect(page).toHaveTitle('Bencher Builder | Kumzitz Sheet');
     await expect(page.getByRole('heading', { name: 'Bencher Builder' })).toBeVisible();
     await expect(page.getByTestId('bencher-page-1')).toBeVisible();
     await expect(page.locator('.bencher-page')).toHaveCount(4);

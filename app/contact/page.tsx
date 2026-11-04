@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: 'Contact Us',
   description: 'Send lyrics fixes, song ideas, bug reports, or questions.',
   openGraph: {
-    title: 'Contact Us | Niggun Sheet',
+    title: 'Contact Us | Kumzitz Sheet',
     description: 'Send lyrics fixes, song ideas, bug reports, or questions.',
     type: 'website',
   },
@@ -18,7 +18,7 @@ export default function ContactPage() {
   return (
     <>
       <Header />
-      <main className="contact-container">
+      <main id="main-content" tabIndex={-1} className="contact-container">
         <div className="contact-card">
           <ContactFormBackground />
           <div className="contact-header">

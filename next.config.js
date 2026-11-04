@@ -6,12 +6,38 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // The bencher PDF route renders its overlays with headless Chromium. Both the
+  // puppeteer client and the serverless Chromium build ship binaries/wasm that
+  // cannot be bundled, and the route reads these public assets from disk at
+  // runtime — without listing them here the route crashes in a serverless
+  // deployment (Vercel) even though it works locally.
+  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
+  outputFileTracingIncludes: {
+    '/api/bencher/generate-pdf': [
+      './public/assets/bencher/**',
+      './public/assets/fonts/**',
+      './public/assets/Andy-heading-flourish.svg',
+      // The serverless Chromium build unpacks its browser from bin/*.br at
+      // runtime. Externalizing the package is not enough on its own — the
+      // tracing step does not discover these files, so the function fails with
+      // 'The input directory "/var/task/node_modules/@sparticuz/chromium/bin"
+      // does not exist' unless they are listed explicitly.
+      './node_modules/@sparticuz/chromium/bin/**',
+    ],
+  },
   // Expose the Google OAuth client id to client bundles.
   // Fallback supports deployments that set GOOGLE_CLIENT_ID only.
   env: {
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '',
     NEXT_PUBLIC_GOOGLE_CLIENT_ID_BETA: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_BETA || '',
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || version,
+  },
+  // The AI-agent reference used to be an HTML page at /ai; it now lives as plain text
+  // beside /robots.txt.
+  async redirects() {
+    return [
+      { source: '/ai', destination: '/ai.txt', permanent: false },
+    ];
   },
   // CORS headers for API routes + security headers
   async headers() {
@@ -43,7 +69,7 @@ const nextConfig = {
       {
         source: '/api/:path*',
         headers: [
-          { key: 'Access-Control-Allow-Origin', value: 'https://niggunsheet.com' },
+          { key: 'Access-Control-Allow-Origin', value: 'https://kumzitzsheet.com' },
           { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'Origin, X-Requested-With, Content-Type, Accept, Authorization' },
         ],

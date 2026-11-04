@@ -4,7 +4,7 @@ import https from 'https';
 
 const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID || 'YOUR_SHEET_ID';
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'YOUR_API_KEY';
-const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A:G1000';
+const SHEET_RANGE = process.env.SHEET_RANGE || 'Sheet1!A1:G1000';
 
 let cachedSongs: Song[] | null = null;
 let cacheTimestamp = 0;
@@ -163,7 +163,7 @@ function fetchFromGoogleSheets(): Promise<Song[]> {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_ID}/values/${encodeURIComponent(SHEET_RANGE)}?key=${GOOGLE_API_KEY}`;
 
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { timeout: 7000 }, (res) => {
+    const req = https.get(url, { timeout: GOOGLE_SHEETS_TIMEOUT_MS }, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
@@ -224,6 +224,40 @@ function readLocalCSV(): Song[] {
   return parseCSV(data);
 }
 
+/**
+ * One refresh at a time: the sheet builder asks for songs more than once on
+ * load, and firing a Google Sheets request per caller stacks up hanging sockets
+ * whenever the upstream is slow.
+ */
+let inFlightRefresh: Promise<Song[]> | null = null;
+
+function refreshFromGoogleSheets(): Promise<Song[]> {
+  if (inFlightRefresh) {
+    return inFlightRefresh;
+  }
+
+  inFlightRefresh = withTimeout(
+    fetchFromGoogleSheets(),
+    GOOGLE_SHEETS_TIMEOUT_MS,
+    'Google Sheets request timed out',
+  )
+    .then((songs) => {
+      try {
+        writeLocalCSV(songs);
+      } catch (error) {
+        console.warn('[songs.data] Failed to refresh local CSV backup from Google Sheets:', error);
+      }
+      cachedSongs = songs;
+      cacheTimestamp = Date.now();
+      return songs;
+    })
+    .finally(() => {
+      inFlightRefresh = null;
+    });
+
+  return inFlightRefresh;
+}
+
 function writeLocalCSV(songs: Song[]) {
   const songsFilePath = path.join(process.cwd(), 'data/songs.csv');
   const nextCSV = serializeSongsToCSV(songs);
@@ -247,18 +281,7 @@ export async function getSongs(): Promise<Song[]> {
   try {
     if (GOOGLE_SHEETS_ID && !GOOGLE_SHEETS_ID.includes('YOUR_SHEET_ID') &&
         GOOGLE_API_KEY && !GOOGLE_API_KEY.includes('YOUR_API_KEY')) {
-      const songs = await withTimeout(
-        fetchFromGoogleSheets(),
-        GOOGLE_SHEETS_TIMEOUT_MS,
-        'Google Sheets request timed out',
-      );
-      try {
-        writeLocalCSV(songs);
-      } catch (error) {
-        console.warn('[songs.data] Failed to refresh local CSV backup from Google Sheets:', error);
-      }
-      cachedSongs = songs;
-      cacheTimestamp = now;
+      const songs = await refreshFromGoogleSheets();
       return songs;
     }
     throw new Error('Google Sheets API not configured');

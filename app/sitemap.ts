@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { getSongs } from '@/app/api/songs/data';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://niggunsheet.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://kumzitzsheet.com';
 
 function slugify(text: string): string {
   return text
@@ -18,11 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/songs`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/sheet-builder`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${SITE_URL}/sheet-builder-v2`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${SITE_URL}/bencher`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${SITE_URL}/bencher/two-sided`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${SITE_URL}/bencher/booklet`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${SITE_URL}/contact`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${SITE_URL}/project-growth-page`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${SITE_URL}/tracking-disclosure`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
   ];
 

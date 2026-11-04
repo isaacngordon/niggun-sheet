@@ -1,23 +1,32 @@
 // Google Identity Services + Drive appdata helper
 // All private song data lives in the user's own Google Drive (hidden app folder)
 
-const SCOPES = 'https://www.googleapis.com/auth/drive.appdata email';
+/** Required Google scope: private app data in the user's own Drive. */
+export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const SCOPES = `${DRIVE_SCOPE} email`;
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
-const PRIVATE_SONGS_FILE = 'niggunsheet-songs.json';
-const PREFERENCES_FILE = 'niggunsheet-prefs.json';
-const SAVED_SHEETS_FILE = 'niggunsheet-sheets.json';
-const BENCHER_LAYOUTS_FILE = 'niggunsheet-bencher.json';
+const PRIVATE_SONGS_FILE = 'kumzitzsheet-songs.json';
+const PREFERENCES_FILE = 'kumzitzsheet-prefs.json';
+const SAVED_SHEETS_FILE = 'kumzitzsheet-sheets.json';
+const BENCHER_LAYOUTS_FILE = 'kumzitzsheet-bencher.json';
 
 const SILENT_REAUTH_TIMEOUT = 8000; // ms — abort silent reauth if Google is slow
 const FETCH_TIMEOUT = 15000;        // ms — abort any single fetch
 const TOKEN_REFRESH_MARGIN = 120;   // seconds before expiry to trigger proactive refresh
-const SESSION_EMAIL_KEY = 'niggunsheet-email'; // persisted for login_hint on reload
-const SESSION_TOKEN_KEY = 'niggunsheet-token';
-const SESSION_TOKEN_EXPIRY_KEY = 'niggunsheet-token-expiry';
-const LOCAL_TOKEN_KEY = 'niggunsheet-token-local';
-const LOCAL_TOKEN_EXPIRY_KEY = 'niggunsheet-token-expiry-local';
-const TOKEN_COOKIE_KEY = 'niggunsheet_token';
-const TOKEN_EXPIRY_COOKIE_KEY = 'niggunsheet_token_expiry';
+const SESSION_EMAIL_KEY = 'kumzitzsheet-email'; // persisted for login_hint on reload
+const SESSION_TOKEN_KEY = 'kumzitzsheet-token';
+const SESSION_TOKEN_EXPIRY_KEY = 'kumzitzsheet-token-expiry';
+const LOCAL_TOKEN_KEY = 'kumzitzsheet-token-local';
+const LOCAL_TOKEN_EXPIRY_KEY = 'kumzitzsheet-token-expiry-local';
+const TOKEN_COOKIE_KEY = 'kumzitzsheet_token';
+const TOKEN_EXPIRY_COOKIE_KEY = 'kumzitzsheet_token_expiry';
+const LEGACY_SESSION_EMAIL_KEY = 'niggunsheet-email';
+const LEGACY_SESSION_TOKEN_KEY = 'niggunsheet-token';
+const LEGACY_SESSION_TOKEN_EXPIRY_KEY = 'niggunsheet-token-expiry';
+const LEGACY_LOCAL_TOKEN_KEY = 'niggunsheet-token-local';
+const LEGACY_LOCAL_TOKEN_EXPIRY_KEY = 'niggunsheet-token-expiry-local';
+const LEGACY_TOKEN_COOKIE_KEY = 'niggunsheet_token';
+const LEGACY_TOKEN_EXPIRY_COOKIE_KEY = 'niggunsheet_token_expiry';
 
 export type UserPreferences = Record<string, unknown>;
 
@@ -221,8 +230,14 @@ function clearPersistedTokenCache(): void {
   try { sessionStorage.removeItem(SESSION_TOKEN_EXPIRY_KEY); } catch { /* ok */ }
   try { localStorage.removeItem(LOCAL_TOKEN_KEY); } catch { /* ok */ }
   try { localStorage.removeItem(LOCAL_TOKEN_EXPIRY_KEY); } catch { /* ok */ }
+  try { sessionStorage.removeItem(LEGACY_SESSION_TOKEN_KEY); } catch { /* ok */ }
+  try { sessionStorage.removeItem(LEGACY_SESSION_TOKEN_EXPIRY_KEY); } catch { /* ok */ }
+  try { localStorage.removeItem(LEGACY_LOCAL_TOKEN_KEY); } catch { /* ok */ }
+  try { localStorage.removeItem(LEGACY_LOCAL_TOKEN_EXPIRY_KEY); } catch { /* ok */ }
   try { document.cookie = `${TOKEN_COOKIE_KEY}=; Path=/; Max-Age=0; SameSite=Lax; Secure`; } catch { /* ok */ }
   try { document.cookie = `${TOKEN_EXPIRY_COOKIE_KEY}=; Path=/; Max-Age=0; SameSite=Lax; Secure`; } catch { /* ok */ }
+  try { document.cookie = `${LEGACY_TOKEN_COOKIE_KEY}=; Path=/; Max-Age=0; SameSite=Lax; Secure`; } catch { /* ok */ }
+  try { document.cookie = `${LEGACY_TOKEN_EXPIRY_COOKIE_KEY}=; Path=/; Max-Age=0; SameSite=Lax; Secure`; } catch { /* ok */ }
 }
 
 function readCachedTokenCandidate(storage: {
@@ -241,23 +256,23 @@ async function restoreCachedToken(): Promise<string | null> {
   const candidates = [
     () => readCachedTokenCandidate({
       getToken: () => {
-        try { return sessionStorage.getItem(SESSION_TOKEN_KEY); } catch { return null; }
+        try { return sessionStorage.getItem(SESSION_TOKEN_KEY) ?? sessionStorage.getItem(LEGACY_SESSION_TOKEN_KEY); } catch { return null; }
       },
       getExpiry: () => {
-        try { return sessionStorage.getItem(SESSION_TOKEN_EXPIRY_KEY); } catch { return null; }
+        try { return sessionStorage.getItem(SESSION_TOKEN_EXPIRY_KEY) ?? sessionStorage.getItem(LEGACY_SESSION_TOKEN_EXPIRY_KEY); } catch { return null; }
       },
     }),
     () => readCachedTokenCandidate({
       getToken: () => {
-        try { return localStorage.getItem(LOCAL_TOKEN_KEY); } catch { return null; }
+        try { return localStorage.getItem(LOCAL_TOKEN_KEY) ?? localStorage.getItem(LEGACY_LOCAL_TOKEN_KEY); } catch { return null; }
       },
       getExpiry: () => {
-        try { return localStorage.getItem(LOCAL_TOKEN_EXPIRY_KEY); } catch { return null; }
+        try { return localStorage.getItem(LOCAL_TOKEN_EXPIRY_KEY) ?? localStorage.getItem(LEGACY_LOCAL_TOKEN_EXPIRY_KEY); } catch { return null; }
       },
     }),
     () => readCachedTokenCandidate({
-      getToken: () => getCookieValue(TOKEN_COOKIE_KEY),
-      getExpiry: () => getCookieValue(TOKEN_EXPIRY_COOKIE_KEY),
+      getToken: () => getCookieValue(TOKEN_COOKIE_KEY) ?? getCookieValue(LEGACY_TOKEN_COOKIE_KEY),
+      getExpiry: () => getCookieValue(TOKEN_EXPIRY_COOKIE_KEY) ?? getCookieValue(LEGACY_TOKEN_EXPIRY_COOKIE_KEY),
     }),
   ];
 
@@ -284,6 +299,34 @@ async function restoreCachedToken(): Promise<string | null> {
   return null;
 }
 
+// ─── Granted scope tracking ─────────────────────────────────────
+// Google lets people uncheck individual permissions on its consent screen.
+// Drive access is mandatory for this app, so we remember what was actually
+// granted and can tell the UI to re-prompt instead of silently breaking.
+
+let grantedScopeValue: string | null = null;
+
+/** Space-delimited scopes Google actually granted, or null if not known yet. */
+export function getGrantedScope(): string | null {
+  return grantedScopeValue;
+}
+
+function rememberGrantedScope(scope: unknown): void {
+  grantedScopeValue = typeof scope === 'string' && scope.trim() ? scope : null;
+}
+
+/** true/false once Google reported the granted scopes; null while unknown. */
+export function isDriveScopeGranted(): boolean | null {
+  if (!grantedScopeValue) return null;
+  return grantedScopeValue.split(/\s+/).includes(DRIVE_SCOPE);
+}
+
+/** Detects Drive rejections caused by a missing or insufficient OAuth scope. */
+export function isDrivePermissionError(error: unknown): boolean {
+  const message = error instanceof Error ? `${error.name} ${error.message}` : String(error || '');
+  return /ACCESS_TOKEN_SCOPE_INSUFFICIENT|insufficient|permission|forbidden|403/i.test(message);
+}
+
 /** Check if the current token is expired or about to expire */
 export function isTokenExpired(): boolean {
   return !currentToken || Date.now() >= tokenExpiresAt - 30_000; // 30s grace
@@ -295,11 +338,14 @@ export async function getValidToken(): Promise<string | null> {
   return trysilentReauth();
 }
 
-const SESSION_KEY = 'niggunsheet-auth';
+const SESSION_KEY = 'kumzitzsheet-auth';
+const LEGACY_SESSION_KEY = 'niggunsheet-auth';
 
 function clearSession(): void {
   try { localStorage.removeItem(SESSION_KEY); } catch { /* ok */ }
   try { localStorage.removeItem(SESSION_EMAIL_KEY); } catch { /* ok */ }
+  try { localStorage.removeItem(LEGACY_SESSION_KEY); } catch { /* ok */ }
+  try { localStorage.removeItem(LEGACY_SESSION_EMAIL_KEY); } catch { /* ok */ }
   clearPersistedTokenCache();
 }
 
@@ -308,7 +354,7 @@ function markSessionActive(): void {
 }
 
 function hasSessionMarker(): boolean {
-  try { return localStorage.getItem(SESSION_KEY) === '1'; } catch { return false; }
+  try { return (localStorage.getItem(SESSION_KEY) ?? localStorage.getItem(LEGACY_SESSION_KEY)) === '1'; } catch { return false; }
 }
 
 /** Save just the email so we can pass login_hint on reload */
@@ -318,7 +364,7 @@ function saveSessionEmail(email: string): void {
 
 /** Get stored email for login_hint */
 export function getStoredEmail(): string | null {
-  try { return localStorage.getItem(SESSION_EMAIL_KEY); } catch { return null; }
+  try { return localStorage.getItem(SESSION_EMAIL_KEY) ?? localStorage.getItem(LEGACY_SESSION_EMAIL_KEY); } catch { return null; }
 }
 
 /** Try to restore an existing session via silent re-auth. */
@@ -353,6 +399,7 @@ function trysilentReauth(loginHint?: string): Promise<string | null> {
       clearTimeout(timeout);
       if (resp.error) { resolve(null); return; }
       const expiresIn = resp.expires_in ?? 3600;
+      rememberGrantedScope(resp.scope);
       setToken(resp.access_token, expiresIn);
       try {
         await ensureDriveApi();
@@ -372,7 +419,7 @@ function trysilentReauth(loginHint?: string): Promise<string | null> {
 
 let signInInProgress = false;
 
-export function signIn(): Promise<string> {
+export function signIn(options?: { forceConsent?: boolean }): Promise<string> {
   // Debounce — prevent double sign-in from rapid clicks
   if (signInInProgress) return Promise.reject(new Error('Sign-in already in progress'));
   signInInProgress = true;
@@ -388,6 +435,7 @@ export function signIn(): Promise<string> {
       pendingPopupErrorHandler = null;
       if (resp.error) { reject(new Error(resp.error)); return; }
       const expiresIn = resp.expires_in ?? 3600;
+      rememberGrantedScope(resp.scope);
       setToken(resp.access_token, expiresIn);
       markSessionActive();
       try {
@@ -400,11 +448,18 @@ export function signIn(): Promise<string> {
     };
 
     // After first successful sign-in, prefer reusing that account without
-    // forcing the account chooser each time.
+    // forcing the account chooser each time. `forceConsent` re-opens Google's
+    // consent screen, which is how a user who unchecked Drive can grant it.
     const storedEmail = getStoredEmail();
-    const opts: any = storedEmail
-      ? { prompt: '', login_hint: storedEmail }
-      : { prompt: 'select_account' };
+    let opts: any;
+    if (options?.forceConsent) {
+      opts = { prompt: 'consent' };
+      if (storedEmail) opts.login_hint = storedEmail;
+    } else {
+      opts = storedEmail
+        ? { prompt: '', login_hint: storedEmail }
+        : { prompt: 'select_account' };
+    }
     tokenClient.requestAccessToken(opts);
   }).finally(() => {
     pendingPopupErrorHandler = null;
@@ -420,6 +475,7 @@ export function signOut(): void {
   }
   currentToken = null;
   tokenExpiresAt = 0;
+  grantedScopeValue = null;
   if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
   clearSession();
 }
@@ -462,14 +518,21 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
 }
 
 async function findAppFile(fileName: string): Promise<string | null> {
-  const resp = await (window as any).gapi.client.drive.files.list({
-    spaces: 'appDataFolder',
-    q: `name='${fileName}'`,
-    fields: 'files(id, name)',
-    pageSize: 1,
-  });
-  const files = resp.result.files;
-  return files && files.length > 0 ? files[0].id : null;
+  const names = [fileName];
+  const legacyName = fileName.replace(/^kumzitzsheet/, 'niggunsheet');
+  if (legacyName !== fileName) names.push(legacyName);
+
+  for (const name of names) {
+    const resp = await (window as any).gapi.client.drive.files.list({
+      spaces: 'appDataFolder',
+      q: `name='${name}'`,
+      fields: 'files(id, name)',
+      pageSize: 1,
+    });
+    const files = resp.result.files;
+    if (files && files.length > 0) return files[0].id;
+  }
+  return null;
 }
 
 async function readFileContent(fileId: string): Promise<string> {
@@ -488,7 +551,7 @@ async function createAppFile(fileName: string, content: string): Promise<string>
   };
 
   // multipart upload via fetch (gapi.client doesn't support media upload well)
-  const boundary = '---niggunsheet' + Date.now();
+  const boundary = '---kumzitzsheet' + Date.now();
   const body =
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
     JSON.stringify(metadata) +

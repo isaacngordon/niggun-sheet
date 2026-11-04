@@ -65,7 +65,7 @@ export default function BencherRuffleSandbox() {
   }, [clearTimer]);
 
   return (
-    <main className="bencher-ruffle-sandbox">
+    <main id="main-content" tabIndex={-1} className="bencher-ruffle-sandbox">
       <section className="sandbox-controls">
         <h1>Bencher Ruffle Sandbox</h1>
         <p>Use this page to tune skip-turn ruffle feel before moving styles into the live route.</p>

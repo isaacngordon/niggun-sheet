@@ -16,6 +16,8 @@ import dynamic from 'next/dynamic';
 import HTMLFlipBook from 'react-pageflip';
 import AddSongModal from '@/components/AddSongModal';
 import Header from '@/components/Header';
+import { isPrintShopConfigured } from '@/lib/printShop';
+import { usePrintShopMode } from '@/hooks/usePrintShopMode';
 import BencherPrintView from './PrintView';
 import { useOptionalGoogleAuth } from '@/components/GoogleAuthProvider';
 import type { PrivateSong } from '@/lib/google-drive';
@@ -384,6 +386,8 @@ interface BencherAppProps {
   mode: BencherMode;
 }
 
+type PrintShopSubmitState = 'idle' | 'submitting' | 'success' | 'error';
+
 export default function BencherApp({ mode: pageMode }: BencherAppProps) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [sidebarTab, setSidebarTab] = useState<'library' | 'my'>('library');
@@ -403,12 +407,20 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
   const [currentBencherLayoutId, setCurrentBencherLayoutId] = useState<string | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveDraftTitle, setSaveDraftTitle] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showBencherLibrary, setShowBencherLibrary] = useState(false);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [overwriteTargetId, setOverwriteTargetId] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showPrintShopModal, setShowPrintShopModal] = useState(false);
+  const [printShopSubmitState, setPrintShopSubmitState] = useState<PrintShopSubmitState>('idle');
+  const [printShopSubmitMessage, setPrintShopSubmitMessage] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
   const [twoSidedPreviewScale, setTwoSidedPreviewScale] = useState(1);
   const overSlotRef = useRef<SlotDragData | null>(null);
   const previewSelectedSongsRef = useRef<Song[] | null>(null);
@@ -436,11 +448,17 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
   const displayPages = useMemo(() =>
     pageMode === '8-page' ? [...bencherPages].reverse() : bencherPages,
   [bencherPages, pageMode]);
+  const currentModeConfig = useMemo(
+    () => BENCHER_MODE_CONFIGS.find((config) => config.mode === pageMode) ?? BENCHER_MODE_CONFIGS[0],
+    [pageMode],
+  );
   const bencherLogoPlacement = useMemo(() => getBencherLogoPlacement(pageMode), [pageMode]);
   const bencherSongDropPlacement = useMemo(() => getBencherSongDropPlacement(pageMode), [pageMode]);
   const bencherPageCount = bencherPages.length;
   const songDropPageNumber = bencherSongDropPlacement.pageNumber;
   const { designWidth, designHeight, pdfSource } = useMemo(() => getBencherModeConfig(pageMode), [pageMode]);
+  const { shop: printShop } = usePrintShopMode();
+  const printShopReady = isPrintShopConfigured(printShop);
   const bencherHelpSteps = useMemo(() => [
     `Click the logo box on page ${bencherLogoPlacement.pageNumber} if you want to upload your own logo.`,
     `Songs go onto page ${songDropPageNumber}. Drag them in from the left, or double-click to add them fast.`,
@@ -525,6 +543,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
     if (!auth?.user) return;
     const trimmed = title.trim();
     if (!trimmed) return;
+    setSaveError(null);
     try {
       const matching = auth.bencherLayouts.find(
         (l) => l.title.trim() === trimmed && (currentBencherLayoutId ? l.id === currentBencherLayoutId : true),
@@ -540,7 +559,12 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
       setCurrentBencherLayoutId(saved.id);
       setShowSaveModal(false);
       setShowOverwriteModal(false);
-    } catch {
+    } catch (error) {
+      // Saving writes to the user's Google Drive, so failures (missing Drive
+      // access, quota, offline) used to be swallowed and looked like the Save
+      // button doing nothing. Report them instead.
+      const message = error instanceof Error ? error.message : 'Could not save this layout.';
+      setSaveError(message);
       if (auth.bencherLayouts.length >= 3) {
         setOverwriteTargetId(currentBencherLayoutId ?? auth.bencherLayouts[0]?.id ?? '');
         setShowSaveModal(false);
@@ -698,6 +722,18 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
     }));
   }, [renderedSongs, songDropPageNumber]);
 
+  /** 2-page song payload for PDF generation, with lyrics pre-reflowed to the
+      same design-space width the print view uses. */
+  const printShopSongPayload = useMemo(() => {
+    if (pageMode !== '2-page') return undefined;
+    const lyricWidth = bencherPrintContentWidth(bencherSongDropPlacement.rect.width);
+    return renderedSongs.map((song) => ({
+      title: song.title,
+      artist: song.artist,
+      lyrics: formatBencherLyrics(song.lyrics || '', lyricWidth, BENCHER_SONG_FONT_SIZE),
+    }));
+  }, [bencherSongDropPlacement.rect.width, pageMode, renderedSongs]);
+
   const previewSongKey = useMemo(() => {
     if (activeDragData?.type === 'library-song' || activeDragData?.type === 'sheet-song') {
       return songKey(activeDragData.song);
@@ -842,6 +878,12 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
 
   const handlePrint = useCallback(() => {
     if (!pdfSource) return;
+    if (printShop) {
+      setPrintShopSubmitState('idle');
+      setPrintShopSubmitMessage('');
+      setShowPrintShopModal(true);
+      return;
+    }
     // Print the client-rendered SVG/HTML view (BencherPrintView), not a
     // generated PDF — plain page content prints via window.print() with no
     // native-PDF-viewer isolation issues, no server round-trip, no popup.
@@ -851,7 +893,71 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
     window.print();
     // Fallback in case `afterprint` doesn't fire for some reason.
     setTimeout(cleanup, 60000);
-  }, [pdfSource]);
+  }, [pdfSource, printShop]);
+
+  const handleClosePrintShopModal = useCallback(() => {
+    setShowPrintShopModal(false);
+    setPrintShopSubmitState('idle');
+    setPrintShopSubmitMessage('');
+  }, []);
+
+  const handleSubmitPrintShopOrder = useCallback(async () => {
+    if (!printShop || !printShopReady || !pdfSource) return;
+
+    setPrintShopSubmitState('submitting');
+    setPrintShopSubmitMessage('');
+
+    try {
+      const response = await fetch('/api/bencher/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: pageMode,
+          logoSrc: logoSrc || undefined,
+          coverText: coverText || undefined,
+          coverFont,
+          showTitles,
+          songs: printShopSongPayload,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({ message: response.statusText }));
+        throw new Error(typeof errorPayload.message === 'string' ? errorPayload.message : 'Unable to generate the bencher PDF.');
+      }
+
+      const pdfBlob = await response.blob();
+      const formData = new FormData();
+      formData.set('shopSlug', printShop.slug);
+      formData.set('customerName', customerName.trim());
+      formData.set('customerEmail', customerEmail.trim());
+      formData.set('customerPhone', customerPhone.trim());
+      formData.set('notes', orderNotes.trim());
+      formData.set('sourcePage', window.location.href);
+      formData.set('jobType', 'Bencher Order');
+      formData.set('layoutMode', pageMode);
+      formData.set('layoutLabel', currentModeConfig.label);
+      formData.set('showTitles', String(showTitles));
+      formData.set('setList', 'false');
+      formData.set('pdf', new File([pdfBlob], `bencher-${pageMode}.pdf`, { type: 'application/pdf' }));
+
+      const submitResponse = await fetch('/api/print-shop-order', {
+        method: 'POST',
+        body: formData,
+      });
+      const payload = await submitResponse.json().catch(() => ({}));
+
+      if (!submitResponse.ok) {
+        throw new Error(typeof payload.error === 'string' ? payload.error : 'Unable to send this bencher order.');
+      }
+
+      setPrintShopSubmitState('success');
+      setPrintShopSubmitMessage(typeof payload.message === 'string' ? payload.message : `Your bencher order was sent to ${printShop.name}.`);
+    } catch (error) {
+      setPrintShopSubmitState('error');
+      setPrintShopSubmitMessage(error instanceof Error ? error.message : 'Unable to send this bencher order.');
+    }
+  }, [coverFont, coverText, currentModeConfig.label, customerEmail, customerName, customerPhone, logoSrc, orderNotes, pageMode, pdfSource, printShop, printShopReady, printShopSongPayload, showTitles]);
 
   const handleDownloadStraightPdf = useCallback(async () => {
     if (!pdfSource) return;
@@ -861,17 +967,30 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mode: '2-page',
+          mode: pageMode,
           logoSrc: logoSrc || undefined,
           coverText: coverText || undefined,
+          coverFont,
+          showTitles,
+          songs: printShopSongPayload,
+          straight: true,
         }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: res.statusText }));
-        throw new Error(`[E03] ${err.message || 'Server error'}`);
+        // Fall back to the raw body when the response is not JSON (a platform
+        // level crash returns HTML), so the alert shows something actionable.
+        const raw = await res.text().catch(() => '');
+        let detail = res.statusText || 'Server error';
+        try {
+          const parsed = JSON.parse(raw);
+          detail = parsed.message || parsed.error || detail;
+        } catch {
+          if (raw) detail = raw.replace(/<[^>]*>/g, ' ').trim().slice(0, 200) || detail;
+        }
+        throw new Error(`[E03] ${detail} (HTTP ${res.status})`);
       }
       const pdfBytes = new Uint8Array(await res.arrayBuffer());
-      downloadPdf(pdfBytes, 'bencher-straight.pdf');
+      downloadPdf(pdfBytes, `bencher-${pageMode}-straight.pdf`);
     } catch (err) {
       const code = (err instanceof Error && err.message.match(/\[E\d+\]/)) ? err.message : `[E99] ${err instanceof Error ? err.message : 'Unknown'}`;
       console.error('Straight PDF generation failed:', err);
@@ -879,7 +998,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
     } finally {
       setIsDownloading(false);
     }
-  }, [coverText, logoSrc, pdfSource]);
+  }, [coverFont, coverText, logoSrc, pageMode, pdfSource, printShopSongPayload, showTitles]);
 
   useEffect(() => {
     document.body.classList.add('bencher-active');
@@ -1045,7 +1164,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
           />
         )}
 
-        <div className="bencher-page-footer" aria-hidden>Made with NiggunSheet.com</div>
+        <div className="bencher-page-footer" aria-hidden>Made with KumzitzSheet.com</div>
       </div>
     </div>
   )), [activeSlot, bencherLogoPlacement, bencherSongDropPlacement, coverFont, coverMode, designWidth, displayPages, handleLogoChange, logoSrc, pageMode, pdfSource, positionedSongs, previewSongKey, removeSong, showTitles]);
@@ -1065,7 +1184,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
       <div className="bencher-app">
         <Header />
 
-        <main className="bencher-workspace" style={pageMode === '8-page' ? { gridTemplateColumns: '1fr' } : undefined}>
+        <main id="main-content" tabIndex={-1} className="bencher-workspace" style={pageMode === '8-page' ? { gridTemplateColumns: '1fr' } : undefined}>
           {pageMode !== '8-page' && <aside className="sb2-sidebar bencher-sidebar" aria-label="Song library">
             <div className="sb2-sidebar-header">
               <div className="sb2-sidebar-tabs">
@@ -1281,6 +1400,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
                       onClick={() => {
                         if (!auth?.user) return;
                         setSaveDraftTitle(bencerTitle);
+                        setSaveError(null);
                         setShowSaveModal(true);
                       }}
                     >
@@ -1303,9 +1423,25 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
                 <div className="sb2-toolbar-section">
                   <div className="sb2-toolbar-section-title">Print</div>
                   <div className="sb2-toolbar-action-row">
-                    <button type="button" className="bencher-download-btn" onClick={handlePrint} disabled={!pdfSource} title={pdfSource ? 'Open the print dialog' : 'No PDF available for this mode'}>Print</button>
-                    {pageMode === '8-page' && (
-                      <button type="button" className="bencher-download-btn" onClick={handleDownloadStraightPdf} disabled={!pdfSource || isDownloading} title="Download a straight (non-imposed) PDF for print shops">Straight PDF</button>
+                    <button
+                      type="button"
+                      className="bencher-download-btn"
+                      onClick={handlePrint}
+                      disabled={!pdfSource || (Boolean(printShop) && !printShopReady)}
+                      title={
+                        !pdfSource
+                          ? 'No PDF available for this mode'
+                          : printShop
+                            ? printShopReady
+                              ? `Open the ${printShop.name} order form`
+                              : 'This print shop is not configured yet'
+                            : 'Open the print dialog'
+                      }
+                    >
+                      {printShop ? `Send to ${printShop.name}` : 'Print'}
+                    </button>
+                    {pageMode === '8-page' && !printShop && (
+                      <button type="button" className="bencher-download-btn" onClick={handleDownloadStraightPdf} disabled={!pdfSource || isDownloading} title="Download the booklet pages as individual, non-imposed pages for print shops">Straight PDF</button>
                     )}
                   </div>
                 </div>
@@ -1410,7 +1546,77 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
         coverText={coverText}
         songs={pageMode === '2-page' ? selectedSongs.map(s => ({ title: s.title, artist: s.artist, lyrics: s.lyrics })) : []}
         showTitles={showTitles}
+        coverFontFamily={COVER_FONT_OPTIONS.find((option) => option.value === coverFont)?.family ?? COVER_FONT_OPTIONS[0].family}
       />
+
+      {showPrintShopModal && printShop && (
+        <div
+          className="bencher-modal-backdrop"
+          onClick={(event) => { if (event.target === event.currentTarget) handleClosePrintShopModal(); }}
+        >
+          <div className="bencher-modal bencher-modal-info bencher-print-order-modal" role="dialog" aria-modal="true" aria-label={`Send bencher to ${printShop.name}`}>
+            <div className="bencher-modal-header">
+              <div>
+                <h2>Send to {printShop.name}</h2>
+                <p className="bencher-modal-overwrite-desc">{currentModeConfig.label} bencher with PDF attachment.</p>
+              </div>
+              <button type="button" className="bencher-modal-close" onClick={handleClosePrintShopModal} aria-label="Close">×</button>
+            </div>
+            <div className="bencher-modal-body bencher-modal-body-spacious">
+              {printShop.logoPath ? <img className="bencher-print-order-logo" src={printShop.logoPath} alt={printShop.logoAlt || `${printShop.name} logo`} /> : null}
+              <div className="bencher-print-order-meta">
+                {printShop.phone ? <span>{printShop.phone}</span> : null}
+                {printShop.email ? <span>{printShop.email}</span> : null}
+                {printShop.address ? <span>{printShop.address}</span> : null}
+              </div>
+              <label className="bencher-print-order-field">
+                <span>Name</span>
+                <input type="text" value={customerName} onChange={(event) => setCustomerName(event.target.value)} autoComplete="name" placeholder="Your name" />
+              </label>
+              <label className="bencher-print-order-field">
+                <span>Email</span>
+                <input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} autoComplete="email" placeholder="you@example.com" />
+              </label>
+              <label className="bencher-print-order-field">
+                <span>Phone</span>
+                <input type="tel" value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} autoComplete="tel" placeholder="Optional" />
+              </label>
+              <label className="bencher-print-order-field bencher-print-order-field-full">
+                <span>Notes</span>
+                <textarea value={orderNotes} onChange={(event) => setOrderNotes(event.target.value)} rows={4} placeholder="Quantity, pickup time, color requests, or any shop notes" />
+              </label>
+              {printShopSubmitMessage ? (
+                <p className={`bencher-print-order-message ${printShopSubmitState === 'error' ? 'is-error' : 'is-success'}`}>
+                  {printShopSubmitMessage}
+                </p>
+              ) : null}
+            </div>
+            <div className="bencher-modal-footer">
+              <button type="button" onClick={handleClosePrintShopModal}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bencher-modal-confirm"
+                onClick={handleSubmitPrintShopOrder}
+                disabled={
+                  printShopSubmitState === 'submitting' ||
+                  printShopSubmitState === 'success' ||
+                  !customerName.trim() ||
+                  !customerEmail.trim() ||
+                  !printShopReady
+                }
+              >
+                {printShopSubmitState === 'submitting'
+                  ? 'Sending...'
+                  : printShopSubmitState === 'success'
+                    ? 'Sent'
+                    : 'Send to Shop'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSaveModal && auth?.user && (
         <div
@@ -1438,6 +1644,7 @@ export default function BencherApp({ mode: pageMode }: BencherAppProps) {
                 onChange={(event) => setSaveDraftTitle(event.target.value)}
                 autoFocus
               />
+              {saveError ? <p className="bencher-modal-error" role="alert">{saveError}</p> : null}
             </div>
             <div className="bencher-modal-footer">
               <button type="button" onClick={() => setShowSaveModal(false)}>Cancel</button>

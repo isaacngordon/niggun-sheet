@@ -134,6 +134,8 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
     restoring,
     ready: authReady,
     authError,
+    driveScopeMissing,
+    grantDriveAccess,
     downloadTransferXml,
     readTransferXmlFile,
     importTransferXmlFile,
@@ -187,9 +189,9 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
     setTransferMessage(null);
     try {
       downloadTransferXml();
-      setTransferMessage('Your .niggun file is ready. Send it to the other person or keep it as a backup.');
+      setTransferMessage('Your .kumzitz file is ready. Send it to the other person or keep it as a backup.');
     } catch (error) {
-      setTransferError(error instanceof Error ? error.message : 'We could not download your .niggun file.');
+      setTransferError(error instanceof Error ? error.message : 'We could not download your .kumzitz file.');
     }
   }, [downloadTransferXml]);
 
@@ -218,7 +220,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
       });
     } catch (error) {
       setUploadFile(null);
-      setTransferError(error instanceof Error ? error.message : 'We could not read that .niggun file.');
+      setTransferError(error instanceof Error ? error.message : 'We could not read that .kumzitz file.');
     } finally {
       setTransferPreviewLoading(false);
     }
@@ -226,7 +228,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
 
   const handleUploadTransfer = useCallback(async () => {
     if (!uploadFile) {
-      setTransferError('Pick a .niggun file first.');
+      setTransferError('Pick a .kumzitz file first.');
       return;
     }
 
@@ -256,7 +258,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
       setTransferMessage(`Done. Added ${importedParts}. Anything you left unchecked stayed the same.`);
       setUploadFile(null);
     } catch (error) {
-      setTransferError(error instanceof Error ? error.message : 'We could not bring in that .niggun file.');
+      setTransferError(error instanceof Error ? error.message : 'We could not bring in that .kumzitz file.');
     } finally {
       setTransferBusy(false);
     }
@@ -318,6 +320,17 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
       return (
         <>
           <span className="mobile-nav-user" style={restoring ? { opacity: 0.6 } : undefined}>{user.email}</span>
+          {driveScopeMissing && (
+            <button
+              className="mobile-nav-signin header-drive-required-btn"
+              onClick={() => {
+                void grantDriveAccess();
+              }}
+              disabled={authLoading || !authReady}
+            >
+              {authLoading ? 'Opening Google…' : 'Allow Drive access'}
+            </button>
+          )}
           {!restoring && (
             <button
               className="mobile-nav-signout"
@@ -359,6 +372,9 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
         >
           {authLoading ? 'Signing in...' : 'Sign in with Google'}
         </button>
+        {driveScopeMissing && !authError && (
+          <p className="header-auth-error mobile">Google Drive access is required. Allow it on Google&apos;s screen to save your work.</p>
+        )}
         {authError && <p className="header-auth-error mobile">{authError}</p>}
       </div>
     );
@@ -367,6 +383,21 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
   if (user) {
     return (
       <div className="header-user-menu">
+        {driveScopeMissing && (
+          <div className="header-drive-required" role="alert">
+            <span>Google Drive access is required so your songs, sheets, and benchers can be saved.</span>
+            <button
+              type="button"
+              className="header-signin-btn header-drive-required-btn"
+              onClick={() => {
+                void grantDriveAccess();
+              }}
+              disabled={authLoading || !authReady}
+            >
+              {authLoading ? 'Opening Google…' : 'Allow Drive access'}
+            </button>
+          </div>
+        )}
         <div className="header-account-menu" ref={menuRef}>
           <button
             type="button"
@@ -416,7 +447,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
               <input
                 ref={uploadInputRef}
                 type="file"
-                accept=".niggun,.xml,text/xml,application/xml"
+                accept=".kumzitz,.niggun,.xml,text/xml,application/xml"
                 style={{ display: 'none' }}
                 onChange={(event) => {
                   const file = event.target.files?.[0] ?? null;
@@ -473,17 +504,17 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
                     <p>Use this if you want to move your saved songs, sheets, and benchers to another Google account.</p>
                     <ol>
                       <li>Press Download.</li>
-                      <li>A .niggun file will save to your computer.</li>
+                      <li>A .kumzitz file will save to your computer.</li>
                       <li>Send that file to someone else, or keep it as a backup.</li>
                     </ol>
-                    <button type="button" className="header-signout-btn" onClick={handleDownloadTransfer} disabled={transferBusy}>Download .niggun File</button>
+                    <button type="button" className="header-signout-btn" onClick={handleDownloadTransfer} disabled={transferBusy}>Download .kumzitz File</button>
                   </div>
                   <div className="header-manager-transfer-card">
                     <h4>Upload into this account</h4>
-                    <p>Use this if someone gave you a .niggun file, or if you want to bring back your backup.</p>
+                    <p>Use this if someone gave you a .kumzitz file, or if you want to bring back your backup.</p>
                     <ol>
                       <li>Press Choose File.</li>
-                      <li>Pick the .niggun file.</li>
+                      <li>Pick the .kumzitz file.</li>
                       <li>Press Upload.</li>
                     </ol>
                     <div className="header-manager-file-row">
@@ -588,7 +619,7 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
                       </div>
                     )}
                     <button type="button" className="header-signin-btn" onClick={() => { void handleUploadTransfer(); }} disabled={transferBusy || transferPreviewLoading || !transferPreview}>
-                      {transferBusy ? 'Uploading...' : 'Upload .niggun File'}
+                      {transferBusy ? 'Uploading...' : 'Upload .kumzitz File'}
                     </button>
                   </div>
                   {(transferError || transferMessage) && (
@@ -806,6 +837,9 @@ function HeaderAuthControlsView({ mobile = false, onDone }: HeaderAuthControlsPr
       >
         {authLoading ? 'Signing in...' : 'Sign in'}
       </button>
+      {driveScopeMissing && !authError && (
+        <p className="header-auth-error">Google Drive access is required. Allow it on Google&apos;s screen to save your work.</p>
+      )}
       {authError && <p className="header-auth-error">{authError}</p>}
     </div>
   );

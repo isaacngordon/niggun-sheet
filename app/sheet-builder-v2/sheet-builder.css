@@ -103,7 +103,7 @@
   background: none;
   border: none !important;
   border-bottom: 2px solid transparent;
-  color: rgba(243, 237, 226, 0.48);
+  color: rgba(243, 237, 226, 0.62);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1412,7 +1412,15 @@
 }
 
 .sb2-sheet-page.drag-over {
-  box-shadow: 0 0 0 3px #f2cb05, 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 2px rgba(242, 203, 5, 0.9),
+    0 0 36px rgba(242, 203, 5, 0.22),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* When several pages are on screen, fade the ones not receiving the song */
+.sb2-page-container:has(.drag-over) .sb2-sheet-page:not(.drag-over) {
+  opacity: 0.68;
 }
 
 .sb2-sheet-page.drag-over .sb2-packery-grid {
@@ -1527,6 +1535,40 @@
   margin: 0;
 }
 
+/* Insertion indicator — where the dragged song will land */
+.sb2-drop-slot.active::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 50%;
+  height: 3px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(242, 203, 5, 0) 0%,
+    #f2cb05 18%,
+    #f2cb05 82%,
+    rgba(242, 203, 5, 0) 100%
+  );
+  box-shadow: 0 0 12px rgba(242, 203, 5, 0.55);
+  animation: sb2-slot-pulse 1.2s ease-in-out infinite;
+}
+
+/* The auto-placement preview card already shows exactly where the song lands,
+   so a second placeholder box in the empty slot just looks like a stray
+   element sitting under the placed song. Let the preview card be the only
+   landing indicator while it is on screen. */
+.sb2-packery-grid:has(.sb2-song-card-preview) .sb2-drop-slot.active::after {
+  display: none;
+}
+
+@keyframes sb2-slot-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
 /* ─── Song Card (on sheet — matches original exactly) ─────── */
 
 .sb2-song-card {
@@ -1550,9 +1592,12 @@
 .sb2-song-card-preview {
   cursor: default;
   margin: 6px 0 0;
-  border: 2px dashed rgba(242, 203, 5, 0.95);
-  background: rgba(255, 249, 196, 0.95);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+  border: 2px dashed rgba(242, 203, 5, 0.9);
+  border-radius: 6px;
+  background: rgba(255, 249, 196, 0.9);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    0 6px 18px rgba(242, 203, 5, 0.16);
   pointer-events: none;
 }
 
@@ -1589,7 +1634,10 @@
 }
 
 .sb2-song-card.sb2-drag-source-active {
-  opacity: 0.32;
+  opacity: 0.3;
+  border-radius: 6px;
+  background: rgba(242, 203, 5, 0.06);
+  box-shadow: inset 0 0 0 2px rgba(242, 203, 5, 0.28);
 }
 
 .sb2-song-card-title {
@@ -1698,33 +1746,87 @@
   transform: scale(1.1);
 }
 
-/* Drag overlay card */
-.sb2-drag-overlay {
-  background: #fff9c4;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  opacity: 0.95;
-  width: 200px;
+/* ─── Drag overlay: centred translucent label, marching ants ─── */
+
+.sb2-drag-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  /* Hug the text instead of sitting in a fixed-size box. */
+  width: max-content;
+  min-width: 0;
+  max-width: min(90vw, 100%);
+  padding: 11px 24px;
+  text-align: center;
+  border-radius: 0;
+  /* Defocus blur: the content behind the label is blurred out of focus. */
+  background: rgba(16, 16, 16, 0.3);
+  backdrop-filter: blur(12px) saturate(1.15);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.28);
+  cursor: grabbing;
+  pointer-events: none;
+  animation: sb2-drag-marker-in 0.12s ease-out;
 }
 
-.sb2-drag-overlay-card {
-  margin: 0;
-  background: transparent;
-  box-shadow: none;
-  opacity: 1;
+/* Thick yellow dashed ring, deliberately still. */
+.sb2-drag-marker::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border: 4px dashed #f2cb05;
+  border-radius: 0;
   pointer-events: none;
 }
 
-.sb2-drag-overlay-card .sb2-song-card-title,
-.sb2-drag-overlay-card .sb2-song-card-lyrics {
-  opacity: 0.45;
+.sb2-drag-marker-title {
+  max-width: 100%;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: rgba(255, 255, 255, 0.96);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.sb2-drag-overlay-card .sb2-remove-btn {
-  display: none;
+.sb2-drag-marker-artist {
+  max-width: 100%;
+  font-size: 13px;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.74);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
+@keyframes sb2-drag-marker-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* The sidebar item left behind while its copy is being dragged */
 .sb2-song-item.is-dragging {
-  opacity: 0.45;
+  opacity: 0.4;
+  filter: grayscale(0.35);
+  cursor: grabbing;
+}
+
+/* Keep the cursor consistent across the whole page during a drag */
+body.sb2-is-dragging,
+body.sb2-is-dragging * {
+  cursor: grabbing !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb2-drag-marker,
+  .sb2-drop-slot.active::after {
+    animation: none;
+  }
 }
 
 .sb2-measure-root {

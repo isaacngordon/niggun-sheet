@@ -1,7 +1,7 @@
 {
-  "name": "niggun-sheet",
+  "name": "kumzitz-sheet",
   "version": "1.0.1",
-  "description": "Discover Your Perfect Niggun - the next generation of Kumzits Sheets",
+  "description": "Discover Your Perfect Kumzitz - the next generation of Kumzitz Sheets",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
@@ -10,7 +10,8 @@
     "bencher:render-pdf": "swift scripts/render-bencher-pdf.swift benchingForSitepdf.pdf public/assets/bencher Bencher-2pg && swift scripts/render-bencher-pdf.swift benchingForSite4pgs.pdf public/assets/bencher Bencher-4pg",
     "waveforms:generate": "node scripts/generate-waveforms.mjs",
     "test": "jest",
-    "test:e2e": "npx playwright test"
+    "test:e2e": "npx playwright test",
+    "verify:gemini": "node scripts/verify-with-gemini.mjs"
   },
   "author": "",
   "license": "ISC",
@@ -39,6 +40,7 @@
     "react-pdf": "^10.4.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.59.1",
     "@types/cheerio": "^0.22.35",
     "@types/jest": "^30.0.0",
@@ -47,6 +49,7 @@
     "@types/react-dom": "^19",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
+    "lighthouse": "^13.6.0",
     "puppeteer": "^25.5.0",
     "ts-jest": "^29.4.9",
     "typescript": "^5"

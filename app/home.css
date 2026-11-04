@@ -141,6 +141,7 @@
   padding: 0.8rem 1.6rem;
   border: 1px solid transparent;
   border-radius: 999px;
+  font-family: inherit;
   font-size: 1rem;
   font-weight: 700;
   text-decoration: none;
@@ -231,6 +232,16 @@
   background-color: var(--hp-surface-hover);
   border-color: var(--hp-accent);
   transform: translateY(-2px);
+}
+
+/* The Download Sheet card renders as a <button>; normalize it to match the link cards. */
+button.hp-tool {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .hp-tool-icon {

@@ -35,6 +35,7 @@ export interface BencherPrintViewProps {
   coverText: string;
   songs: PrintSong[];
   showTitles: boolean;
+  coverFontFamily: string;
 }
 
 const ORNAMENT_SRC = '/assets/Andy-heading-flourish.svg';
@@ -64,7 +65,7 @@ function LogoOverlay({ cw, ch, hasText, logoSrc }: { cw: number; ch: number; has
 }
 
 /** Mirrors overlayHtml.ts's buildCoverOverlayHtml. */
-function CoverOverlay({ cw, ch, hasLogo, hasText, textLines, fontSizePt, ornamentWidthFrac }: {
+function CoverOverlay({ cw, ch, hasLogo, hasText, textLines, fontSizePt, ornamentWidthFrac, fontFamily }: {
   cw: number;
   ch: number;
   hasLogo: boolean;
@@ -72,6 +73,7 @@ function CoverOverlay({ cw, ch, hasLogo, hasText, textLines, fontSizePt, ornamen
   textLines: string[];
   fontSizePt: number;
   ornamentWidthFrac: number;
+  fontFamily: string;
 }) {
   const ow = cw * ornamentWidthFrac;
   const ty = hasLogo ? ch * 0.28 : ch * 0.65;
@@ -92,7 +94,7 @@ function CoverOverlay({ cw, ch, hasLogo, hasText, textLines, fontSizePt, ornamen
       {hasText && (
         <div style={{ position: 'absolute', left: '50%', top: `${cssTopPt}pt`, transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           {!hasLogo && <div style={{ marginBottom: 8 }}><Ornament widthPt={ow} /></div>}
-          <div className="bencher-print-hebrew" style={{ fontSize: `${fontSizePt}pt` }}>
+          <div className="bencher-print-hebrew" style={{ fontSize: `${fontSizePt}pt`, fontFamily }}>
             {textLines.map((line, i) => <div key={i} dir="rtl">{line || ' '}</div>)}
           </div>
           {!hasLogo && <div style={{ marginTop: 4 }}><Ornament widthPt={ow} flipped /></div>}
@@ -102,7 +104,7 @@ function CoverOverlay({ cw, ch, hasLogo, hasText, textLines, fontSizePt, ornamen
   );
 }
 
-function CoverBox({ cw, ch, pageNumber, mode, hasLogo, hasText, textLines, fontSizePt, ornamentWidthFrac, logoSrc }: {
+function CoverBox({ cw, ch, pageNumber, mode, hasLogo, hasText, textLines, fontSizePt, ornamentWidthFrac, logoSrc, fontFamily }: {
   cw: number;
   ch: number;
   pageNumber: number;
@@ -113,6 +115,7 @@ function CoverBox({ cw, ch, pageNumber, mode, hasLogo, hasText, textLines, fontS
   fontSizePt: number;
   ornamentWidthFrac: number;
   logoSrc: string | null;
+  fontFamily: string;
 }) {
   const bg = pageNumber > 0 ? getBencherPageBackground(mode, pageNumber) : '';
   const isCover = pageNumber === 1;
@@ -121,13 +124,13 @@ function CoverBox({ cw, ch, pageNumber, mode, hasLogo, hasText, textLines, fontS
       {bg && <img src={bg} alt="" className="bencher-print-bg" />}
       {isCover && hasLogo && logoSrc && <LogoOverlay cw={cw} ch={ch} hasText={hasText} logoSrc={logoSrc} />}
       {isCover && (
-        <CoverOverlay cw={cw} ch={ch} hasLogo={hasLogo} hasText={hasText} textLines={textLines} fontSizePt={fontSizePt} ornamentWidthFrac={ornamentWidthFrac} />
+        <CoverOverlay cw={cw} ch={ch} hasLogo={hasLogo} hasText={hasText} textLines={textLines} fontSizePt={fontSizePt} ornamentWidthFrac={ornamentWidthFrac} fontFamily={fontFamily} />
       )}
     </div>
   );
 }
 
-export default function BencherPrintView({ mode, logoSrc, coverText, songs, showTitles }: BencherPrintViewProps) {
+export default function BencherPrintView({ mode, logoSrc, coverText, songs, showTitles, coverFontFamily }: BencherPrintViewProps) {
   const hasLogo = !!logoSrc;
   const hasText = !!(coverText && coverText.trim());
   const coverTextLines = hasText ? coverText.split('\n') : [];
@@ -203,8 +206,8 @@ export default function BencherPrintView({ mode, logoSrc, coverText, songs, show
       <style>{'@media print { @page { size: letter landscape; margin: 0; } }'}</style>
       {sheets.map(({ left, right }, i) => (
         <div key={i} className="bencher-print-sheet">
-          <CoverBox cw={HW} ch={H} pageNumber={left} mode={mode} hasLogo={hasLogo} hasText={hasText} textLines={coverTextLines} fontSizePt={coverFontSizePt} ornamentWidthFrac={0.72} logoSrc={logoSrc} />
-          <CoverBox cw={HW} ch={H} pageNumber={right} mode={mode} hasLogo={hasLogo} hasText={hasText} textLines={coverTextLines} fontSizePt={coverFontSizePt} ornamentWidthFrac={0.72} logoSrc={logoSrc} />
+          <CoverBox cw={HW} ch={H} pageNumber={left} mode={mode} hasLogo={hasLogo} hasText={hasText} textLines={coverTextLines} fontSizePt={coverFontSizePt} ornamentWidthFrac={0.72} logoSrc={logoSrc} fontFamily={coverFontFamily} />
+          <CoverBox cw={HW} ch={H} pageNumber={right} mode={mode} hasLogo={hasLogo} hasText={hasText} textLines={coverTextLines} fontSizePt={coverFontSizePt} ornamentWidthFrac={0.72} logoSrc={logoSrc} fontFamily={coverFontFamily} />
         </div>
       ))}
     </div>
