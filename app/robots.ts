@@ -1,6 +1,5 @@
 import type { MetadataRoute } from 'next';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://kumzitzsheet.com';
+import { SITE_URL } from '@/lib/siteConfig';
 
 // Assistants are the intended audience for /ai.txt and /llms.txt, so they are allowed
 // explicitly rather than relying on the wildcard rule alone.

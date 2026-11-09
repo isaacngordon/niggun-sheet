@@ -20,10 +20,10 @@ describe('SEO route metadata', () => {
     const urls = (await sitemap()).map((entry) => entry.url);
 
     expect(urls).toEqual(expect.arrayContaining([
-      'https://kumzitzsheet.com/',
-      'https://kumzitzsheet.com/songs',
-      'https://kumzitzsheet.com/sheet-builder',
-      'https://kumzitzsheet.com/contact',
+      'https://www.kumzitzsheet.com/',
+      'https://www.kumzitzsheet.com/songs',
+      'https://www.kumzitzsheet.com/sheet-builder',
+      'https://www.kumzitzsheet.com/contact',
     ]));
   });
 
@@ -33,6 +33,6 @@ describe('SEO route metadata', () => {
 
     expect(firstRule.allow).toBe('/');
     expect(firstRule.disallow).toEqual(expect.arrayContaining(['/api/', '/sheet-test', '/smartboard-mode']));
-    expect(config.sitemap).toBe('https://kumzitzsheet.com/sitemap.xml');
+    expect(config.sitemap).toBe('https://www.kumzitzsheet.com/sitemap.xml');
   });
 });
