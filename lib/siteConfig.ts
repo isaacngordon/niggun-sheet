@@ -8,10 +8,18 @@
  * URL we publish is a redirect, which is what Google reports as
  * "Page is not indexed: Page with redirect".
  *
- * Set `NEXT_PUBLIC_SITE_URL` to the same value in the Vercel project
- * (Production). It is inlined at build time and overrides this fallback, so a
- * stale value there will reintroduce the mismatch.
+ * `NEXT_PUBLIC_SITE_URL` may still be set in the Vercel project. It is inlined
+ * at build time and overrides the fallback, so an apex value there used to
+ * silently reintroduce the mismatch in production. `resolveSiteUrl` rewrites
+ * the apex to the canonical host, so that mistake can no longer go live.
+ * Preview hosts (e.g. `beta.kumzitzsheet.com`) are left untouched.
  */
-export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL || 'https://www.kumzitzsheet.com'
-).replace(/\/+$/, '');
+const CANONICAL_SITE_URL = 'https://www.kumzitzsheet.com';
+const APEX_SITE_URL = 'https://kumzitzsheet.com';
+
+export function resolveSiteUrl(override?: string): string {
+  const candidate = (override?.trim() || CANONICAL_SITE_URL).replace(/\/+$/, '');
+  return candidate.toLowerCase() === APEX_SITE_URL ? CANONICAL_SITE_URL : candidate;
+}
+
+export const SITE_URL = resolveSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
