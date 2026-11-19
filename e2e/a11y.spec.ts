@@ -16,7 +16,6 @@ const ROUTES = [
   { path: '/bencher', name: 'bencher' },
   { path: '/printonpoint', name: 'print-shop' },
   { path: '/sheet-builder', name: 'sheet-builder' },
-  { path: '/sheet-builder-v2', name: 'sheet-builder-v2' },
   { path: '/smartboard-mode', name: 'smartboard' },
   { path: '/contact', name: 'contact' },
   { path: '/tracking-disclosure', name: 'tracking-disclosure' },

@@ -50,14 +50,14 @@ export async function generateMetadata({
   const song = findSong(songs, slug);
 
   if (!song) {
-    return { title: 'Song Not Found | Kumzitz Sheet' };
+    return { title: 'Song Not Found' };
   }
 
   const description = getFirstLyricLine(song.lyrics) || `Lyrics and details for ${song.title}`;
   const artistPart = song.artist ? ` by ${song.artist}` : '';
 
   return {
-    title: `${song.title} | Kumzitz Sheet`,
+    title: song.title,
     description,
     alternates: { canonical: `${SITE_URL}/songs/${slug}` },
     openGraph: {

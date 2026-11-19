@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useGoogleAuth } from '@/components/GoogleAuthProvider';
 import AddSongModal from '@/components/AddSongModal';
 import MediaPlayer from '@/components/MediaPlayer';
@@ -29,6 +30,7 @@ interface Song {
 interface SongListEntry {
   key: string;
   href: string;
+  timingSourceKey: string | null;
   smartboardHref: string;
   title: string;
   artist: string;
@@ -50,6 +52,7 @@ interface SongsListProps {
 }
 
 export default function SongsList({ songs, initialSearch }: SongsListProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [timingEntriesBySlug, setTimingEntriesBySlug] = useState<Record<string, TimingEntry>>({});
   const { user, privateSongs, preferences, loading: authLoading, ready: authReady, signIn, signOut, addSong, addSongs, removeSong, setPref } = useGoogleAuth();
@@ -134,7 +137,8 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
 
         return [{
           key: `${hrefBase}-${source?.key ?? 'default'}`,
-          href: source?.key ? `${hrefBase}?timingSource=${encodeURIComponent(source.key)}` : hrefBase,
+          href: hrefBase,
+          timingSourceKey: source?.key ?? null,
           smartboardHref: `/smartboard-mode?slug=${encodeURIComponent(isPrivate ? `my-${song._privateId}` : slugify(song.title))}&lyrics=${encodeURIComponent(song.lyrics)}${song.audio ? `&audio=${encodeURIComponent(song.audio)}` : ''}${source?.youtubeUrl ? `&youtube=${encodeURIComponent(source.youtubeUrl)}` : ''}${source?.key ? `&timingSource=${encodeURIComponent(source.key)}` : ''}`,
           title: song.title,
           artist: song.artist,
@@ -155,7 +159,8 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
 
         return {
           key: `${hrefBase}-${source.key}`,
-          href: `${hrefBase}?timingSource=${encodeURIComponent(source.key)}`,
+          href: hrefBase,
+          timingSourceKey: source.key,
           smartboardHref: `/smartboard-mode?slug=${encodeURIComponent(isPrivate ? `my-${song._privateId}` : slugify(song.title))}&lyrics=${encodeURIComponent(song.lyrics)}${source.youtubeUrl ? `&youtube=${encodeURIComponent(source.youtubeUrl)}` : ''}${source.key ? `&timingSource=${encodeURIComponent(source.key)}` : ''}`,
           title: song.title,
           artist: source.label,
@@ -267,7 +272,17 @@ export default function SongsList({ songs, initialSearch }: SongsListProps) {
             const listExcerpt = lyricLines.slice(0, 2).join('  ') ?? '';
             return (
               <div key={entry.key} className={`song-card ${entry.isPrivate ? 'private-song-card' : ''}`}>
-                <Link href={entry.href} className="song-card-link">
+                <Link
+                  href={entry.href}
+                  className="song-card-link"
+                  onClick={(e) => {
+                    // Keep the timing-source choice without publishing a second
+                    // crawlable URL: the href stays canonical, the click adds the param.
+                    if (!entry.timingSourceKey || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                    e.preventDefault();
+                    router.push(`${entry.href}?timingSource=${encodeURIComponent(entry.timingSourceKey)}`);
+                  }}
+                >
                   {viewMode === 'list' ? (
                     <div className="song-list-headline">
                       <span className="song-list-index">{String(index + 1).padStart(2, '0')}</span>
