@@ -13,7 +13,7 @@ export default function CiscoAccordion() {
     },
     {
       title: "Curated List of Classic & Modern Songs",
-      desc: "Browse a constantly growing repository of Jewish music, complete with lyrics, chords, and source tags.",
+      desc: "A carefully chosen selection of songs replete with audio and lyrics.",
       img: "/assets/image%202.png"
     },
     {

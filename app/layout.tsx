@@ -6,8 +6,7 @@ import { Suspense } from 'react';
 import Analytics from '@/components/Analytics';
 import AnalyticsPreferences from '@/components/AnalyticsPreferences';
 import DebugRectTool from '@/components/DebugRectTool';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://kumzitzsheet.com';
+import { SITE_URL } from '@/lib/siteConfig';
 
 const frankRuhlLibre = Frank_Ruhl_Libre({
   subsets: ['hebrew', 'latin'],

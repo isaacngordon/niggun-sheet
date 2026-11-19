@@ -1,7 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { getSongs } from '@/app/api/songs/data';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://kumzitzsheet.com';
+import { SITE_URL } from '@/lib/siteConfig';
 
 function slugify(text: string): string {
   return text

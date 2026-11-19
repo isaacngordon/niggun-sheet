@@ -125,8 +125,8 @@ test.describe('Kumzitz Sheet site QA', () => {
     const sitemap = await request.get('/sitemap.xml');
     expect(sitemap.status()).toBe(200);
     const sitemapText = await sitemap.text();
-    expect(sitemapText).toContain('<loc>https://kumzitzsheet.com/songs</loc>');
-    expect(sitemapText).toContain('<loc>https://kumzitzsheet.com/sheet-builder</loc>');
+    expect(sitemapText).toContain('<loc>https://www.kumzitzsheet.com/songs</loc>');
+    expect(sitemapText).toContain('<loc>https://www.kumzitzsheet.com/sheet-builder</loc>');
   });
 
   test('API returns usable song records', async ({ request }) => {

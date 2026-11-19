@@ -69,7 +69,7 @@ const nextConfig = {
       {
         source: '/api/:path*',
         headers: [
-          { key: 'Access-Control-Allow-Origin', value: 'https://kumzitzsheet.com' },
+          { key: 'Access-Control-Allow-Origin', value: 'https://www.kumzitzsheet.com' },
           { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'Origin, X-Requested-With, Content-Type, Accept, Authorization' },
         ],

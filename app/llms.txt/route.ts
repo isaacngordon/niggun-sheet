@@ -1,4 +1,4 @@
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://kumzitzsheet.com';
+import { SITE_URL } from '@/lib/siteConfig';
 
 const BODY = `# Kumzitz Sheet
 
