@@ -66,6 +66,14 @@ describe('SEO route metadata', () => {
     expect(urls.filter((url) => !url.startsWith('https://www.kumzitzsheet.com/'))).toEqual([]);
   });
 
+  it('omits URLs that only redirect', async () => {
+    const urls = (await sitemap()).map((entry) => entry.url);
+
+    // /sheet-builder-v2 permanently redirects to /sheet-builder, so publishing it
+    // hands Search Console a "Page with redirect" instead of an indexable URL.
+    expect(urls).not.toContain('https://www.kumzitzsheet.com/sheet-builder-v2');
+  });
+
   it('keeps private/test routes out of search indexing', () => {
     const config = robots();
     const firstRule = Array.isArray(config.rules) ? config.rules[0] : config.rules;
